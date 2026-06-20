@@ -2,7 +2,20 @@
 
 A cinematic timeline platform for makers. Document your projects, ship logs, and share your journey — with full AI agent access via MCP.
 
-![Stack](https://img.shields.io/badge/React_18-TypeScript-blue) ![Supabase](https://img.shields.io/badge/Backend-Supabase-green) ![License](https://img.shields.io/badge/License-MIT-purple)
+[![UI](https://img.shields.io/badge/UI-devlog--three--mu.vercel.app-black?logo=vercel)](https://devlog-three-mu.vercel.app)
+[![MCP](https://img.shields.io/badge/MCP-railway-blueviolet?logo=railway)](https://mcp-server-production-8a48.up.railway.app/health)
+[![License](https://img.shields.io/badge/license-MIT-purple)](LICENSE)
+
+---
+
+## Live
+
+| Service | URL |
+|---|---|
+| App | https://devlog-three-mu.vercel.app |
+| MCP / REST API | https://mcp-server-production-8a48.up.railway.app |
+| API docs | https://mcp-server-production-8a48.up.railway.app/docs |
+| Health | https://mcp-server-production-8a48.up.railway.app/health |
 
 ---
 
@@ -16,13 +29,52 @@ devLog is where makers document their work. Create projects, post timeline logs 
 
 ## Features
 
-- **Cinematic timeline** — vertical log feed grouped by month, smooth animations, media gallery
+- **Cinematic timeline** — vertical log feed grouped by month, smooth Framer Motion animations, media gallery
 - **Markdown logs** — write with full markdown, upload images/videos (50 MB), set mood and visibility per entry
 - **Visibility system** — private / public / unlisted / shared per project and log
-- **Social layer** — follows, reactions, comments, notifications
+- **Social layer** — follows, reactions, comments, real-time notifications
 - **Explore** — discover trending public projects and makers
 - **AI agent access** — scoped tokens let Claude, Cursor, Windsurf, or any MCP client post logs on your behalf
-- **REST API** — same access without MCP, works with any HTTP client
+- **REST API** — same access without MCP, works with any HTTP client or script
+
+---
+
+## How it works
+
+```
+┌─────────────────────────────────┐
+│  Browser (React + Vite)         │
+│  Vercel — global CDN            │
+└────────────┬────────────────────┘
+             │ Supabase JS (anon key)
+             ▼
+┌─────────────────────────────────┐
+│  Supabase                       │
+│  • Postgres + RLS               │
+│  • Auth (email/password)        │
+│  • Storage (avatars, media)     │
+│  • Realtime (comments, notifs)  │
+└─────────────────────────────────┘
+             ▲
+             │ service role key (server-only)
+┌─────────────────────────────────┐
+│  MCP Server (Node.js)           │
+│  Railway — always-on HTTP       │
+│  • MCP protocol (Claude etc.)   │
+│  • REST API (any HTTP client)   │
+│  • Scoped agent tokens          │
+│  • Audit logging                │
+└─────────────────────────────────┘
+             ▲
+             │ Bearer token
+┌─────────────────────────────────┐
+│  AI agents                      │
+│  Claude Code / Cursor /         │
+│  Windsurf / Copilot / scripts   │
+└─────────────────────────────────┘
+```
+
+The MCP server never shares the Supabase service role key with the browser. Every agent action is validated against the token owner's scopes and recorded in `agent_audit_logs`.
 
 ---
 
@@ -30,21 +82,67 @@ devLog is where makers document their work. Create projects, post timeline logs 
 
 | Layer | Tech |
 |---|---|
-| Frontend | React 18, Vite 5, TypeScript, TailwindCSS, Framer Motion |
+| Frontend | React 18, Vite 5, TypeScript 5 (strict), TailwindCSS v3, Framer Motion |
 | State | Zustand, React Router v6 |
 | Backend | Supabase (Auth, Postgres, Storage, Realtime, RLS) |
-| MCP server | Node.js, `@modelcontextprotocol/sdk`, Zod |
+| MCP server | Node.js 22, `@modelcontextprotocol/sdk`, Zod |
+| Hosting | Vercel (UI) + Railway (MCP server) |
 
 ---
 
 ## Project structure
 
 ```
-devLog/
-├── ui/          # React frontend (Vite)
-├── mcp/         # MCP + REST API server (Node.js)
-└── supabase/    # schema.sql — run this against your Supabase project
+devlog/
+├── ui/                  # React frontend (Vite)
+│   ├── src/
+│   │   ├── pages/       # Route-level components
+│   │   ├── features/    # auth, logs, projects, social, explore, profile
+│   │   ├── components/  # shared UI + layout
+│   │   ├── services/    # Supabase wrappers
+│   │   ├── stores/      # Zustand (authStore, uiStore)
+│   │   └── types/       # database.ts + domain types
+│   └── vercel.json
+├── mcp/                 # MCP + REST API server
+│   ├── src/
+│   │   ├── http.ts      # HTTP server, rate limiting, CORS, health
+│   │   ├── rest.ts      # REST endpoints + setup.sh script
+│   │   ├── auth.ts      # token validation, scope checks, cache (60s TTL)
+│   │   ├── audit.ts     # agent_audit_logs writer
+│   │   └── tools/       # MCP tool definitions (docs, projects, logs)
+│   ├── AGENT_DOCS.md    # live docs served at GET /docs
+│   └── railpack.toml
+├── supabase/
+│   └── schema.sql       # full DB schema + RLS policies
+└── Dockerfile           # multi-stage build for Railway
 ```
+
+---
+
+## Deployment
+
+### UI — Vercel
+
+Auto-deploys from `main` branch. Root directory: `ui/`.
+
+```
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+VITE_APP_URL=https://devlog-three-mu.vercel.app
+VITE_DEVLOG_MCP_URL=https://mcp-server-production-8a48.up.railway.app
+```
+
+### MCP server — Railway
+
+Built with Docker (multi-stage, Node 22 Alpine). Root directory: repo root (Dockerfile at `/`).
+
+```
+DEVLOG_SUPABASE_URL=
+DEVLOG_SUPABASE_SERVICE_ROLE_KEY=
+DEVLOG_MCP_ALLOWED_ORIGIN=https://devlog-three-mu.vercel.app
+```
+
+Railway sets `PORT` automatically.
 
 ---
 
@@ -54,69 +152,56 @@ devLog/
 
 1. Create a project at [supabase.com](https://supabase.com)
 2. Run `supabase/schema.sql` in the SQL editor
-3. Enable Email auth in Authentication → Providers
+3. Enable Email auth in **Authentication → Providers**
 4. Create storage buckets: `avatars`, `project-covers`, `log-media` (all public)
 
 ### 2. UI
 
 ```bash
 cd ui
-cp .env.example .env   # fill in your Supabase URL + anon key
+cp .env.example .env   # fill in Supabase URL + anon key
 npm install
-npm run dev
+npm run dev            # http://localhost:5173
 ```
 
-### 3. MCP server (optional — needed for AI agent access)
+### 3. MCP server
 
 ```bash
 cd mcp
-cp .env.example .env   # fill in your Supabase URL + service role key
+cp .env.example .env   # fill in Supabase URL + service role key
 npm install
-npm run dev:http       # starts on :8787
+npm run dev:http       # http://localhost:8787
 ```
-
-See [`mcp/README.md`](mcp/README.md) for deployment and agent setup.
 
 ---
 
 ## AI agent access
 
-devLog has a built-in MCP server so your AI assistant can post logs while you code.
-
-**Setup (30 seconds):**
+Get a token from the app → **Agents** → **New token**, then run the interactive setup script:
 
 ```bash
-curl -fsSL https://your-mcp-host.example.com/setup.sh | bash -s -- <your-token>
+curl -fsSL https://mcp-server-production-8a48.up.railway.app/setup.sh | bash -s -- <your-token>
 ```
 
-The interactive script saves your token, gitignores it, and writes the context snippet into CLAUDE.md / `.cursor/rules` / `.windsurfrules` / Copilot instructions — whichever agents you use.
+The script:
+1. Saves your token to `.devlog` (gitignored automatically)
+2. Asks which agents you use (Claude Code, Cursor, Windsurf, Copilot)
+3. Writes the context snippet into the right config file for each
 
-After setup, Claude/Cursor/Windsurf can:
-- List and read your projects
-- Create and update timeline logs
-- Create and update projects
+After setup your AI assistant can:
 
-All actions are scoped to the token owner and recorded in an audit log.
+| Action | Scope needed |
+|---|---|
+| List projects | `read_projects` |
+| Read project timeline | `read_logs` |
+| Create a project | `create_project` |
+| Update a project | `update_project` |
+| Create a log entry | `create_log` |
+| Update a log entry | `update_log` |
 
----
+All actions are scoped to the token owner and recorded in an audit log visible in the app.
 
-## Environment variables
-
-**`ui/.env`**
-```env
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
-VITE_APP_URL=http://localhost:5173
-VITE_DEVLOG_MCP_URL=https://your-mcp-host.example.com
-```
-
-**`mcp/.env`**
-```env
-DEVLOG_SUPABASE_URL=
-DEVLOG_SUPABASE_SERVICE_ROLE_KEY=
-PORT=8787
-DEVLOG_MCP_ALLOWED_ORIGIN=*
-```
+Full API reference: `GET /docs` on the MCP server.
 
 ---
 
