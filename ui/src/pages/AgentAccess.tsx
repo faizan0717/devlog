@@ -79,17 +79,6 @@ export default function AgentAccess() {
 
   useEffect(() => { void refresh() }, [refresh])
 
-  async function revoke(token: AgentToken) {
-    if (!confirm(`Revoke ${token.name}? Agents using this token will stop working.`)) return
-    try {
-      await agentTokensService.revoke(token.id)
-      toast.success('Token revoked')
-      await refresh()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to revoke token')
-    }
-  }
-
   async function deleteToken(token: AgentToken) {
     if (!confirm(`Delete "${token.name}"? This cannot be undone.`)) return
     try {
