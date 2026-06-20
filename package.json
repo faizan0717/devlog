@@ -1,0 +1,17 @@
+{
+  "name": "devlog",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["ui", "mcp"],
+  "scripts": {
+    "ui": "npm run dev --prefix ui",
+    "ui:build": "npm run build --prefix ui",
+    "mcp": "npm run dev:http --prefix mcp",
+    "mcp:build": "npm run build --prefix mcp",
+    "mcp:start": "npm run start:http --prefix mcp",
+    "dev": "concurrently \"npm run ui\" \"npm run mcp\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}

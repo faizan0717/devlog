@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>devLog MCP Agent Architecture</title>
+  <style>
+    :root {
+      --bg: #08090c;
+      --panel: rgba(20, 22, 30, 0.82);
+      --panel2: rgba(255,255,255,0.045);
+      --ink: #f4f1ea;
+      --muted: #aaa3b8;
+      --dim: #706a7c;
+      --accent: #a78bfa;
+      --accent2: #22d3ee;
+      --green: #86efac;
+      --yellow: #fde68a;
+      --red: #fca5a5;
+      --line: rgba(255,255,255,.13);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(167,139,250,.18), transparent 35%),
+        radial-gradient(circle at 90% 80%, rgba(34,211,238,.10), transparent 30%),
+        var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+    .deck { height: 100vh; width: 100vw; position: relative; }
+    .slide {
+      position: absolute; inset: 0; padding: 56px 72px; display: none;
+      animation: fade .25s ease-out;
+    }
+    .slide.active { display: flex; flex-direction: column; }
+    @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .eyebrow { color: var(--accent2); text-transform: uppercase; letter-spacing: .22em; font-size: 13px; font-weight: 700; margin-bottom: 20px; }
+    h1 { font-size: 70px; line-height: .95; letter-spacing: -.06em; margin: 0 0 24px; max-width: 1050px; }
+    h2 { font-size: 46px; line-height: 1.02; letter-spacing: -.045em; margin: 0 0 22px; }
+    h3 { font-size: 23px; margin: 0 0 10px; }
+    p, li { color: var(--muted); font-size: 21px; line-height: 1.45; }
+    p { margin: 0 0 16px; }
+    ul { margin: 0; padding-left: 24px; }
+    code { background: rgba(255,255,255,.08); color: #ddd6fe; padding: 2px 7px; border-radius: 8px; font-size: .88em; }
+    pre { background: #05060a; border: 1px solid var(--line); border-radius: 18px; padding: 20px; overflow: auto; color: #d8d3e7; font-size: 16px; line-height: 1.45; }
+    .subtitle { max-width: 840px; font-size: 25px; }
+    .grid { display: grid; gap: 20px; }
+    .cols2 { grid-template-columns: 1fr 1fr; }
+    .cols3 { grid-template-columns: repeat(3, 1fr); }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 24px; padding: 24px; box-shadow: 0 20px 80px rgba(0,0,0,.24); }
+    .card p, .card li { font-size: 18px; }
+    .pill { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: rgba(255,255,255,.05); border-radius: 999px; padding: 8px 13px; color: var(--muted); font-size: 15px; margin: 5px; }
+    .diagram { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 22px; }
+    .node { flex: 1; min-height: 116px; background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 19px; text-align: center; display:flex; flex-direction:column; justify-content:center; }
+    .node strong { font-size: 20px; display:block; margin-bottom:8px; }
+    .node span { color: var(--muted); font-size: 15px; }
+    .arrow { color: var(--accent); font-size: 34px; flex: .12; text-align:center; }
+    .swimlane { display: grid; grid-template-columns: 180px 1fr; gap: 12px; margin-top: 14px; }
+    .lane-label { color: var(--accent2); font-weight: 700; padding-top: 12px; }
+    .lane { border-left: 1px solid var(--line); padding-left: 18px; }
+    .step { background: var(--panel2); border: 1px solid var(--line); border-radius: 16px; padding: 12px 16px; margin-bottom: 10px; color: var(--muted); font-size: 17px; }
+    .tag-green { color: var(--green); } .tag-yellow { color: var(--yellow); } .tag-red { color: var(--red); }
+    .footer { position:absolute; left:72px; right:72px; bottom:30px; display:flex; justify-content:space-between; align-items:center; color:var(--dim); font-size:14px; }
+    .progress { height: 3px; width: 240px; background: rgba(255,255,255,.08); border-radius: 20px; overflow:hidden; }
+    .bar { height:100%; background: linear-gradient(90deg,var(--accent),var(--accent2)); width:0%; }
+    .controls { position: fixed; right: 24px; bottom: 22px; display:flex; gap:8px; z-index:5; }
+    button { background: rgba(255,255,255,.08); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; cursor: pointer; }
+    button:hover { background: rgba(255,255,255,.14); }
+    table { width:100%; border-collapse: collapse; overflow:hidden; border-radius: 18px; border: 1px solid var(--line); }
+    th, td { border-bottom: 1px solid var(--line); padding: 14px 16px; text-align:left; color: var(--muted); font-size: 17px; }
+    th { color: var(--ink); background: rgba(255,255,255,.06); }
+  </style>
+</head>
+<body>
+  <main class="deck">
+    <section class="slide active">
+      <div class="eyebrow">devLog MCP Feature</div>
+      <h1>Let external agents update their owner’s projects safely.</h1>
+      <p class="subtitle">Architecture for an MCP server that exposes devLog tools like project lookup, timeline reading, and log creation to Claude, Cursor, local agents, or custom automations.</p>
+      <div style="margin-top:28px">
+        <span class="pill">MCP Server</span><span class="pill">Supabase</span><span class="pill">Scoped Agent Tokens</span><span class="pill">Owner-only Access</span>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Problem</div>
+      <h2>Agents need a controlled bridge into devLog.</h2>
+      <div class="grid cols2">
+        <div class="card"><h3>What users want</h3><ul><li>“Add today’s progress to my project.”</li><li>“Summarize this git work and create a devLog entry.”</li><li>“Update my project status after deployment.”</li></ul></div>
+        <div class="card"><h3>What we must protect</h3><ul><li>No browser-side service keys.</li><li>No access to other users’ projects.</li><li>No broad database writes.</li><li>Revocable and auditable access.</li></ul></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">High-level architecture</div>
+      <h2>The agent never talks directly to Supabase.</h2>
+      <div class="diagram">
+        <div class="node"><strong>External Agent</strong><span>Claude Desktop, Cursor, custom local agent</span></div>
+        <div class="arrow">→</div>
+        <div class="node"><strong>devLog MCP Server</strong><span>Validates token, exposes safe tools</span></div>
+        <div class="arrow">→</div>
+        <div class="node"><strong>Supabase</strong><span>Postgres, Auth, Storage, RLS</span></div>
+        <div class="arrow">→</div>
+        <div class="node"><strong>devLog App</strong><span>User sees updated projects/logs</span></div>
+      </div>
+      <p style="margin-top:28px">The MCP server is the permission boundary. It translates agent tool calls into carefully validated Supabase operations.</p>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Required pieces</div>
+      <h2>What we need to add.</h2>
+      <div class="grid cols3">
+        <div class="card"><h3>1. Token table</h3><p>Stores hashed agent tokens, owner, scopes, project restrictions, expiry, revoke state.</p></div>
+        <div class="card"><h3>2. Token UI</h3><p>Page/modal in devLog where user creates, names, copies, and revokes agent tokens.</p></div>
+        <div class="card"><h3>3. MCP package</h3><p>A Node/TypeScript server implementing tools for projects and logs.</p></div>
+        <div class="card"><h3>4. Authorization layer</h3><p>Every call checks token validity, scopes, owner_id, and allowed_project_ids.</p></div>
+        <div class="card"><h3>5. Audit log</h3><p>Record what agent did, when, and against which project/log.</p></div>
+        <div class="card"><h3>6. Deployment</h3><p>Run locally for personal agents or deploy as a hosted MCP/HTTP bridge later.</p></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Database additions</div>
+      <h2>Agent tokens are scoped, hashed, and revocable.</h2>
+      <pre><code>create table public.agent_tokens (
+  id uuid primary key default uuid_generate_v4(),
+  owner_id uuid not null references public.profiles(id) on delete cascade,
+  name text not null,
+  token_hash text not null unique,
+  scopes text[] not null default '{}',
+  allowed_project_ids uuid[], -- null = all owner projects, or restrict list
+  expires_at timestamptz,
+  revoked_at timestamptz,
+  last_used_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table public.agent_audit_logs (
+  id uuid primary key default uuid_generate_v4(),
+  token_id uuid references public.agent_tokens(id) on delete set null,
+  owner_id uuid not null references public.profiles(id) on delete cascade,
+  action text not null,
+  project_id uuid,
+  log_id uuid,
+  metadata jsonb not null default '{}',
+  created_at timestamptz not null default now()
+);</code></pre>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Permission model</div>
+      <h2>Each MCP tool requires a scope.</h2>
+      <table>
+        <thead><tr><th>Tool</th><th>Required scope</th><th>Extra check</th></tr></thead>
+        <tbody>
+          <tr><td><code>devlog_list_projects</code></td><td><code>read_projects</code></td><td>Only owner’s projects</td></tr>
+          <tr><td><code>devlog_get_project_timeline</code></td><td><code>read_logs</code></td><td>Project belongs to owner / allowed list</td></tr>
+          <tr><td><code>devlog_create_log</code></td><td><code>create_log</code></td><td>Project belongs to owner / allowed list</td></tr>
+          <tr><td><code>devlog_update_log</code></td><td><code>update_log</code></td><td>Log’s project belongs to owner</td></tr>
+          <tr><td><code>devlog_update_project</code></td><td><code>update_project</code></td><td>Project belongs to owner</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:22px"><span class="tag-green">Rule:</span> agent can only mutate projects owned by the token owner.</p>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">How it works</div>
+      <h2>Example: “Add today’s progress log.”</h2>
+      <div class="swimlane">
+        <div class="lane-label">User</div><div class="lane"><div class="step">Creates token in devLog: name “Claude Desktop”, scopes: read_projects + create_log.</div></div>
+        <div class="lane-label">Agent</div><div class="lane"><div class="step">User configures MCP with <code>DEVLOG_AGENT_TOKEN</code>.</div><div class="step">Agent calls <code>devlog_list_projects</code> to find project.</div><div class="step">Agent calls <code>devlog_create_log</code> with title/content/mood/media metadata.</div></div>
+        <div class="lane-label">MCP</div><div class="lane"><div class="step">Hashes provided token and finds active token row.</div><div class="step">Checks scope and project ownership.</div><div class="step">Writes log to Supabase and records audit event.</div></div>
+        <div class="lane-label">devLog</div><div class="lane"><div class="step">New timeline log appears in the user’s project.</div></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">MCP server internals</div>
+      <h2>Suggested repo structure.</h2>
+      <pre><code>mcp/
+  package.json
+  tsconfig.json
+  src/
+    index.ts                  # start MCP stdio server
+    supabase.ts               # service-role client, server-only
+    auth.ts                   # validate token + check scopes
+    audit.ts                  # write audit log
+    tools/
+      projects.ts             # list/get/update project tools
+      logs.ts                 # timeline/create/update log tools
+    schemas.ts                # zod input schemas</code></pre>
+      <p>The MCP server can run locally through stdio first. Later it can be deployed as a hosted HTTP/SSE MCP server if needed.</p>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Security design</div>
+      <h2>Use service-role carefully, then enforce app-level auth.</h2>
+      <div class="grid cols2">
+        <div class="card"><h3 class="tag-green">Do</h3><ul><li>Keep service role only in MCP server env.</li><li>Hash tokens with SHA-256 or bcrypt.</li><li>Check owner on every project/log write.</li><li>Use scopes for each tool.</li><li>Record audit logs.</li><li>Allow revocation and expiry.</li></ul></div>
+        <div class="card"><h3 class="tag-red">Do not</h3><ul><li>Expose service role in React/Vite.</li><li>Let agents pass arbitrary SQL.</li><li>Trust project_id without ownership check.</li><li>Store raw tokens in database.</li><li>Give agents full user JWT access.</li></ul></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Tool contract</div>
+      <h2>Minimal MVP tools.</h2>
+      <pre><code>devlog_list_projects()
+→ [{ id, title, description, visibility, updated_at }]
+
+devlog_get_project_timeline({ project_id })
+→ { project, logs: [...] }
+
+devlog_create_log({
+  project_id,
+  title,
+  content,
+  mood?: "building" | "shipped" | "stuck" | "reflecting" | "inspired" | "learning",
+  visibility?: "private" | "public" | "unlisted"
+})
+→ created log
+
+devlog_update_project({ project_id, title?, description?, tags?, visibility? })
+→ updated project</code></pre>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Agent configuration</div>
+      <h2>How a user connects an agent.</h2>
+      <pre><code>{
+  "mcpServers": {
+    "devlog": {
+      "command": "node",
+      "args": ["/path/to/devLog/mcp/dist/index.js"],
+      "env": {
+        "DEVLOG_SUPABASE_URL": "https://...supabase.co",
+        "DEVLOG_SUPABASE_SERVICE_ROLE_KEY": "server-only-key",
+        "DEVLOG_AGENT_TOKEN": "dl_agent_xxxxxxxxx"
+      }
+    }
+  }
+}</code></pre>
+      <p><span class="tag-yellow">Note:</span> for local MVP, the user/developer runs the MCP server. For hosted MCP, the service role stays on your server and users only provide agent token.</p>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Implementation phases</div>
+      <h2>Recommended roadmap.</h2>
+      <div class="grid cols2">
+        <div class="card"><h3>Phase 1 — Local MVP</h3><ul><li>Add tables.</li><li>Add MCP package.</li><li>Hardcode/manual create token initially.</li><li>Tools: list projects, create log.</li></ul></div>
+        <div class="card"><h3>Phase 2 — Productized</h3><ul><li>Token management UI.</li><li>Audit log UI.</li><li>More tools: update project/log, media metadata.</li><li>Better docs and examples.</li></ul></div>
+        <div class="card"><h3>Phase 3 — Hosted</h3><ul><li>Remote MCP endpoint.</li><li>OAuth/user-managed connections.</li><li>Rate limits.</li><li>Team/collaborator permissions.</li></ul></div>
+        <div class="card"><h3>Phase 4 — Intelligent workflows</h3><ul><li>Git commit summaries.</li><li>Release-note to log automation.</li><li>Daily project journal assistant.</li></ul></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow">Final architecture</div>
+      <h2>Simple rule: MCP acts as a secure project-writing adapter.</h2>
+      <div class="card">
+        <p><strong>External agents</strong> ask to perform devLog actions.</p>
+        <p><strong>The MCP server</strong> validates an owner-scoped token, checks tool scopes, verifies project ownership, writes to Supabase, and records an audit event.</p>
+        <p><strong>devLog users</strong> keep control through token scopes, expiry, revocation, and audit history.</p>
+      </div>
+      <p style="margin-top:28px">This gives agents useful automation without giving them unsafe database access.</p>
+    </section>
+
+    <div class="footer">
+      <span id="counter">1 / 12</span>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+    </div>
+  </main>
+  <div class="controls"><button onclick="prev()">← Prev</button><button onclick="next()">Next →</button></div>
+  <script>
+    const slides = [...document.querySelectorAll('.slide')];
+    let idx = 0;
+    function show(i) {
+      idx = Math.max(0, Math.min(slides.length - 1, i));
+      slides.forEach((s,n) => s.classList.toggle('active', n === idx));
+      document.getElementById('counter').textContent = `${idx + 1} / ${slides.length}`;
+      document.getElementById('bar').style.width = `${((idx + 1) / slides.length) * 100}%`;
+      location.hash = String(idx + 1);
+    }
+    function next(){ show(idx + 1); }
+    function prev(){ show(idx - 1); }
+    addEventListener('keydown', e => {
+      if (['ArrowRight','PageDown',' '].includes(e.key)) next();
+      if (['ArrowLeft','PageUp'].includes(e.key)) prev();
+    });
+    const start = Number(location.hash.replace('#',''));
+    if (start) show(start - 1); else show(0);
+  </script>
+</body>
+</html>

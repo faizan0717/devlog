@@ -1,0 +1,23 @@
+export const APP_NAME = 'devLog'
+export const APP_DESCRIPTION = 'A cinematic timeline platform for makers'
+
+export const ROUTES = {
+  HOME: '/',
+  LOGIN: '/login',
+  REGISTER: '/register',
+  FORGOT_PASSWORD: '/forgot-password',
+  RESET_PASSWORD: '/reset-password',
+  DASHBOARD: '/dashboard',
+  PROJECTS: '/projects',
+  PROJECT_DETAIL: '/projects/:id',
+  NEW_PROJECT: '/projects/new',
+  PROFILE: '/profile/:username',
+  AGENT_ACCESS: '/agent-access',
+  EXPLORE: '/explore',
+  PUBLIC_PROFILE: '/u/:username',
+  PUBLIC_PROJECT: '/p/:id',
+  PUBLIC_LOG: '/p/:projectId/logs/:logId',
+  NOT_FOUND: '*',
+} as const
+
+export const TRANSITION_DURATION = 0.35
