@@ -17,6 +17,7 @@ export interface Database {
         Row: {
           id: string
           username: string
+          email: string | null
           bio: string | null
           avatar_url: string | null
           social_links: SocialLinks | null
@@ -27,6 +28,7 @@ export interface Database {
         Insert: {
           id: string
           username: string
+          email?: string | null
           bio?: string | null
           avatar_url?: string | null
           social_links?: SocialLinks | null

@@ -11,6 +11,7 @@ create type visibility as enum ('private', 'public', 'shared', 'unlisted');
 create table public.profiles (
   id          uuid primary key references auth.users(id) on delete cascade,
   username    text not null unique,
+  email       text,
   bio         text,
   avatar_url   text,
   social_links jsonb,
@@ -79,10 +80,11 @@ create trigger logs_updated_at before update on public.logs
 create or replace function handle_new_user()
 returns trigger language plpgsql security definer as $$
 begin
-  insert into public.profiles (id, username)
+  insert into public.profiles (id, username, email)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1))
+    coalesce(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1)),
+    new.email
   );
   return new;
 end;

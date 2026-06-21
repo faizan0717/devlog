@@ -6,7 +6,10 @@ export const authService = {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { username } },
+      options: {
+        data: { username },
+        emailRedirectTo: `${window.location.origin}/login`,
+      },
     })
     if (error) throw error
     return data

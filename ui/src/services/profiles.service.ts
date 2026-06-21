@@ -51,4 +51,15 @@ export const profilesService = {
   async updateAvatar(id: string, avatarUrl: string): Promise<Profile> {
     return profilesService.update(id, { avatar_url: avatarUrl })
   },
+
+  async searchByUsername(query: string, limit = 8): Promise<Pick<Profile, 'id' | 'username' | 'avatar_url' | 'email'>[]> {
+    if (!query.trim()) return []
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, username, avatar_url, email')
+      .or(`username.ilike.%${query}%,email.ilike.%${query}%`)
+      .limit(limit)
+    if (error) throw error
+    return data ?? []
+  },
 }

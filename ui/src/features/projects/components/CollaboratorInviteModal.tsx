@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal, Button, Input } from '@/components/ui'
 import { CollaboratorRow } from './CollaboratorRow'
 import { useCollaborators } from '../hooks/useCollaborators'
-import type { Collaborator } from '@/types'
+import { profilesService } from '@/services/profiles.service'
+import type { Collaborator, Profile } from '@/types'
 import { cn } from '@/utils'
 
 const ROLE_OPTIONS: { value: Collaborator['role']; label: string; desc: string }[] = [
@@ -34,6 +35,32 @@ export function CollaboratorInviteModal({
   const [username, setUsername] = useState('')
   const [role, setRole] = useState<Collaborator['role']>('viewer')
   const [inviting, setInviting] = useState(false)
+  const [suggestions, setSuggestions] = useState<Pick<Profile, 'id' | 'username' | 'avatar_url' | 'email'>[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current)
+    if (!username.trim()) { setSuggestions([]); return }
+    searchTimeout.current = setTimeout(async () => {
+      const results = await profilesService.searchByUsername(username)
+      const existingIds = new Set(collaborators.map((c) => c.user_id))
+      setSuggestions(results.filter((r) => !existingIds.has(r.id)))
+      setShowSuggestions(true)
+    }, 250)
+    return () => { if (searchTimeout.current) clearTimeout(searchTimeout.current) }
+  }, [username, collaborators])
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   async function handleInvite() {
     if (!username.trim()) return
@@ -42,6 +69,7 @@ export function CollaboratorInviteModal({
       await invite(username.trim(), role)
       toast.success(`@${username.trim()} invited as ${role}`)
       setUsername('')
+      setSuggestions([])
       onChanged?.()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to invite')
@@ -72,16 +100,48 @@ export function CollaboratorInviteModal({
   return (
     <Modal open={open} onClose={onClose} title="Collaborators" className="max-w-lg">
       {/* Invite row */}
-      <div className="flex gap-2 items-end mb-4">
-        <div className="flex-1">
+      <div className="flex gap-2 items-end mb-4" ref={wrapperRef}>
+        <div className="flex-1 relative">
           <Input
-            label="Invite by username"
-            placeholder="@username"
+            label="Invite by username or email"
+            placeholder="@username or email"
             value={username}
-            onChange={(e) => setUsername(e.target.value.replace(/^@/, ''))}
+            onChange={(e) => { setUsername(e.target.value.replace(/^@/, '')); setShowSuggestions(true) }}
             onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
+            onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
             disabled={inviting}
           />
+          {showSuggestions && suggestions.length > 0 && (
+            <ul className="absolute z-50 left-0 right-0 top-full mt-1 bg-surface-800 border border-surface-700 rounded-glass shadow-lg overflow-hidden">
+              {suggestions.map((s) => (
+                <li key={s.id}>
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-surface-700 transition-colors text-left"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      setUsername(s.username ?? '')
+                      setShowSuggestions(false)
+                    }}
+                  >
+                    {s.avatar_url ? (
+                      <img src={s.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-surface-600 shrink-0 flex items-center justify-center text-[10px] text-ink-tertiary uppercase">
+                        {(s.username ?? '?')[0]}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-caption text-ink-primary">@{s.username}</p>
+                      {s.email && (
+                        <p className="text-[11px] text-ink-tertiary truncate">{s.email}</p>
+                      )}
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <Button
           onClick={handleInvite}
