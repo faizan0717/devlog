@@ -51,11 +51,6 @@ const FEED = [
   },
 ]
 
-const FEATURES = [
-  { icon: Bot,   title: 'Agent-written',     sub: 'Logs itself after every session' },
-  { icon: Globe, title: 'Social timeline',   sub: 'Builds audience around your work' },
-  { icon: Lock,  title: 'Private by default', sub: 'Publish only when ready' },
-]
 
 export default function Landing() {
   return (
