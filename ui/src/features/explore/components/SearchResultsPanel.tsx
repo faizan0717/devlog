@@ -1,5 +1,16 @@
 import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/!\[.*?\]\(.*?\)/g, '')
+    .replace(/\[([^\]]+)\]\(.*?\)/g, '$1')
+    .replace(/#{1,6}\s+/g, '')
+    .replace(/[*_`~]/g, '')
+    .replace(/>\s/g, '')
+    .replace(/\n+/g, ' ')
+    .trim()
+}
 import { motion } from 'framer-motion'
 import { FolderOpen, User, BookOpen } from 'lucide-react'
 import { Avatar, Spinner } from '@/components/ui'
@@ -95,7 +106,7 @@ export function SearchResultsPanel({ results, loading, onClose }: SearchResultsP
                   <Avatar src={u.avatar_url} name={u.username} size="sm" />
                   <div className="min-w-0">
                     <p className="text-body text-ink-primary truncate">@{u.username}</p>
-                    {u.bio && <p className="text-caption text-ink-tertiary truncate">{u.bio}</p>}
+                    {u.bio && <p className="text-caption text-ink-tertiary truncate">{stripMarkdown(u.bio)}</p>}
                   </div>
                 </Link>
               ))}

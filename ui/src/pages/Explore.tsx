@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
-import { BookOpen, Clock3, Compass, Flame, Search, Sparkles, Users } from 'lucide-react'
+import { Flame } from 'lucide-react'
 import { AnimatedPage } from '@/components/shared/AnimatedPage'
 import { Avatar } from '@/components/ui'
 import { SearchBar } from '@/features/explore/components/SearchBar'
@@ -9,28 +10,17 @@ import { TrendingProjectCard } from '@/features/explore/components/TrendingProje
 import { PublicLogFeed } from '@/features/explore/components/PublicLogFeed'
 import { useExplore } from '@/features/explore/hooks/useExplore'
 import { useSearch } from '@/features/explore/hooks/useSearch'
+import { MOODS } from '@/features/logs/components/MoodSelector'
+import type { LogMood } from '@/types'
 
 function TrendingSkeletonCard() {
   return (
-    <div className="overflow-hidden rounded-glass border border-surface-800/70 bg-surface-900/60 animate-pulse">
-      <div className="aspect-[16/7] bg-surface-800/80" />
-      <div className="space-y-3 p-4">
+    <div className="animate-pulse overflow-hidden rounded-glass border border-surface-800/70 bg-surface-900/60">
+      <div className="aspect-[16/8] bg-surface-800/80" />
+      <div className="space-y-2.5 p-4">
         <div className="h-5 w-2/3 rounded bg-surface-700" />
         <div className="h-3.5 w-full rounded bg-surface-800" />
-        <div className="h-3.5 w-4/5 rounded bg-surface-800" />
       </div>
-    </div>
-  )
-}
-
-function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="rounded-glass border border-surface-800/70 bg-surface-900/50 p-4">
-      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-accent/10 text-accent-light">
-        {icon}
-      </div>
-      <p className="text-title text-ink-primary">{value}</p>
-      <p className="text-caption text-ink-tertiary">{label}</p>
     </div>
   )
 }
@@ -39,6 +29,7 @@ export default function Explore() {
   const { trending, recentLogs, hasMore, loadMore } = useExplore()
   const { query, setQuery, clearQuery, results } = useSearch()
   const [showResults, setShowResults] = useState(false)
+  const [activeMood, setActiveMood] = useState<LogMood | null>(null)
   const searchWrapperRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -59,39 +50,36 @@ export default function Explore() {
         seen.add(owner.id)
         return true
       })
-      .slice(0, 5)
+      .slice(0, 8)
   }, [recentLogs.data])
+
+  const filteredLogs = useMemo(() => {
+    if (!activeMood) return recentLogs.data ?? []
+    return (recentLogs.data ?? []).filter((log) => log.mood === activeMood)
+  }, [recentLogs.data, activeMood])
 
   const projectCount = trending.data?.length ?? 0
   const logCount = recentLogs.data?.length ?? 0
 
   return (
     <AnimatedPage className="mx-auto max-w-6xl pb-20">
-      <header className="relative mb-10 overflow-hidden rounded-[28px] border border-surface-800/70 bg-surface-900/70 p-5 shadow-glass sm:p-8">
-        <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-accent/20 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 left-12 h-28 w-28 rounded-full bg-warning/10 blur-2xl" />
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <header className="relative mb-8 overflow-hidden rounded-[28px] border border-surface-800/60 bg-surface-900/60 px-6 py-8 sm:px-10 sm:py-10">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-accent/15 blur-3xl" />
 
-        <div className="relative grid gap-8 lg:grid-cols-[1fr_320px] lg:items-end">
-          <div>
-            <div className="mb-4 inline-flex items-center gap-2 rounded-pill border border-surface-700/70 bg-surface-950/50 px-3 py-1.5 text-caption text-ink-secondary">
-              <Compass size={14} className="text-accent-light" />
-              Explore public work
-            </div>
-            <h1 className="max-w-2xl text-[2.4rem] font-semibold leading-[1.05] tracking-[-0.04em] text-ink-primary sm:text-display">
-              Find projects, makers, and build logs without the clutter.
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:gap-12">
+          <div className="flex-1">
+            <h1 className="mb-5 text-[2.2rem] font-bold leading-none tracking-[-0.04em] text-ink-primary sm:text-[3rem]">
+              Explore
             </h1>
-            <p className="mt-4 max-w-xl text-body text-ink-secondary">
-              Search everything at once, scan what is trending, or read the newest updates from makers.
-            </p>
-
-            <div ref={searchWrapperRef} className="relative mt-7 max-w-2xl">
+            <div ref={searchWrapperRef} className="relative">
               <SearchBar
                 value={query}
                 onChange={setQuery}
                 onClear={handleClose}
                 loading={results.loading}
-                placeholder="Search by project, maker, or log title"
-                className="[&_input]:h-16 [&_input]:bg-surface-950/80 [&_input]:text-base"
+                placeholder="Search projects, makers, logs…"
+                className="[&_input]:h-14 [&_input]:bg-surface-950/80 [&_input]:text-base"
               />
               <AnimatePresence>
                 {showResults && (
@@ -105,25 +93,31 @@ export default function Explore() {
             </div>
           </div>
 
-          <aside className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-            <StatCard icon={<Flame size={16} />} label="Trending now" value={trending.loading ? '—' : String(projectCount)} />
-            <StatCard icon={<BookOpen size={16} />} label="Recent logs" value={recentLogs.loading ? '—' : String(logCount)} />
-          </aside>
+          {/* Stats */}
+          <div className="flex gap-8 lg:flex-col lg:gap-4 lg:text-right">
+            <div>
+              <p className="font-mono text-[2.2rem] font-bold leading-none text-ink-primary">
+                {trending.loading ? '—' : projectCount}
+              </p>
+              <p className="mt-1 font-mono text-caption text-ink-tertiary">trending</p>
+            </div>
+            <div>
+              <p className="font-mono text-[2.2rem] font-bold leading-none text-ink-primary">
+                {recentLogs.loading ? '—' : logCount}
+              </p>
+              <p className="mt-1 font-mono text-caption text-ink-tertiary">recent logs</p>
+            </div>
+          </div>
         </div>
       </header>
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
-        <main className="space-y-10">
+      <div className="grid gap-8 lg:grid-cols-[1fr_260px]">
+        <main className="min-w-0 space-y-10">
+          {/* Trending projects */}
           <section>
-            <div className="mb-5 flex items-end justify-between gap-4">
-              <div>
-                <div className="mb-2 flex items-center gap-2 text-caption uppercase tracking-wider text-ink-tertiary">
-                  <Sparkles size={13} className="text-accent-light" />
-                  Top picks
-                </div>
-                <h2 className="text-title text-ink-primary">Trending projects</h2>
-              </div>
-              <p className="hidden text-caption text-ink-tertiary sm:block">Ranked by recent activity</p>
+            <div className="mb-4 flex items-center gap-2">
+              <Flame size={13} className="text-warning" />
+              <span className="font-mono text-caption uppercase tracking-widest text-ink-tertiary">Trending</span>
             </div>
 
             {trending.loading && (
@@ -132,71 +126,79 @@ export default function Explore() {
               </div>
             )}
 
-            {!trending.loading && trending.data && trending.data.length === 0 && (
-              <div className="rounded-glass border border-dashed border-surface-700 bg-surface-900/40 py-14 text-center">
-                <p className="text-title text-ink-secondary">No trending projects yet.</p>
-                <p className="mt-1 text-body text-ink-tertiary">Public projects will appear here as makers share them.</p>
+            {!trending.loading && (trending.data?.length ?? 0) === 0 && (
+              <div className="rounded-glass border border-dashed border-surface-700 bg-surface-900/40 py-12 text-center">
+                <p className="text-body text-ink-tertiary">No trending projects yet.</p>
               </div>
             )}
 
-            {!trending.loading && trending.data && trending.data.length > 0 && (
+            {!trending.loading && (trending.data?.length ?? 0) > 0 && (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {trending.data.map((project) => (
+                {trending.data!.slice(0, 6).map((project) => (
                   <TrendingProjectCard key={project.id} project={project} />
                 ))}
               </div>
             )}
           </section>
 
+          {/* Recent logs with mood filter */}
           <section>
-            <div className="mb-5 flex items-end justify-between gap-4">
-              <div>
-                <div className="mb-2 flex items-center gap-2 text-caption uppercase tracking-wider text-ink-tertiary">
-                  <Clock3 size={13} className="text-accent-light" />
-                  Live feed
-                </div>
-                <h2 className="text-title text-ink-primary">Recent logs</h2>
-              </div>
-              <p className="hidden text-caption text-ink-tertiary sm:block">Fresh updates from public projects</p>
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <span className="mr-1 font-mono text-caption uppercase tracking-widest text-ink-tertiary">Feed</span>
+              <button
+                onClick={() => setActiveMood(null)}
+                className={`rounded-pill border px-3 py-1 text-[11px] font-medium transition-colors ${
+                  activeMood === null
+                    ? 'border-white/20 bg-white/10 text-ink-primary'
+                    : 'border-surface-700 bg-transparent text-ink-tertiary hover:border-surface-600 hover:text-ink-secondary'
+                }`}
+              >
+                all
+              </button>
+              {MOODS.map((m) => (
+                <button
+                  key={m.value}
+                  onClick={() => setActiveMood(activeMood === m.value ? null : m.value)}
+                  className={`rounded-pill border px-3 py-1 text-[11px] font-medium transition-colors ${
+                    activeMood === m.value
+                      ? m.color
+                      : 'border-surface-700 bg-transparent text-ink-tertiary hover:border-surface-600 hover:text-ink-secondary'
+                  }`}
+                >
+                  {m.emoji} {m.label}
+                </button>
+              ))}
             </div>
+
             <PublicLogFeed
-              logs={recentLogs.data ?? []}
+              logs={filteredLogs}
               loading={recentLogs.loading}
-              hasMore={hasMore}
+              hasMore={hasMore && !activeMood}
               onLoadMore={loadMore}
               showProject
             />
           </section>
         </main>
 
+        {/* Sidebar */}
         <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-          <div className="rounded-glass border border-surface-800/70 bg-surface-900/50 p-5">
-            <div className="mb-4 flex items-center gap-2">
-              <Search size={15} className="text-accent-light" />
-              <h3 className="text-body font-medium text-ink-primary">How to explore</h3>
-            </div>
-            <ol className="space-y-3 text-caption text-ink-secondary">
-              <li className="flex gap-3"><span className="text-ink-disabled">01</span><span>Search for a project, person, or log.</span></li>
-              <li className="flex gap-3"><span className="text-ink-disabled">02</span><span>Open a trending project to see its timeline.</span></li>
-              <li className="flex gap-3"><span className="text-ink-disabled">03</span><span>Use recent logs to discover active makers.</span></li>
-            </ol>
-          </div>
-
-          <div className="rounded-glass border border-surface-800/70 bg-surface-900/50 p-5">
-            <div className="mb-4 flex items-center gap-2">
-              <Users size={15} className="text-accent-light" />
-              <h3 className="text-body font-medium text-ink-primary">Active makers</h3>
-            </div>
-            {makers.length > 0 ? (
-              <div className="flex -space-x-2">
+          {makers.length > 0 && (
+            <div className="rounded-glass border border-surface-800/60 bg-surface-900/50 p-5">
+              <p className="mb-4 font-mono text-caption uppercase tracking-widest text-ink-tertiary">Active makers</p>
+              <div className="flex flex-wrap gap-2">
                 {makers.map((maker) => (
-                  <Avatar key={maker.id} src={maker.avatar_url} name={maker.username} size="sm" className="border-2 border-surface-900" />
+                  <Link key={maker.id} to={`/u/${maker.username}`} title={`@${maker.username}`}>
+                    <Avatar
+                      src={maker.avatar_url ?? undefined}
+                      name={maker.username}
+                      size="sm"
+                      className="transition-transform hover:scale-110"
+                    />
+                  </Link>
                 ))}
               </div>
-            ) : (
-              <p className="text-caption text-ink-tertiary">Makers will show up here as logs are published.</p>
-            )}
-          </div>
+            </div>
+          )}
         </aside>
       </div>
     </AnimatedPage>

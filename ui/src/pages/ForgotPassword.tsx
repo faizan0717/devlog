@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AnimatedPage } from '@/components/shared/AnimatedPage'
+import { AuthSplitLayout } from '@/components/layout/AuthSplitLayout'
 import { Card, Button, Input } from '@/components/ui'
 import { supabase } from '@/lib/supabase'
 import { ROUTES } from '@/utils'
@@ -29,8 +30,8 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-surface-950 flex items-center justify-center p-6">
-      <AnimatedPage className="w-full max-w-sm p-0">
+    <AuthSplitLayout>
+      <AnimatedPage className="w-full p-0">
         <Card>
           <AnimatePresence mode="wait">
             {!sent ? (
@@ -42,7 +43,6 @@ export default function ForgotPassword() {
                 exit="exit"
               >
                 <div className="mb-8">
-                  <p className="text-label uppercase text-accent tracking-widest mb-2">devLog</p>
                   <h1 className="text-headline text-ink-primary">Reset password</h1>
                   <p className="text-body text-ink-secondary mt-1">
                     Enter your email and we'll send a reset link.
@@ -96,6 +96,6 @@ export default function ForgotPassword() {
           </AnimatePresence>
         </Card>
       </AnimatedPage>
-    </div>
+    </AuthSplitLayout>
   )
 }

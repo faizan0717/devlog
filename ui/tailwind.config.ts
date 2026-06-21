@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import typography from '@tailwindcss/typography'
 
 const config: Config = {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
@@ -67,9 +68,31 @@ const config: Config = {
           to: { opacity: '1', transform: 'translateY(0)' },
         },
       },
+      typography: {
+        invert: {
+          css: {
+            '--tw-prose-body': '#a0a0a0',
+            '--tw-prose-headings': '#f0f0f0',
+            '--tw-prose-lead': '#a0a0a0',
+            '--tw-prose-links': '#9d92eb',
+            '--tw-prose-bold': '#f0f0f0',
+            '--tw-prose-counters': '#606060',
+            '--tw-prose-bullets': '#606060',
+            '--tw-prose-hr': '#1c1c1c',
+            '--tw-prose-quotes': '#a0a0a0',
+            '--tw-prose-quote-borders': '#7c6fe0',
+            '--tw-prose-captions': '#606060',
+            '--tw-prose-code': '#f0f0f0',
+            '--tw-prose-pre-code': '#f0f0f0',
+            '--tw-prose-pre-bg': '#0f0f0f',
+            '--tw-prose-th-borders': '#2e2e2e',
+            '--tw-prose-td-borders': '#1c1c1c',
+          },
+        },
+      },
     },
   },
-  plugins: [],
+  plugins: [typography],
 }
 
 export default config

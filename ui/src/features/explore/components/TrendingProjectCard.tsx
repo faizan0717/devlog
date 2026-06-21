@@ -5,6 +5,17 @@ import { Avatar } from '@/components/ui'
 import { cn, formatDate } from '@/utils'
 import type { PublicProject } from '@/types'
 
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/!\[.*?\]\(.*?\)/g, '')
+    .replace(/\[([^\]]+)\]\(.*?\)/g, '$1')
+    .replace(/#{1,6}\s+/g, '')
+    .replace(/[*_`~]/g, '')
+    .replace(/>\s/g, '')
+    .replace(/\n+/g, ' ')
+    .trim()
+}
+
 const COVER_GRADIENTS = [
   'from-violet-900/80 via-surface-900/60 to-surface-950',
   'from-indigo-900/80 via-surface-900/60 to-surface-950',
@@ -33,7 +44,7 @@ export function TrendingProjectCard({ project }: TrendingProjectCardProps) {
         to={`/p/${project.id}`}
         className="block rounded-glass border border-surface-700 bg-surface-900 overflow-hidden group hover:border-accent/30 hover:shadow-glow transition-all duration-200"
       >
-        <div className="relative aspect-[16/7] overflow-hidden">
+        <div className="relative aspect-[16/8] overflow-hidden">
           {project.cover_image_url ? (
             <img
               src={project.cover_image_url}
@@ -59,7 +70,7 @@ export function TrendingProjectCard({ project }: TrendingProjectCardProps) {
             </h3>
             {project.description && (
               <p className="text-body text-ink-secondary line-clamp-2 mt-1">
-                {project.description}
+                {stripMarkdown(project.description)}
               </p>
             )}
           </div>

@@ -8,6 +8,7 @@ import { FeaturedProject } from '@/features/profile/components/FeaturedProject'
 import { ProfileActivitySection } from '@/features/profile/components/ProfileActivitySection'
 import { ProfileEditModal } from '@/features/profile/components/ProfileEditModal'
 import { ProfileHero } from '@/features/profile/components/ProfileHero'
+import { ProfileLogTimeline } from '@/features/profile/components/ProfileLogTimeline'
 import { useActivityHeatmap } from '@/features/social/hooks/useActivityHeatmap'
 import { profilesService } from '@/services/profiles.service'
 import { exploreService } from '@/services/explore.service'
@@ -83,10 +84,7 @@ export default function PublicProfile() {
 
   useEffect(() => {
     if (!profile || isPrivateVisitor || projectsLoading) return
-    if (projects.length === 0) {
-      setLogs([])
-      return
-    }
+    if (projects.length === 0) { setLogs([]); return }
 
     Promise.all(projects.map((p) => exploreService.getPublicLogsByProject(p.id)))
       .then((arrays) => {
@@ -104,6 +102,8 @@ export default function PublicProfile() {
     return logs.find((log) => log.project.id === featuredProject.id) ?? logs[0]
   }, [featuredProject, logs])
 
+  const recentLogs = logs.slice(0, 5)
+
   if (profileLoading) {
     return (
       <ProfileShell>
@@ -118,7 +118,7 @@ export default function PublicProfile() {
     return (
       <ProfileShell>
         <div className="flex flex-col items-center py-32 gap-4 text-center">
-          <div className="w-14 h-14 rounded-full bg-surface-900 border border-surface-700 flex items-center justify-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full border border-surface-700 bg-surface-900">
             <User size={22} className="text-ink-tertiary" />
           </div>
           <p className="text-title text-ink-secondary">User not found.</p>
@@ -160,6 +160,7 @@ export default function PublicProfile() {
   return (
     <ProfileShell>
       <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-8">
+        {/* Hero */}
         <ProfileHero
           profile={profile}
           isOwnProfile={isOwnProfile}
@@ -169,34 +170,49 @@ export default function PublicProfile() {
           onEditProfile={() => setEditOpen(true)}
         />
 
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
-          <FeaturedProject
-            project={featuredProject}
-            latestLog={latestLogForFeatured}
-            isOwnProfile={isOwnProfile}
+        {/* Activity heatmap — above the fold */}
+        <motion.div variants={fadeUp} custom={0}>
+          <ProfileActivitySection
+            data={heatmap.data}
+            loading={heatmap.loading}
+            projectCount={projects.length}
+            logCount={logs.length}
           />
+        </motion.div>
 
-          <motion.aside variants={fadeUp} custom={1} className="glass rounded-[24px] p-6">
-            <p className="text-caption uppercase tracking-widest text-accent-light">Creator note</p>
-            <h2 className="mt-2 text-title text-ink-primary">Progress over polish.</h2>
-            <p className="mt-3 text-body text-ink-secondary">
-              This profile is a quiet snapshot of the creator, their current work, and their rhythm over time.
-            </p>
-            {isOwnProfile && (
-              <Link to="/projects/new" className="mt-6 inline-block">
-                <Button size="sm" variant="secondary">Start a new chapter</Button>
+        {/* Featured project + recent logs */}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+          <motion.div variants={fadeUp} custom={1}>
+            <FeaturedProject
+              project={featuredProject}
+              latestLog={latestLogForFeatured}
+              isOwnProfile={isOwnProfile}
+            />
+          </motion.div>
+
+          <motion.div variants={fadeUp} custom={2} className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-caption uppercase tracking-widest text-ink-tertiary">Recent logs</span>
+              {logs.length > 5 && (
+                <Link to={`/u/${profile.username}`} className="font-mono text-caption text-accent-light hover:underline">
+                  view all →
+                </Link>
+              )}
+            </div>
+            <ProfileLogTimeline
+              logs={recentLogs}
+              loading={projectsLoading}
+              isOwnProfile={isOwnProfile}
+            />
+            {isOwnProfile && logs.length === 0 && (
+              <Link to="/projects/new">
+                <Button size="sm" variant="secondary" className="w-full">
+                  Start a new project
+                </Button>
               </Link>
             )}
-          </motion.aside>
+          </motion.div>
         </div>
-
-        <ProfileActivitySection
-          data={heatmap.data}
-          loading={heatmap.loading}
-          projectCount={projects.length}
-          logCount={logs.length}
-        />
-
       </motion.div>
 
       <ProfileEditModal

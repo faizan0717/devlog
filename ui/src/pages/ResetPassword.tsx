@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { AnimatedPage } from '@/components/shared/AnimatedPage'
+import { AuthSplitLayout } from '@/components/layout/AuthSplitLayout'
 import { Card, Button, Input } from '@/components/ui'
 import { supabase } from '@/lib/supabase'
 import { ROUTES } from '@/utils'
@@ -36,11 +37,10 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-surface-950 flex items-center justify-center p-6">
-      <AnimatedPage className="w-full max-w-sm p-0">
+    <AuthSplitLayout>
+      <AnimatedPage className="w-full p-0">
         <Card>
           <div className="mb-8">
-            <p className="text-label uppercase text-accent tracking-widest mb-2">devLog</p>
             <h1 className="text-headline text-ink-primary">Set new password</h1>
             <p className="text-body text-ink-secondary mt-1">
               Choose a strong password for your account.
@@ -70,6 +70,6 @@ export default function ResetPassword() {
           </form>
         </Card>
       </AnimatedPage>
-    </div>
+    </AuthSplitLayout>
   )
 }
