@@ -32,16 +32,22 @@ create policy "comments: read" on public.comments for select using (
 );
 
 -- Same protection for reaction counts/details.
-drop policy if exists "reactions: read" on public.reactions;
-create policy "reactions: read" on public.reactions for select using (
-  exists (
-    select 1 from public.logs l
-    join public.projects p on p.id = l.project_id
-    where l.id = log_id
-      and (p.owner_id = auth.uid()
-           or (l.visibility = 'public' and p.visibility in ('public', 'unlisted'))
-           or exists (select 1 from public.collaborators where project_id = p.id and user_id = auth.uid()))
-  )
-);
+-- Some older beta databases may not have the reactions table yet.
+do $$
+begin
+  if to_regclass('public.reactions') is not null then
+    drop policy if exists "reactions: read" on public.reactions;
+    create policy "reactions: read" on public.reactions for select using (
+      exists (
+        select 1 from public.logs l
+        join public.projects p on p.id = l.project_id
+        where l.id = log_id
+          and (p.owner_id = auth.uid()
+               or (l.visibility = 'public' and p.visibility in ('public', 'unlisted'))
+               or exists (select 1 from public.collaborators where project_id = p.id and user_id = auth.uid()))
+      )
+    );
+  end if;
+end $$;
 
 commit;
