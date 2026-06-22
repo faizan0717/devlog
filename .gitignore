@@ -6,5 +6,8 @@ dist/
 .DS_Store
 *.log
 .vite/
+*.tsbuildinfo
+CLAUDE.md
+slides.html
 .devlog
 .vercel
