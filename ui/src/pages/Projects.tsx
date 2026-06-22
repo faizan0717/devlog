@@ -32,7 +32,7 @@ export default function Projects() {
   return (
     <AnimatedPage>
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-8">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-headline text-ink-primary">Projects</h1>
           <p className="text-body text-ink-secondary mt-1">Everything you&apos;re building.</p>
@@ -41,12 +41,12 @@ export default function Projects() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 border-b border-surface-800 relative">
+      <div className="relative mb-6 flex gap-1 overflow-x-auto border-b border-surface-800">
         {TABS.map((t) => (
           <button
             key={t.value}
             onClick={() => setTab(t.value)}
-            className={`relative px-4 py-2.5 text-body transition-colors duration-150 ${
+            className={`relative shrink-0 px-4 py-2.5 text-body transition-colors duration-150 ${
               tab === t.value ? 'text-ink-primary' : 'text-ink-tertiary hover:text-ink-secondary'
             }`}
           >

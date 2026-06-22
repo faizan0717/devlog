@@ -3,13 +3,13 @@ import { ROUTES } from '@/utils'
 
 export function PublicNav() {
   return (
-    <header className="h-16 glass border-b border-white/5 flex items-center px-6 gap-4 flex-shrink-0 sticky top-0 z-40">
-      <Link to={ROUTES.HOME} className="text-accent font-bold text-title tracking-tight mr-4">
+    <header className="glass sticky top-0 z-40 flex h-16 flex-shrink-0 items-center gap-3 border-b border-white/5 px-4 sm:gap-4 sm:px-6">
+      <Link to={ROUTES.HOME} className="mr-1 text-title font-bold tracking-tight text-accent sm:mr-4">
         devLog
       </Link>
       <Link
         to={ROUTES.EXPLORE}
-        className="text-body text-ink-secondary hover:text-ink-primary transition-colors duration-150"
+        className="text-body text-ink-secondary transition-colors duration-150 hover:text-ink-primary"
       >
         Explore
       </Link>
@@ -27,13 +27,13 @@ export function PublicNav() {
         </a>
         <Link
           to={ROUTES.LOGIN}
-          className="px-4 py-2 rounded-glass text-body text-ink-secondary hover:text-ink-primary transition-colors duration-150"
+          className="rounded-glass px-3 py-2 text-body text-ink-secondary transition-colors duration-150 hover:text-ink-primary sm:px-4"
         >
           Sign in
         </Link>
         <Link
           to={ROUTES.REGISTER}
-          className="px-4 py-2 rounded-glass text-body bg-accent/15 text-accent-light border border-accent/30 hover:bg-accent/25 transition-colors duration-150"
+          className="rounded-glass border border-accent/30 bg-accent/15 px-3 py-2 text-body text-accent-light transition-colors duration-150 hover:bg-accent/25 sm:px-4"
         >
           Register
         </Link>

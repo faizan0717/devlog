@@ -37,7 +37,7 @@ export function LogEditor({ projectId, userId, logId, initialLog }: LogEditorPro
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)] max-w-3xl mx-auto pb-16">
       {/* Toolbar */}
-      <div className="flex items-center gap-3 py-4 mb-2 sticky top-0 z-20 bg-surface-950/80 backdrop-blur-sm border-b border-surface-800/50">
+      <div className="sticky top-0 z-20 mb-2 flex flex-wrap items-center gap-2 border-b border-surface-800/50 bg-surface-950/90 py-3 backdrop-blur-sm sm:gap-3 sm:py-4">
         <button
           type="button"
           onClick={() => navigate(`/projects/${projectId}`)}
@@ -79,7 +79,7 @@ export function LogEditor({ projectId, userId, logId, initialLog }: LogEditorPro
           </div>
         )}
 
-        <div className="flex-1" />
+        <div className="hidden flex-1 sm:block" />
 
         {/* Save button (new logs only) */}
         {editor.isNew && (
@@ -111,11 +111,11 @@ export function LogEditor({ projectId, userId, logId, initialLog }: LogEditorPro
         )}
 
         {/* Write / Preview toggle */}
-        <div className="flex items-center gap-1 rounded-glass bg-surface-900 border border-surface-700 p-0.5">
+        <div className="flex items-center gap-1 rounded-glass bg-surface-900 border border-surface-700 p-0.5 max-sm:order-last max-sm:w-full">
           <button
             type="button"
             onClick={() => setPreview(false)}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded text-caption transition-all duration-150 ${
+            className={`flex flex-1 items-center justify-center gap-1.5 px-3 py-1 rounded text-caption transition-all duration-150 ${
               !preview ? 'bg-surface-700 text-ink-primary' : 'text-ink-tertiary hover:text-ink-secondary'
             }`}
           >
@@ -125,7 +125,7 @@ export function LogEditor({ projectId, userId, logId, initialLog }: LogEditorPro
           <button
             type="button"
             onClick={() => setPreview(true)}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded text-caption transition-all duration-150 ${
+            className={`flex flex-1 items-center justify-center gap-1.5 px-3 py-1 rounded text-caption transition-all duration-150 ${
               preview ? 'bg-surface-700 text-ink-primary' : 'text-ink-tertiary hover:text-ink-secondary'
             }`}
           >
@@ -157,7 +157,7 @@ export function LogEditor({ projectId, userId, logId, initialLog }: LogEditorPro
         onChange={(e) => editor.handleTitleChange(e.target.value)}
         placeholder="Untitled"
         className="w-full bg-transparent text-display text-ink-primary placeholder:text-ink-disabled outline-none border-none py-4 resize-none"
-        style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', lineHeight: '1.2', fontWeight: 700 }}
+        style={{ fontSize: 'clamp(1.65rem, 8vw, 2.5rem)', lineHeight: '1.2', fontWeight: 700 }}
       />
 
       {/* Mood selector */}

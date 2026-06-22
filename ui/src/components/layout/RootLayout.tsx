@@ -15,7 +15,7 @@ export function RootLayout() {
   return (
     <div className="flex h-screen bg-surface-950 overflow-hidden">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto pl-20">
+      <main className="flex-1 overflow-y-auto pb-24 md:pb-0 md:pl-20">
         <Suspense fallback={<LayoutLoader />}>
           <Outlet />
         </Suspense>

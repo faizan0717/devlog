@@ -12,7 +12,7 @@ export function PageWrapper({ children, className }: PageWrapperProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-      className={cn('w-full mx-auto p-6 lg:p-8 min-h-full', className)}
+      className={cn('w-full mx-auto p-4 sm:p-6 lg:p-8 min-h-full', className)}
     >
       {children}
     </motion.div>

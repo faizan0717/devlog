@@ -203,12 +203,12 @@ export default function ProjectDetail() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-8 border-b border-surface-800">
+      <div className="mb-8 flex gap-1 overflow-x-auto border-b border-surface-800">
         {TABS.filter((t) => !t.ownerOnly || isOwner).map((t) => (
           <button
             key={t.value}
             onClick={() => handleTabChange(t.value)}
-            className={`relative px-4 py-2.5 text-body transition-colors duration-150 ${
+            className={`relative shrink-0 px-4 py-2.5 text-body transition-colors duration-150 ${
               tab === t.value ? 'text-ink-primary' : 'text-ink-tertiary hover:text-ink-secondary'
             }`}
           >
@@ -240,6 +240,7 @@ export default function ProjectDetail() {
               projectId={id!}
               canEdit={!!isEditor}
               loading={logsLoading}
+              getLogHref={(log) => `/projects/${id}/logs/${log.id}/preview`}
             />
           </motion.div>
         )}

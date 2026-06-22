@@ -77,7 +77,7 @@ export default function ProjectPreview() {
         </div>
       </div>
 
-      <div className="relative mb-8 min-h-[380px] overflow-hidden rounded-[1.5rem]">
+      <div className="relative mb-8 min-h-[320px] overflow-hidden rounded-[1.5rem] sm:min-h-[380px]">
         {project.cover_image_url ? (
           <img src={project.cover_image_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
         ) : (
@@ -101,7 +101,7 @@ export default function ProjectPreview() {
               ))}
             </div>
           )}
-          <h1 className="text-display text-ink-primary">{project.title}</h1>
+          <h1 className="text-[clamp(2.25rem,12vw,3.5rem)] font-bold leading-[1.05] tracking-[-0.03em] text-ink-primary">{project.title}</h1>
           {project.description && (
             <p className="mt-2 max-w-2xl text-body text-ink-secondary line-clamp-2">{project.description}</p>
           )}

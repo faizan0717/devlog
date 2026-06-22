@@ -109,7 +109,7 @@ export function TimelineView({ logs, projectId, canEdit, loading, getLogHref }: 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3, delay: 0.2 }}
-          className="fixed bottom-8 right-8 z-30"
+          className="fixed bottom-28 right-4 z-30 md:bottom-8 md:right-8"
         >
           <Button
             onClick={() => navigate(`/projects/${projectId}/logs/new`)}
