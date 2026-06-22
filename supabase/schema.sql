@@ -119,7 +119,14 @@ create policy "logs: owner all" on public.logs for all using (
 create policy "logs: collab read" on public.logs for select using (
   exists (select 1 from public.collaborators where project_id = logs.project_id and user_id = auth.uid())
 );
-create policy "logs: public read" on public.logs for select using (visibility = 'public');
+create policy "logs: public read" on public.logs for select using (
+  visibility = 'public'
+  and exists (
+    select 1 from public.projects p
+    where p.id = logs.project_id
+      and p.visibility in ('public', 'unlisted')
+  )
+);
 
 -- Logs: editors/admin collaborators can create and update logs in shared projects.
 -- Owners keep full access through "logs: owner all" above; deletes remain owner-only.
@@ -182,7 +189,8 @@ create policy "comments: read" on public.comments for select using (
     select 1 from public.logs l
     join public.projects p on p.id = l.project_id
     where l.id = log_id
-      and (p.owner_id = auth.uid() or l.visibility = 'public'
+      and (p.owner_id = auth.uid()
+           or (l.visibility = 'public' and p.visibility in ('public', 'unlisted'))
            or exists (select 1 from public.collaborators where project_id = p.id and user_id = auth.uid()))
   )
 );
@@ -370,7 +378,7 @@ do $$ begin
         join public.projects p on p.id = l.project_id
         where l.id = log_id
           and (p.owner_id = auth.uid()
-               or l.visibility = 'public'
+               or (l.visibility = 'public' and p.visibility in ('public', 'unlisted'))
                or exists (select 1 from public.collaborators where project_id = p.id and user_id = auth.uid()))
       )
     );
