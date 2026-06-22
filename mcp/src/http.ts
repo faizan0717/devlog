@@ -5,6 +5,7 @@ import { createDevlogMcpServer } from './server.js'
 import { runWithAgentToken } from './requestContext.js'
 import { handleRest } from './rest.js'
 import { supabase } from './supabase.js'
+import { getErrorMessage, getHttpStatus } from './errors.js'
 
 const port = Number(process.env.PORT ?? process.env.DEVLOG_MCP_PORT ?? 8787)
 const host = process.env.HOST ?? '0.0.0.0'
@@ -111,7 +112,7 @@ const server = http.createServer((req, res) => {
     }
 
     const restPaths = ['/docs', '/setup.sh', '/projects', '/logs']
-    const isRestPath = restPaths.some((p) => url.pathname === p || url.pathname.startsWith('/projects/'))
+    const isRestPath = restPaths.some((p) => url.pathname === p) || url.pathname.startsWith('/projects/') || url.pathname.startsWith('/logs/')
     if (isRestPath) {
       setCors(res)
       await handleRest(req, res, url.pathname)
@@ -133,8 +134,10 @@ const server = http.createServer((req, res) => {
     log(req, 404)
     sendJson(res, 404, { error: 'Not found', endpoints: ALL_ENDPOINTS })
   })().catch((error) => {
-    console.error('[devLog MCP] request error:', error)
-    if (!res.headersSent) sendJson(res, 500, { error: error instanceof Error ? error.message : 'Internal server error' })
+    const status = getHttpStatus(error)
+    if (status >= 500) console.error('[devLog MCP] request error:', error)
+    else console.warn('[devLog MCP] request rejected:', getErrorMessage(error))
+    if (!res.headersSent) sendJson(res, status, { error: getErrorMessage(error) })
     else res.end()
   })
 })

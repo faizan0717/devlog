@@ -160,6 +160,49 @@ function send(res: ServerResponse, status: number, body: unknown) {
   res.end(isText ? body : JSON.stringify(body))
 }
 
+const PROJECT_VISIBILITIES = new Set(['private', 'public', 'unlisted'])
+const LOG_VISIBILITIES = new Set(['private', 'public', 'shared', 'unlisted'])
+const LOG_MOODS = new Set(['building', 'shipped', 'stuck', 'reflecting', 'inspired', 'learning'])
+
+function isString(value: unknown): value is string {
+  return typeof value === 'string'
+}
+
+function validateStringField(value: unknown, field: string, max: number, required = false): string | null {
+  if (value === undefined || value === null) {
+    if (required) throw new Error(`${field} is required`)
+    return null
+  }
+  if (!isString(value)) throw new Error(`${field} must be a string`)
+  const trimmed = value.trim()
+  if (required && !trimmed) throw new Error(`${field} is required`)
+  if (trimmed.length > max) throw new Error(`${field} must be at most ${max} characters`)
+  return trimmed || null
+}
+
+function validateEnumField(value: unknown, field: string, allowed: Set<string>, defaultValue?: string): string | null {
+  if (value === undefined || value === null || value === '') return defaultValue ?? null
+  if (!isString(value) || !allowed.has(value)) {
+    throw new Error(`${field} must be one of: ${Array.from(allowed).join(', ')}`)
+  }
+  return value
+}
+
+function validateTags(value: unknown): string[] {
+  if (value === undefined || value === null) return []
+  if (!Array.isArray(value)) throw new Error('tags must be an array')
+  if (value.length > 10) throw new Error('tags must contain at most 10 items')
+  return value.map((tag) => {
+    if (!isString(tag)) throw new Error('tags must contain only strings')
+    return tag.trim()
+  }).filter(Boolean)
+}
+
+function sendValidationError(res: ServerResponse, error: unknown): true {
+  send(res, 400, { error: error instanceof Error ? error.message : 'Invalid request body' })
+  return true
+}
+
 async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = []
   for await (const chunk of req) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
@@ -200,16 +243,24 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
     if (method === 'POST' && pathname === '/projects') {
       requireScope(ctx, 'create_project')
       const body = await readJsonBody(req)
-      const title = (body.title as string)?.trim()
-      if (!title) { send(res, 400, { error: 'title is required' }); return }
+      let title: string | null
+      let description: string | null
+      let visibility: string | null
+      let tags: string[]
+      try {
+        title = validateStringField(body.title, 'title', 100, true)
+        description = validateStringField(body.description, 'description', 500)
+        visibility = validateEnumField(body.visibility, 'visibility', PROJECT_VISIBILITIES, 'private')
+        tags = validateTags(body.tags)
+      } catch (error) { sendValidationError(res, error); return }
       const { data, error } = await supabase
         .from('projects')
         .insert({
           owner_id: ctx.ownerId,
           title,
-          description: (body.description as string)?.trim() || null,
-          visibility: (body.visibility as string) || 'private',
-          tags: (body.tags as string[]) ?? [],
+          description,
+          visibility,
+          tags,
         })
         .select('id, owner_id, title, description, visibility, tags, created_at, updated_at')
         .single()
@@ -256,24 +307,34 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
     if (method === 'POST' && pathname === '/logs') {
       requireScope(ctx, 'create_log')
       const body = await readJsonBody(req)
-      const projectId = body.project_id as string
-      const title = (body.title as string)?.trim()
-      if (!projectId || !title) { send(res, 400, { error: 'project_id and title are required' }); return }
-      await assertProjectAccess(ctx, projectId)
+      let projectId: string | null
+      let title: string | null
+      let content: string | null
+      let visibility: string | null
+      let mood: string | null
+      try {
+        projectId = validateStringField(body.project_id, 'project_id', 64, true)
+        title = validateStringField(body.title, 'title', 160, true)
+        content = validateStringField(body.content, 'content', 50000)
+        visibility = validateEnumField(body.visibility, 'visibility', LOG_VISIBILITIES, 'private')
+        mood = validateEnumField(body.mood, 'mood', LOG_MOODS)
+      } catch (error) { sendValidationError(res, error); return }
+      const projectIdValue = projectId as string
+      await assertProjectAccess(ctx, projectIdValue)
       const { data, error } = await supabase
         .from('logs')
         .insert({
-          project_id: projectId,
+          project_id: projectIdValue,
           title,
-          content: (body.content as string)?.trim() || null,
-          visibility: (body.visibility as string) || 'private',
-          mood: (body.mood as string) || null,
+          content,
+          visibility,
+          mood,
           media: [],
         })
         .select('id, project_id, title, content, visibility, mood, created_at, updated_at')
         .single()
       if (error) { send(res, 500, { error: error.message }); return }
-      await auditAgentAction(ctx, 'rest_create_log', { projectId, logId: data.id, metadata: { title: data.title } })
+      await auditAgentAction(ctx, 'rest_create_log', { projectId: projectIdValue, logId: data.id, metadata: { title: data.title } })
       send(res, 201, data)
       return
     }
@@ -286,10 +347,12 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
       await assertProjectAccess(ctx, projectId)
       const body = await readJsonBody(req)
       const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
-      if (body.title !== undefined) patch.title = (body.title as string).trim()
-      if (body.description !== undefined) patch.description = (body.description as string).trim() || null
-      if (body.visibility !== undefined) patch.visibility = body.visibility
-      if (body.tags !== undefined) patch.tags = body.tags
+      try {
+        if (body.title !== undefined) patch.title = validateStringField(body.title, 'title', 100, true)
+        if (body.description !== undefined) patch.description = validateStringField(body.description, 'description', 500)
+        if (body.visibility !== undefined) patch.visibility = validateEnumField(body.visibility, 'visibility', PROJECT_VISIBILITIES)
+        if (body.tags !== undefined) patch.tags = validateTags(body.tags)
+      } catch (error) { sendValidationError(res, error); return }
       const { data, error } = await supabase
         .from('projects')
         .update(patch)
@@ -310,10 +373,12 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
       const { projectId } = await assertLogOwnership(ctx, logId)
       const body = await readJsonBody(req)
       const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
-      if (body.title !== undefined) patch.title = (body.title as string).trim()
-      if (body.content !== undefined) patch.content = (body.content as string).trim() || null
-      if (body.visibility !== undefined) patch.visibility = body.visibility
-      if (body.mood !== undefined) patch.mood = body.mood
+      try {
+        if (body.title !== undefined) patch.title = validateStringField(body.title, 'title', 160, true)
+        if (body.content !== undefined) patch.content = validateStringField(body.content, 'content', 50000)
+        if (body.visibility !== undefined) patch.visibility = validateEnumField(body.visibility, 'visibility', LOG_VISIBILITIES)
+        if (body.mood !== undefined) patch.mood = validateEnumField(body.mood, 'mood', LOG_MOODS)
+      } catch (error) { sendValidationError(res, error); return }
       const { data, error } = await supabase
         .from('logs')
         .update(patch)
