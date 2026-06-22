@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
-import { Lock, Globe, Link2, Users, UserPlus } from 'lucide-react'
+import { Eye, Lock, Globe, Link2, Users, UserPlus } from 'lucide-react'
 import { AnimatedPage } from '@/components/shared/AnimatedPage'
 import { Button, Badge, Avatar, Spinner } from '@/components/ui'
 import { useProject } from '@/features/projects/hooks/useProject'
@@ -168,7 +168,12 @@ export default function ProjectDetail() {
         <div className="absolute inset-0 bg-gradient-to-t from-surface-950/90 via-surface-950/30 to-transparent" />
 
         {/* Visibility badge */}
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 right-4 flex items-center gap-2">
+          <Link to={`/projects/${project.id}/preview`}>
+            <Button size="sm" variant="secondary" className="backdrop-blur-sm">
+              <Eye size={13} className="mr-1" /> Preview
+            </Button>
+          </Link>
           <span className={cn(
             'flex items-center gap-1.5 rounded-pill px-3 py-1 text-caption backdrop-blur-sm',
             'bg-surface-950/60 border border-surface-700',

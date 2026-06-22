@@ -15,12 +15,14 @@ const Register = lazy(() => import('@/pages/Register'))
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const Projects = lazy(() => import('@/pages/Projects'))
 const ProjectDetail = lazy(() => import('@/pages/ProjectDetail'))
+const ProjectPreview = lazy(() => import('@/pages/ProjectPreview'))
 const NewProject = lazy(() => import('@/pages/NewProject'))
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'))
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'))
 const Profile = lazy(() => import('@/pages/Profile'))
 const AgentAccess = lazy(() => import('@/pages/AgentAccess'))
 const LogEditorPage = lazy(() => import('@/pages/LogEditorPage'))
+const LogPreview = lazy(() => import('@/pages/LogPreview'))
 const Explore = lazy(() => import('@/pages/Explore'))
 const PublicProfile = lazy(() => import('@/pages/PublicProfile'))
 const PublicProject = lazy(() => import('@/pages/PublicProject'))
@@ -116,6 +118,14 @@ function AnimatedRoutes() {
               }
             />
             <Route
+              path="/projects/:id/preview"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <ProjectPreview />
+                </Suspense>
+              }
+            />
+            <Route
               path="/projects/:id/logs/new"
               element={
                 <Suspense fallback={<PageLoader />}>
@@ -128,6 +138,14 @@ function AnimatedRoutes() {
               element={
                 <Suspense fallback={<PageLoader />}>
                   <LogEditorPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/projects/:id/logs/:logId/preview"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <LogPreview />
                 </Suspense>
               }
             />

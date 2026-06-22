@@ -17,6 +17,14 @@ export function PublicNav() {
       <div className="flex-1" />
 
       <div className="flex items-center gap-2">
+        <a
+          href="https://github.com/faizan0717/devlog/issues/new?title=Beta%20feedback"
+          target="_blank"
+          rel="noreferrer"
+          className="hidden sm:inline-flex px-3 py-2 rounded-glass text-body text-ink-tertiary hover:text-ink-primary transition-colors duration-150"
+        >
+          Feedback
+        </a>
         <Link
           to={ROUTES.LOGIN}
           className="px-4 py-2 rounded-glass text-body text-ink-secondary hover:text-ink-primary transition-colors duration-150"

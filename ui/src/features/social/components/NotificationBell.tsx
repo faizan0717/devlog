@@ -137,6 +137,14 @@ export function NotificationBell() {
               )}
             </div>
             <div className="overflow-y-auto flex-1">
+              {loading && (
+                <div className="flex justify-center py-6"><Spinner size="sm" /></div>
+              )}
+              {!loading && (!notifications || notifications.length === 0) && (
+                <div className="py-8 text-center text-body text-ink-tertiary">
+                  You're all caught up.
+                </div>
+              )}
               {!loading && notifications?.map((n) => (
                 <Link
                   key={n.id}

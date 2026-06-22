@@ -29,9 +29,10 @@ interface LogNodeProps {
   projectId: string
   index: number
   publicMode?: boolean
+  href?: string
 }
 
-export function LogNode({ log, projectId, index, publicMode = false }: LogNodeProps) {
+export function LogNode({ log, projectId, index, publicMode = false, href }: LogNodeProps) {
   const navigate = useNavigate()
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: '-60px' })
@@ -61,7 +62,7 @@ export function LogNode({ log, projectId, index, publicMode = false }: LogNodePr
       >
         <button
           type="button"
-          onClick={() => navigate(publicMode ? `/p/${projectId}/logs/${log.id}` : `/projects/${projectId}/logs/${log.id}`)}
+          onClick={() => navigate(href ?? (publicMode ? `/p/${projectId}/logs/${log.id}` : `/projects/${projectId}/logs/${log.id}`))}
           className="w-full text-left glass rounded-glass p-5 transition-all duration-200 hover:bg-surface-800/50 hover:shadow-glass-lg focus-ring group"
         >
           {/* Header */}

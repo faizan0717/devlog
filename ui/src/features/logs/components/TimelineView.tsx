@@ -26,9 +26,10 @@ interface TimelineViewProps {
   projectId: string
   canEdit: boolean
   loading?: boolean
+  getLogHref?: (log: Log) => string
 }
 
-export function TimelineView({ logs, projectId, canEdit, loading }: TimelineViewProps) {
+export function TimelineView({ logs, projectId, canEdit, loading, getLogHref }: TimelineViewProps) {
   const navigate = useNavigate()
 
   if (loading) {
@@ -95,6 +96,7 @@ export function TimelineView({ logs, projectId, canEdit, loading }: TimelineView
                 log={log}
                 projectId={projectId}
                 index={idx}
+                href={getLogHref?.(log)}
               />
             )
           })}

@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { FolderOpen, Compass, User, LogOut, KeyRound } from 'lucide-react'
+import { FolderOpen, Compass, User, LogOut, KeyRound, MessageCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/authStore'
 import { authService } from '@/services/auth.service'
@@ -109,6 +109,23 @@ export function Sidebar() {
             </motion.span>
           </div>
         )}
+
+        <a
+          href="https://github.com/faizan0717/devlog/issues/new?title=Beta%20feedback"
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-3 px-2.5 py-2.5 rounded-[18px] text-ink-secondary hover:text-ink-primary hover:bg-white/6 transition-colors duration-150"
+        >
+          <MessageCircle size={18} className="flex-shrink-0" />
+          <motion.span
+            variants={{ expanded: { opacity: 1, x: 0 } }}
+            initial={{ opacity: 0, x: -6 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="text-body whitespace-nowrap overflow-hidden"
+          >
+            Feedback
+          </motion.span>
+        </a>
 
         <button
           type="button"

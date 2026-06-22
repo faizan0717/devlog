@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { ArrowLeft, Trash2, Eye, Pen, CheckCheck, Loader2, Save } from 'lucide-react'
+import { ArrowLeft, Trash2, Eye, Pen, CheckCheck, Loader2, Save, ExternalLink } from 'lucide-react'
 import { VisibilitySelector } from '@/features/projects/components/VisibilitySelector'
 import { MoodSelector } from './MoodSelector'
 import { MediaUpload } from './MediaUpload'
@@ -95,6 +95,18 @@ export function LogEditor({ projectId, userId, logId, initialLog }: LogEditorPro
               <Save size={13} />
             )}
             {editor.publishing ? 'Saving…' : 'Save'}
+          </button>
+        )}
+
+        {/* Read-only page preview */}
+        {logId && (
+          <button
+            type="button"
+            onClick={() => navigate(`/projects/${projectId}/logs/${logId}/preview`)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-glass text-caption transition-all duration-150 border border-surface-700 text-ink-tertiary hover:border-accent/40 hover:text-accent-light"
+          >
+            <ExternalLink size={13} />
+            View page
           </button>
         )}
 
