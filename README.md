@@ -3,7 +3,7 @@
 A cinematic timeline platform for makers. Document your projects, ship logs, and share your journey — with full AI agent access via MCP.
 
 [![UI](https://img.shields.io/badge/UI-devlog--three--mu.vercel.app-black?logo=vercel)](https://devlog-three-mu.vercel.app)
-[![MCP](https://img.shields.io/badge/MCP-railway-blueviolet?logo=railway)](https://mcp-server-production-8a48.up.railway.app/health)
+[![MCP](https://img.shields.io/badge/MCP-railway-blueviolet?logo=railway)](https://devlog-mcp.up.railway.app/health)
 [![License](https://img.shields.io/badge/license-MIT-purple)](LICENSE)
 
 ---
@@ -13,9 +13,9 @@ A cinematic timeline platform for makers. Document your projects, ship logs, and
 | Service | URL |
 |---|---|
 | App | https://devlog-three-mu.vercel.app |
-| MCP / REST API | https://mcp-server-production-8a48.up.railway.app |
-| API docs | https://mcp-server-production-8a48.up.railway.app/docs |
-| Health | https://mcp-server-production-8a48.up.railway.app/health |
+| MCP / REST API | https://devlog-mcp.up.railway.app |
+| API docs | https://devlog-mcp.up.railway.app/docs |
+| Health | https://devlog-mcp.up.railway.app/health |
 
 ---
 
@@ -129,7 +129,7 @@ Auto-deploys from `main` branch. Root directory: `ui/`.
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 VITE_APP_URL=https://devlog-three-mu.vercel.app
-VITE_DEVLOG_MCP_URL=https://mcp-server-production-8a48.up.railway.app
+VITE_DEVLOG_MCP_URL=https://devlog-mcp.up.railway.app
 ```
 
 ### MCP server — Railway
@@ -180,7 +180,7 @@ npm run dev:http       # http://localhost:8787
 Get a token from the app → **Agents** → **New token**, then run the interactive setup script:
 
 ```bash
-curl -fsSL https://mcp-server-production-8a48.up.railway.app/setup.sh | bash -s -- <your-token>
+curl -fsSL https://devlog-mcp.up.railway.app/setup.sh | bash -s -- <your-token>
 ```
 
 The script:
