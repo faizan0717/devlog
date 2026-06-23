@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { BookOpen, Eye, Flame } from 'lucide-react'
 import { Avatar } from '@/components/ui'
-import { cn, formatDate } from '@/utils'
+import { formatDate } from '@/utils'
 import { getCoverGradient } from '@/utils/coverGradient'
 import type { PublicProject } from '@/types'
 

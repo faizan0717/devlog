@@ -1,5 +1,5 @@
 import { NavLink, Link, useNavigate } from 'react-router-dom'
-import { Compass, CheckSquare, Map, Settings, LogOut, KeyRound, MessageCircle } from 'lucide-react'
+import { Compass, CheckSquare, Map, Settings, LogOut, KeyRound, MessageCircle, FolderOpen } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn, ROUTES } from '@/utils'
 import { getCoverGradient } from '@/utils/coverGradient'

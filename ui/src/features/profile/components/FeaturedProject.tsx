@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { Button } from '@/components/ui'
 import { fadeUp } from '@/lib/motion'
 import type { PublicLog, PublicProject } from '@/types'
-import { cn, formatDate } from '@/utils'
+import { formatDate } from '@/utils'
 import { getCoverGradient } from '@/utils/coverGradient'
 
 interface FeaturedProjectProps {

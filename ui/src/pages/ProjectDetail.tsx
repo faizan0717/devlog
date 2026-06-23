@@ -16,13 +16,11 @@ import { GradientPicker } from '@/features/projects/components/GradientPicker'
 import { TagInput } from '@/features/projects/components/TagInput'
 import { VisibilitySelector } from '@/features/projects/components/VisibilitySelector'
 import { projectsService } from '@/services/projects.service'
-import type { Log, LogMood, Visibility } from '@/types'
+import type { Log, Visibility } from '@/types'
 import { cn, formatDate } from '@/utils'
 import { COVER_GRADIENTS, getCoverGradient } from '@/utils/coverGradient'
 
 // ── Mood helpers ──────────────────────────────────────────────────────────────
-
-type MoodKey = LogMood
 
 const MOOD_DOT: Record<string, string> = {
   building:   'bg-mood-building',
