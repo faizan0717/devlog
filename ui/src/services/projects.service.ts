@@ -55,7 +55,7 @@ export const projectsService = {
   async update(
     id: string,
     payload: Partial<
-      Pick<Project, 'title' | 'description' | 'visibility' | 'cover_image_url' | 'tags'>
+      Pick<Project, 'title' | 'description' | 'visibility' | 'cover_image_url' | 'cover_gradient' | 'tags'>
     >,
   ): Promise<Project> {
     const { data, error } = await supabase

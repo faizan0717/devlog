@@ -2,8 +2,8 @@
 
 A cinematic timeline platform for makers. Document your projects, ship logs, and share your journey — with full AI agent access via MCP.
 
-[![UI](https://img.shields.io/badge/UI-devlog--three--mu.vercel.app-black?logo=vercel)](https://devlog-three-mu.vercel.app)
-[![MCP](https://img.shields.io/badge/MCP-railway-blueviolet?logo=railway)](https://devlog-mcp.up.railway.app/health)
+[![UI](https://img.shields.io/badge/UI-devlog.one-black?logo=vercel)](https://devlog.one)
+[![MCP](https://img.shields.io/badge/API-api.devlog.one-blueviolet?logo=railway)](https://api.devlog.one/health)
 [![License](https://img.shields.io/badge/license-MIT-purple)](LICENSE)
 
 ---
@@ -12,10 +12,10 @@ A cinematic timeline platform for makers. Document your projects, ship logs, and
 
 | Service | URL |
 |---|---|
-| App | https://devlog-three-mu.vercel.app |
-| MCP / REST API | https://devlog-mcp.up.railway.app |
-| API docs | https://devlog-mcp.up.railway.app/docs |
-| Health | https://devlog-mcp.up.railway.app/health |
+| App | https://devlog.one |
+| MCP / REST API | https://api.devlog.one |
+| API docs | https://api.devlog.one/docs |
+| Health | https://api.devlog.one/health |
 
 ---
 
@@ -128,8 +128,8 @@ Auto-deploys from `main` branch. Root directory: `ui/`.
 ```
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
-VITE_APP_URL=https://devlog-three-mu.vercel.app
-VITE_DEVLOG_MCP_URL=https://devlog-mcp.up.railway.app
+VITE_APP_URL=https://devlog.one
+VITE_DEVLOG_MCP_URL=https://api.devlog.one
 ```
 
 ### MCP server — Railway
@@ -139,7 +139,7 @@ Built with Docker (multi-stage, Node 22 Alpine). Root directory: repo root (Dock
 ```
 DEVLOG_SUPABASE_URL=
 DEVLOG_SUPABASE_SERVICE_ROLE_KEY=
-DEVLOG_MCP_ALLOWED_ORIGIN=https://devlog-three-mu.vercel.app
+DEVLOG_MCP_ALLOWED_ORIGIN=https://devlog.one
 ```
 
 Railway sets `PORT` automatically.
@@ -180,7 +180,7 @@ npm run dev:http       # http://localhost:8787
 Get a token from the app → **Agents** → **New token**, then run the interactive setup script:
 
 ```bash
-curl -fsSL https://devlog-mcp.up.railway.app/setup.sh | bash -s -- <your-token>
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- <your-token>
 ```
 
 The script:

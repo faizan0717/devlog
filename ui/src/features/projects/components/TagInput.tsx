@@ -36,11 +36,11 @@ export function TagInput({ tags, onChange, disabled, max = 10 }: TagInputProps) 
 
   return (
     <div className="space-y-1.5">
-      <label className="text-label text-ink-secondary">Tags</label>
+      <label className="text-[12px] uppercase tracking-wider font-medium text-ink-disabled">Tags</label>
       <div
         className={cn(
-          'min-h-[44px] flex flex-wrap gap-1.5 rounded-glass border border-surface-700 bg-surface-800 px-3 py-2 cursor-text',
-          'transition-colors duration-150 focus-within:border-accent/60',
+          'min-h-[44px] flex flex-wrap gap-1.5 rounded-lg border border-border bg-gray-50 px-3 py-2 cursor-text',
+          'transition-colors duration-150 focus-within:border-accent/60 focus-within:bg-white',
           disabled && 'opacity-50 cursor-not-allowed',
         )}
         onClick={() => inputRef.current?.focus()}
@@ -53,7 +53,7 @@ export function TagInput({ tags, onChange, disabled, max = 10 }: TagInputProps) 
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.7, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-              className="inline-flex items-center gap-1 rounded-pill bg-accent-muted border border-accent/20 px-2 py-0.5 text-caption text-accent-light"
+              className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[12px] text-accent"
             >
               {tag}
               {!disabled && (

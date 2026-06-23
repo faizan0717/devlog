@@ -6,7 +6,7 @@ import { TimelineView } from '@/features/logs/components/TimelineView'
 import { useProject } from '@/features/projects/hooks/useProject'
 import { useLogs } from '@/features/logs/hooks/useLogs'
 import { useAuthStore } from '@/stores/authStore'
-import { cn } from '@/utils'
+import { getCoverGradient } from '@/utils/coverGradient'
 import type { Visibility } from '@/types'
 
 const VISIBILITY_META: Record<Visibility, { icon: React.ElementType; label: string }> = {
@@ -14,20 +14,6 @@ const VISIBILITY_META: Record<Visibility, { icon: React.ElementType; label: stri
   public: { icon: Globe, label: 'Public' },
   unlisted: { icon: Link2, label: 'Unlisted' },
   shared: { icon: Users, label: 'Shared' },
-}
-
-const COVER_GRADIENTS = [
-  'from-violet-900 to-surface-950',
-  'from-indigo-900 to-surface-950',
-  'from-slate-800 to-surface-950',
-  'from-zinc-800 to-surface-950',
-  'from-purple-900 to-surface-950',
-  'from-blue-900 to-surface-950',
-]
-
-function gradientForId(id: string) {
-  const idx = (id.charCodeAt(0) + id.charCodeAt(id.length - 1)) % COVER_GRADIENTS.length
-  return COVER_GRADIENTS[idx]
 }
 
 export default function ProjectPreview() {
@@ -81,7 +67,7 @@ export default function ProjectPreview() {
         {project.cover_image_url ? (
           <img src={project.cover_image_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
         ) : (
-          <div className={cn('absolute inset-0 bg-gradient-to-br', gradientForId(project.id))} />
+          <div className="absolute inset-0" style={{ background: getCoverGradient(project) }} />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-surface-950 via-surface-950/50 to-transparent" />
 

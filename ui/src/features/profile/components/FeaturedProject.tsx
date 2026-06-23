@@ -5,18 +5,7 @@ import { Button } from '@/components/ui'
 import { fadeUp } from '@/lib/motion'
 import type { PublicLog, PublicProject } from '@/types'
 import { cn, formatDate } from '@/utils'
-
-const COVER_GRADIENTS = [
-  'from-violet-900/70 via-surface-900 to-surface-950',
-  'from-indigo-900/70 via-surface-900 to-surface-950',
-  'from-blue-900/60 via-surface-900 to-surface-950',
-  'from-purple-900/70 via-surface-900 to-surface-950',
-]
-
-function gradientForId(id: string) {
-  const idx = (id.charCodeAt(0) + id.charCodeAt(id.length - 1)) % COVER_GRADIENTS.length
-  return COVER_GRADIENTS[idx]
-}
+import { getCoverGradient } from '@/utils/coverGradient'
 
 interface FeaturedProjectProps {
   project?: PublicProject
@@ -61,7 +50,7 @@ export function FeaturedProject({ project, latestLog, isOwnProfile }: FeaturedPr
             <div className="absolute inset-0 bg-gradient-to-t from-surface-950 via-surface-950/78 to-surface-950/30" />
           </>
         ) : (
-          <div className={cn('absolute inset-0 bg-gradient-to-br', gradientForId(project.id))} />
+          <div className="absolute inset-0" style={{ background: getCoverGradient(project) }} />
         )}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_18%,rgba(124,111,224,0.28),transparent_30%)]" />
 

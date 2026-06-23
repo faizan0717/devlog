@@ -105,33 +105,33 @@ Minimal checks only. Use the exact production endpoints below and do not run des
 
 | Surface | Exact endpoint | Purpose |
 |---|---|---|
-| UI app | `https://devlog-three-mu.vercel.app` | Production React/Vite app |
-| UI landing | `https://devlog-three-mu.vercel.app/` | Public landing page smoke test |
-| UI login | `https://devlog-three-mu.vercel.app/login` | Auth page smoke test |
-| UI register | `https://devlog-three-mu.vercel.app/register` | Registration page smoke test |
-| UI forgot password | `https://devlog-three-mu.vercel.app/forgot-password` | Password reset request page smoke test |
-| UI explore | `https://devlog-three-mu.vercel.app/explore` | Public discovery page smoke test |
-| MCP/REST base | `https://devlog-mcp.up.railway.app` | Hosted MCP/REST server |
-| MCP health | `https://devlog-mcp.up.railway.app/health` | Production server health check |
-| MCP/REST docs | `https://devlog-mcp.up.railway.app/docs` | Live agent/API documentation |
-| Setup script | `https://devlog-mcp.up.railway.app/setup.sh` | Agent setup script |
-| MCP protocol endpoint | `https://devlog-mcp.up.railway.app/mcp` | MCP client endpoint |
-| REST list projects | `https://devlog-mcp.up.railway.app/projects` | `GET`, requires Bearer token with `read_projects` |
-| REST create project | `https://devlog-mcp.up.railway.app/projects` | `POST`, requires Bearer token with `create_project` |
-| REST update project | `https://devlog-mcp.up.railway.app/projects/{project_id}` | `PATCH`, requires Bearer token with `update_project` |
-| REST project timeline | `https://devlog-mcp.up.railway.app/projects/{project_id}/timeline` | `GET`, requires Bearer token with `read_logs` |
-| REST create log | `https://devlog-mcp.up.railway.app/logs` | `POST`, requires Bearer token with `create_log` |
-| REST update log | `https://devlog-mcp.up.railway.app/logs/{log_id}` | `PATCH`, requires Bearer token with `update_log` |
+| UI app | `https://devlog.one` | Production React/Vite app |
+| UI landing | `https://devlog.one/` | Public landing page smoke test |
+| UI login | `https://devlog.one/login` | Auth page smoke test |
+| UI register | `https://devlog.one/register` | Registration page smoke test |
+| UI forgot password | `https://devlog.one/forgot-password` | Password reset request page smoke test |
+| UI explore | `https://devlog.one/explore` | Public discovery page smoke test |
+| MCP/REST base | `https://api.devlog.one` | Hosted MCP/REST server |
+| MCP health | `https://api.devlog.one/health` | Production server health check |
+| MCP/REST docs | `https://api.devlog.one/docs` | Live agent/API documentation |
+| Setup script | `https://api.devlog.one/setup.sh` | Agent setup script |
+| MCP protocol endpoint | `https://api.devlog.one/mcp` | MCP client endpoint |
+| REST list projects | `https://api.devlog.one/projects` | `GET`, requires Bearer token with `read_projects` |
+| REST create project | `https://api.devlog.one/projects` | `POST`, requires Bearer token with `create_project` |
+| REST update project | `https://api.devlog.one/projects/{project_id}` | `PATCH`, requires Bearer token with `update_project` |
+| REST project timeline | `https://api.devlog.one/projects/{project_id}/timeline` | `GET`, requires Bearer token with `read_logs` |
+| REST create log | `https://api.devlog.one/logs` | `POST`, requires Bearer token with `create_log` |
+| REST update log | `https://api.devlog.one/logs/{log_id}` | `PATCH`, requires Bearer token with `update_log` |
 
 #### Production smoke checks
 
-- `GET https://devlog-mcp.up.railway.app/health` returns 200 and `{ "ok": true }`
-- `GET https://devlog-mcp.up.railway.app/docs` returns markdown documentation
-- `GET https://devlog-mcp.up.railway.app/setup.sh` returns shell script text
-- `GET https://devlog-three-mu.vercel.app/` loads landing page
-- `GET https://devlog-three-mu.vercel.app/login` loads login page
-- `GET https://devlog-three-mu.vercel.app/register` loads register page
-- `GET https://devlog-three-mu.vercel.app/explore` loads explore page
+- `GET https://api.devlog.one/health` returns 200 and `{ "ok": true }`
+- `GET https://api.devlog.one/docs` returns markdown documentation
+- `GET https://api.devlog.one/setup.sh` returns shell script text
+- `GET https://devlog.one/` loads landing page
+- `GET https://devlog.one/login` loads login page
+- `GET https://devlog.one/register` loads register page
+- `GET https://devlog.one/explore` loads explore page
 - No production smoke test should create, update, or delete projects/logs unless it uses a dedicated synthetic production test account and is explicitly approved
 
 ## 5. Test Data Model
@@ -962,7 +962,7 @@ These items come from `test-report.md` dated 2026-06-23 and should be fixed befo
 1. Fix `PATCH /logs/:id` routing in `mcp/src/http.ts`.
    - Current behavior: `/logs/{log_id}` falls through to 404.
    - Required behavior: route `/logs/{log_id}` into the REST handler.
-   - Regression test: `PATCH https://devlog-mcp.up.railway.app/logs/{log_id}` returns 200 for a valid owner token and valid log.
+   - Regression test: `PATCH https://api.devlog.one/logs/{log_id}` returns 200 for a valid owner token and valid log.
 2. Fix REST/MCP error status mapping.
    - Invalid, revoked, or expired token → 401.
    - Missing scope → 403.

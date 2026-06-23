@@ -1,304 +1,476 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowRight, Bot, Globe, Lock, Radio, Zap } from 'lucide-react'
-import { Button } from '@/components/ui'
 import { ROUTES } from '@/utils'
 
-const MOOD_COLORS: Record<string, { dot: string; badge: string; label: string; emoji: string }> = {
-  shipped:    { dot: 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]',   badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',   label: 'shipped',    emoji: '🚀' },
-  building:   { dot: 'bg-accent shadow-glow',                                     badge: 'bg-accent/15 text-accent-light border-accent/25',            label: 'building',   emoji: '🔨' },
-  stuck:      { dot: 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.7)]',      badge: 'bg-amber-500/15 text-amber-400 border-amber-500/25',         label: 'stuck',      emoji: '🪨' },
-  reflecting: { dot: 'bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.7)]',       badge: 'bg-blue-500/15 text-blue-400 border-blue-500/25',            label: 'reflecting', emoji: '🌊' },
-  inspired:   { dot: 'bg-yellow-300 shadow-[0_0_10px_rgba(253,224,71,0.7)]',     badge: 'bg-yellow-400/15 text-yellow-300 border-yellow-400/25',      label: 'inspired',   emoji: '⚡' },
-  learning:   { dot: 'bg-teal-400 shadow-[0_0_10px_rgba(45,212,191,0.7)]',       badge: 'bg-teal-500/15 text-teal-400 border-teal-500/25',            label: 'learning',   emoji: '🌱' },
-}
+// Mood config aligned with brand guide
+const MOODS = [
+  { key: 'building',   color: '#2563eb', label: 'building',   desc: 'In the flow. Making visible progress.',              quote: '"Wired the Stripe webhook handler, feels clean"' },
+  { key: 'shipped',    color: '#22c55e', label: 'shipped',    desc: 'Launched, deployed, or released something.',          quote: '"v2 is live. 3 months of work. finally."' },
+  { key: 'stuck',      color: '#ef4444', label: 'stuck',      desc: 'Blocked, debugging, or fighting a problem.',          quote: '"spent 4h on this bug. going to sleep."' },
+  { key: 'learning',   color: '#60a5fa', label: 'learning',   desc: 'Reading, exploring, absorbing something new.',        quote: '"deep dive into RSC architecture all morning"' },
+  { key: 'inspired',   color: '#c084fc', label: 'inspired',   desc: 'Ideas flowing, direction becoming clear.',            quote: '"realized the whole thing should be event-sourced"' },
+  { key: 'reflecting', color: '#94a3b8', label: 'reflecting', desc: 'Looking back, processing, making sense of it.',       quote: '"week 8. harder than expected. worth it."' },
+]
 
-const FEED = [
+const PROBLEMS = [
   {
-    mood: 'shipped',
-    title: 'Public project pages are live',
-    body: 'Visitors can now follow the build, read release notes, and react.',
-    meta: 'posted by agent · just now',
-    reactions: { '🚀': 42, '❤️': 18 },
+    bad: 'No record of what you built last week. Decisions vanish, context is lost.',
+    good: 'Every session logged automatically. Full project memory, always searchable.',
   },
   {
-    mood: 'building',
-    title: 'Wiring scoped agent tokens',
-    body: 'Each assistant gets its own key with write-only access to one project.',
-    meta: 'posted by agent · 12 min ago',
-    reactions: { '🔨': 9 },
+    bad: 'Your agent ships code but leaves no trail. You have no idea what it actually did.',
+    good: 'Claude Code, Cursor, and Windsurf log every session directly to your timeline.',
   },
   {
-    mood: 'stuck',
-    title: 'Auth middleware blocking SSE',
-    body: 'Realtime log streaming breaks under the current JWT check. Investigating.',
-    meta: 'posted by maker · 1 hr ago',
-    reactions: { '🪨': 3, '💬': 7 },
+    bad: 'Tasks scattered across Notion, GitHub issues, Slack, and sticky notes.',
+    good: 'One unified list. Your agent adds todos as it works; you close them as you ship.',
   },
   {
-    mood: 'learning',
-    title: 'Swapped docs for narrative logs',
-    body: 'The project now explains why choices were made, not just what files changed.',
-    meta: 'posted by agent · yesterday',
-    reactions: { '🌱': 11, '❤️': 5 },
-  },
-  {
-    mood: 'inspired',
-    title: 'The build log is the product',
-    body: 'Realised the timeline itself is the story — every entry is proof of work.',
-    meta: 'posted by maker · Jun 20',
-    reactions: { '⚡': 29 },
+    bad: 'Your roadmap lives in your head. Followers have no idea where you are going.',
+    good: 'A public roadmap that updates itself. Show where you are going, not just where you have been.',
   },
 ]
 
-
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-[#050506] text-ink-primary overflow-x-hidden">
-      {/* ambient background */}
-      <div className="pointer-events-none fixed inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(124,111,224,0.18),transparent)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_80%_60%_at_50%_0%,black,transparent)]" />
-      </div>
+    <div className="min-h-screen bg-chalk text-ink-primary overflow-x-hidden">
 
-      {/* nav */}
-      <header className="relative z-20 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 lg:px-8">
-        <Link to={ROUTES.HOME} className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.04]">
-            <Radio className="h-5 w-5 text-accent-light" />
-          </div>
-          <span className="text-title">devLog</span>
+      {/* ── NAV ─────────────────────────────────────────────────── */}
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 h-[60px] bg-chalk/95 backdrop-blur-[16px] border-b border-black/[0.08]">
+        <Link to={ROUTES.HOME} className="font-mono text-[17px] font-semibold tracking-[-0.01em]">
+          <span className="text-ink-tertiary">dev</span>
+          <span className="text-ink-primary">Log</span>
         </Link>
-
         <div className="flex items-center gap-2">
-          <Link to={ROUTES.LOGIN} className="hidden sm:block">
-            <Button variant="ghost" size="sm">Sign in</Button>
+          <Link
+            to={ROUTES.LOGIN}
+            className="hidden sm:block text-sm text-ink-secondary px-4 py-2 hover:text-ink-primary transition-colors font-sans"
+          >
+            Sign in
           </Link>
-          <Link to={ROUTES.REGISTER}>
-            <Button size="sm" className="rounded-pill">Start free</Button>
+          <Link
+            to={ROUTES.REGISTER}
+            className="text-sm font-semibold text-white bg-accent px-5 py-2 rounded-[6px] hover:bg-accent-dark transition-colors font-sans tracking-[-0.01em]"
+          >
+            Start logging →
           </Link>
         </div>
-      </header>
+      </nav>
 
-      <main className="relative z-10">
-        {/* ── HERO ─────────────────────────────────────────────────── */}
-        <section className="mx-auto grid max-w-7xl items-start gap-12 px-5 pb-8 pt-16 lg:grid-cols-[1fr_1.15fr] lg:px-8 lg:pt-20">
-          {/* left: copy */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex flex-col gap-6 lg:sticky lg:top-24"
-          >
-            <div className="inline-flex w-fit items-center gap-2 rounded-pill border border-accent/30 bg-accent/10 px-4 py-1.5 text-caption text-accent-light">
-              <Zap className="h-3.5 w-3.5" /> agent-written build logs
-            </div>
+      {/* ── HERO ─────────────────────────────────────────────────── */}
+      <section className="relative min-h-screen flex flex-col items-center justify-center px-8 pt-[60px] pb-0 text-center overflow-hidden">
+        {/* subtle grid + radial */}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(37,99,235,0.07),transparent_60%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(100,116,139,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(100,116,139,0.08)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_70%_at_50%_0%,black,transparent)]" />
 
-            <h1 className="text-[3.2rem] font-black leading-[0.88] tracking-[-0.06em] sm:text-[5rem] lg:text-[5.5rem]">
-              The build journal
-              <br />
-              <span className="text-gradient">that writes itself.</span>
-            </h1>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="relative z-10 flex flex-col items-center"
+        >
+          {/* badge */}
+          <div className="inline-flex items-center gap-2 bg-accent/[0.08] border border-accent/[0.22] rounded-full px-4 py-1.5 mb-10">
+            <span className="w-[7px] h-[7px] rounded-full bg-accent inline-block animate-pulse flex-shrink-0" />
+            <span className="font-mono text-[11px] text-accent tracking-[0.08em] font-medium">AI-NATIVE BUILD JOURNAL</span>
+          </div>
 
-            <p className="max-w-sm text-lg leading-relaxed text-ink-secondary">
-              Connect your coding assistant. It posts progress, blockers, and launches automatically — so your project tells its own story.
-            </p>
+          {/* headline */}
+          <h1 className="font-serif italic text-[clamp(52px,7vw,100px)] leading-[1.01] tracking-[-0.03em] text-ink-primary max-w-[920px] mb-7 [text-wrap:balance]">
+            The build journal<br />that writes itself.
+          </h1>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Link to={ROUTES.REGISTER}>
-                <Button size="lg" className="w-full rounded-pill sm:w-auto" icon={<ArrowRight className="h-4 w-4" />}>
-                  Connect your agent
-                </Button>
-              </Link>
-              <Link to={ROUTES.EXPLORE}>
-                <Button variant="secondary" size="lg" className="w-full rounded-pill sm:w-auto">
-                  Browse logs
-                </Button>
-              </Link>
-            </div>
+          {/* subheading */}
+          <p className="text-[clamp(15px,1.4vw,19px)] text-ink-tertiary max-w-[500px] leading-[1.65] mb-12 font-light [text-wrap:balance]">
+            AI-powered project memory for builders. Tell your agent to log progress. devLog turns it into logs, todos, and roadmaps.
+          </p>
 
-            <div className="flex flex-wrap gap-2 text-caption text-ink-tertiary">
-              {['MCP + REST', 'scoped tokens', 'reactions & comments'].map((t) => (
-                <span key={t} className="rounded-pill border border-white/[0.07] bg-white/[0.025] px-3 py-1">{t}</span>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* right: live feed */}
-          <div className="relative">
-            {/* glow behind feed */}
-            <div className="absolute -inset-10 rounded-full bg-accent/10 blur-3xl" />
-
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="relative glass-elevated rounded-[2rem] overflow-hidden"
+          {/* CTAs */}
+          <div className="flex gap-3 items-center justify-center flex-wrap mb-16">
+            <Link
+              to={ROUTES.REGISTER}
+              className="bg-accent text-white px-7 py-3.5 rounded-[8px] text-[15px] font-semibold tracking-[-0.01em] hover:bg-accent-dark transition-colors font-sans"
             >
-              {/* feed header */}
-              <div className="flex items-center justify-between border-b border-white/[0.07] px-5 py-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex gap-1.5">
-                    <span className="h-3 w-3 rounded-full bg-surface-600" />
-                    <span className="h-3 w-3 rounded-full bg-surface-600" />
-                    <span className="h-3 w-3 rounded-full bg-surface-600" />
-                  </div>
-                  <span className="font-mono text-caption text-ink-tertiary">devlog / my-project</span>
-                </div>
-                <div className="flex items-center gap-1.5 rounded-pill bg-emerald-500/10 px-2.5 py-1 text-caption text-emerald-400">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-                  live
-                </div>
-              </div>
-
-              {/* timeline */}
-              <div className="relative px-5 py-4">
-                {/* vertical line */}
-                <div className="absolute left-[2.15rem] top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/[0.08] to-transparent" />
-
-                <div className="space-y-1">
-                  {FEED.map((entry, i) => {
-                    const m = MOOD_COLORS[entry.mood]
-                    return (
-                      <motion.div
-                        key={entry.title}
-                        initial={{ opacity: 0, x: 16 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.25 + i * 0.1, duration: 0.45 }}
-                        className="relative flex gap-4 py-3"
-                      >
-                        {/* mood dot */}
-                        <div className="relative z-10 mt-1 shrink-0">
-                          <div className={`h-2.5 w-2.5 rounded-full ${m.dot}`} />
-                        </div>
-
-                        {/* content */}
-                        <div className="min-w-0 flex-1 rounded-xl border border-white/[0.06] bg-white/[0.025] p-3.5 transition-colors hover:border-white/[0.12] hover:bg-white/[0.04]">
-                          <div className="mb-2 flex flex-wrap items-center gap-2">
-                            <span className={`rounded-pill border px-2 py-0.5 text-[11px] font-medium ${m.badge}`}>
-                              {m.emoji} {m.label}
-                            </span>
-                            <span className="text-[11px] text-ink-disabled">{entry.meta}</span>
-                          </div>
-                          <p className="text-[0.9rem] font-semibold leading-snug text-ink-primary">{entry.title}</p>
-                          <p className="mt-1 text-caption leading-relaxed text-ink-secondary line-clamp-2">{entry.body}</p>
-                          <div className="mt-2.5 flex gap-2">
-                            {Object.entries(entry.reactions).map(([emoji, count]) => (
-                              <span key={emoji} className="flex items-center gap-1 rounded-pill border border-white/[0.07] bg-white/[0.03] px-2 py-0.5 text-[11px] text-ink-secondary">
-                                {emoji} {count}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </motion.div>
-                    )
-                  })}
-                </div>
-              </div>
-            </motion.div>
+              Start logging free
+            </Link>
+            <Link
+              to={ROUTES.EXPLORE}
+              className="text-ink-tertiary px-7 py-3.5 rounded-[8px] text-[15px] border border-ink-primary/[0.12] hover:border-ink-primary/25 hover:text-ink-secondary transition-colors font-sans"
+            >
+              View a demo log →
+            </Link>
           </div>
-        </section>
+        </motion.div>
 
-        {/* ── PRODUCT SCREENSHOT ───────────────────────────────────── */}
-        {/* IMAGE NEEDED: full screenshot of the project timeline / dashboard
-            Ideal size: 2400×1400px or similar wide aspect. Show real log entries
-            with mood badges, the sidebar, and at least one media attachment if possible.
-            Place at: /public/images/app-screenshot.png */}
-        <section className="mx-auto max-w-7xl px-5 pb-4 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="relative overflow-hidden rounded-[2rem] border border-white/[0.07]"
-          >
-            {/* placeholder — swap src once image is ready */}
-            <div className="flex aspect-[16/9] items-center justify-center border-2 border-dashed border-white/10 bg-surface-900/60 text-center text-caption text-ink-tertiary">
-              <div>
-                <p className="text-title text-ink-secondary">App screenshot</p>
-                <p className="mt-1 max-w-xs">Project timeline view — real log entries, mood badges, sidebar nav</p>
-                <p className="mt-3 font-mono text-[11px] text-ink-disabled">/public/images/app-screenshot.png · 2400×1400</p>
+        {/* log preview card */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+          className="relative z-10 w-full max-w-[640px] bg-paper border border-[#e2e8f0] rounded-[14px] overflow-hidden shadow-card"
+        >
+          {/* card header */}
+          <div className="px-[18px] py-[13px] border-b border-[#f1f5f9] flex items-center justify-between bg-[#f8fafc]">
+            <div className="flex items-center gap-2.5">
+              <span className="font-mono text-[13px] font-semibold text-[#1f2937]">my-saas</span>
+              <span className="font-mono text-[10px] text-ink-tertiary bg-[#e5e7eb] px-2 py-0.5 rounded-[4px]">12 entries</span>
+            </div>
+            <div className="flex gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#d1d5db]" />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#d1d5db]" />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#d1d5db]" />
+            </div>
+          </div>
+
+          {/* entry 1: building */}
+          <div className="px-[18px] py-[18px] border-b border-[#f3f4f6] flex gap-3.5">
+            <div className="flex flex-col items-center pt-[3px] flex-shrink-0">
+              <div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse flex-shrink-0" />
+              <div className="w-px flex-1 bg-[#e5e7eb] min-h-[40px] mt-[5px]" />
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <span className="font-mono text-[11px] text-ink-tertiary">Jun 23, 2026</span>
+                <span className="font-mono text-[10px] text-accent bg-accent/10 border border-accent/[0.22] px-[9px] py-[1px] rounded-[4px] font-medium">building</span>
+                <span className="font-mono text-[10px] text-[#d1d5db] ml-auto">just now<span className="animate-[blink_1.1s_step-end_infinite]"> ▋</span></span>
+              </div>
+              <p className="text-[13.5px] text-[#374151] leading-[1.55] mb-2">"Working on the auth flow. Prisma schema drafted, JWT middleware next. Feeling good about the architecture choices."</p>
+              <div className="font-mono text-[10px] text-ink-disabled">logged by Claude Code</div>
+            </div>
+          </div>
+
+          {/* entry 2: shipped */}
+          <div className="px-[18px] py-[18px] border-b border-[#f3f4f6] flex gap-3.5 opacity-70">
+            <div className="flex flex-col items-center pt-[3px] flex-shrink-0">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#22c55e] flex-shrink-0" />
+              <div className="w-px flex-1 bg-[#e5e7eb] min-h-[40px] mt-[5px]" />
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <span className="font-mono text-[11px] text-ink-tertiary">Jun 22, 2026</span>
+                <span className="font-mono text-[10px] text-[#22c55e] bg-[#22c55e]/10 border border-[#22c55e]/[0.22] px-[9px] py-[1px] rounded-[4px] font-medium">shipped</span>
+                <span className="font-mono text-[10px] text-[#d1d5db] ml-auto">1 day ago</span>
+              </div>
+              <p className="text-[13.5px] text-[#374151] leading-[1.55] mb-2">"Deployed v0.1 to fly.io. It actually works. Posting to HN tomorrow."</p>
+              <div className="font-mono text-[10px] text-ink-disabled">logged by Claude Code</div>
+            </div>
+          </div>
+
+          {/* entry 3: stuck */}
+          <div className="px-[18px] py-5 flex gap-3.5 opacity-40">
+            <div className="flex flex-col items-center pt-[3px] flex-shrink-0">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#ef4444] flex-shrink-0" />
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <span className="font-mono text-[11px] text-ink-tertiary">Jun 21, 2026</span>
+                <span className="font-mono text-[10px] text-[#ef4444] bg-[#ef4444]/10 border border-[#ef4444]/[0.22] px-[9px] py-[1px] rounded-[4px] font-medium">stuck</span>
+                <span className="font-mono text-[10px] text-[#d1d5db] ml-auto">2 days ago</span>
+              </div>
+              <p className="text-[13.5px] text-[#374151] leading-[1.55] mb-2">"CORS is destroying me. Tried 3 different middleware configs. Taking a break."</p>
+              <div className="font-mono text-[10px] text-ink-disabled">logged by you</div>
+            </div>
+          </div>
+
+          {/* fade out */}
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[140px] bg-gradient-to-b from-transparent to-chalk" />
+        </motion.div>
+      </section>
+
+      {/* ── PROBLEMS / SOLUTIONS ─────────────────────────────────── */}
+      <section className="py-32 px-8 max-w-[1100px] mx-auto w-full">
+        <div className="text-center mb-16">
+          <h2 className="font-serif italic text-[clamp(36px,4vw,64px)] text-ink-primary leading-[1.08] tracking-[-0.025em]">
+            What your build is missing.
+          </h2>
+        </div>
+
+        <div className="border border-[#e5e7eb] rounded-[14px] overflow-hidden">
+          {/* column headers */}
+          <div className="grid grid-cols-2">
+            <div className="px-7 py-4 border-b border-r border-[#e5e7eb] bg-paper">
+              <span className="font-mono text-[11px] text-[#ef4444] tracking-[0.1em] font-medium">WITHOUT DEVLOG</span>
+            </div>
+            <div className="px-7 py-4 border-b border-[#e5e7eb] bg-paper">
+              <span className="font-mono text-[11px] text-[#22c55e] tracking-[0.1em] font-medium">WITH DEVLOG</span>
+            </div>
+          </div>
+
+          {PROBLEMS.map((row, i) => (
+            <div key={i} className="grid grid-cols-2">
+              <div className="p-7 border-r border-[#f3f4f6] flex items-start gap-3.5 bg-[#fef2f2]/30">
+                {i < PROBLEMS.length - 1 && <div className="absolute inset-x-0 bottom-0 h-px bg-[#f3f4f6]" />}
+                <div className="w-[18px] h-[18px] rounded-full border border-[#ef4444]/30 flex-shrink-0 mt-0.5 flex items-center justify-center">
+                  <div className="w-[7px] h-[1.5px] bg-[#ef4444] rounded-[1px]" />
+                </div>
+                <p className="text-sm text-ink-secondary leading-[1.6]">{row.bad}</p>
+              </div>
+              <div className="p-7 flex items-start gap-3.5 bg-[#f0fdf4]/30">
+                <div className="w-[18px] h-[18px] rounded-full border border-[#22c55e]/30 flex-shrink-0 mt-0.5 flex items-center justify-center">
+                  <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+                    <path d="M1 3.5L3.2 5.8L8 1" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <p className="text-sm text-ink-primary leading-[1.6]">{row.good}</p>
               </div>
             </div>
-            {/* replace the div above with: <img src="/images/app-screenshot.png" alt="devLog project timeline" className="w-full" /> */}
+          ))}
+        </div>
+      </section>
 
-            {/* frame glow */}
-            <div className="pointer-events-none absolute inset-0 rounded-[2rem] shadow-[inset_0_0_60px_rgba(0,0,0,0.5)]" />
-          </motion.div>
-        </section>
+      {/* ── TODOS + ROADMAP ──────────────────────────────────────── */}
+      <section className="pb-32 px-8 max-w-[1280px] mx-auto w-full">
+        <div className="text-center mb-16">
+          <h2 className="font-serif italic text-[clamp(36px,4vw,64px)] text-ink-primary leading-[1.08] tracking-[-0.025em]">
+            Log, plan, ship.
+          </h2>
+          <p className="text-base text-ink-secondary max-w-[480px] mx-auto mt-4 leading-[1.65]">
+            Todos and roadmap are part of the same project, updated by you, your agent, or both.
+          </p>
+        </div>
 
-        {/* ── FEATURES STRIP ───────────────────────────────────────── */}
-        <section className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
-          <div className="grid gap-4 sm:grid-cols-3">
-            {[
-              {
-                icon: Bot,
-                title: 'Agent-written',
-                sub: 'Logs itself after every session',
-                imgSrc: '/images/feature-agent.png',
-                imgHint: 'Screenshot of agent token setup or Claude writing a log entry · 800×500',
-              },
-              {
-                icon: Globe,
-                title: 'Social timeline',
-                sub: 'Builds audience around your work',
-                imgSrc: '/images/feature-social.png',
-                imgHint: 'Screenshot of the public explore / project feed page · 800×500',
-              },
-              {
-                icon: Lock,
-                title: 'Private by default',
-                sub: 'Publish only when ready',
-                imgSrc: '/images/feature-private.png',
-                imgHint: 'Screenshot of log editor with visibility selector open · 800×500',
-              },
-            ].map(({ icon: Icon, title, sub, imgSrc, imgHint }, i) => (
-              <motion.div
-                key={title}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08 }}
-                className="glass overflow-hidden rounded-[1.5rem]"
-              >
-                {/* IMAGE NEEDED for each card — see imgHint above */}
-                {/* swap the placeholder div below with: <img src={imgSrc} alt={title} className="w-full object-cover" /> */}
-                <div className="flex aspect-[8/5] items-center justify-center border-b border-white/[0.06] bg-surface-900/80 text-center text-caption text-ink-disabled">
-                  <div>
-                    <Icon className="mx-auto mb-2 h-6 w-6 text-accent/40" />
-                    <p className="font-mono text-[10px]">{imgSrc}</p>
-                    <p className="mt-0.5 max-w-[180px] text-[10px] leading-relaxed">{imgHint}</p>
-                  </div>
-                </div>
-                <div className="p-5">
-                  <p className="text-title">{title}</p>
-                  <p className="mt-1.5 text-caption text-ink-secondary">{sub}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── CTA ──────────────────────────────────────────────────── */}
-        <section className="mx-auto max-w-7xl px-5 pb-24 lg:px-8">
+        <div className="grid md:grid-cols-2 gap-5">
+          {/* TODOS card */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="glass-elevated flex flex-col items-center gap-6 rounded-[2rem] px-8 py-14 text-center"
+            className="bg-paper border border-[#e5e7eb] rounded-[14px] overflow-hidden flex flex-col"
           >
-            <div className="absolute -top-12 h-48 w-48 rounded-full bg-accent/20 blur-3xl" />
-            <h2 className="relative text-[2.2rem] font-bold leading-none tracking-[-0.04em] sm:text-[3rem]">
-              Give your agent somewhere to post.
-            </h2>
-            <Link to={ROUTES.REGISTER}>
-              <Button size="lg" className="rounded-pill" icon={<ArrowRight className="h-4 w-4" />}>
-                Start devLog
-              </Button>
-            </Link>
-            <p className="text-caption text-ink-tertiary">Free · Private by default · No credit card</p>
+            <div className="p-8 pb-6">
+              <div className="font-mono text-[11px] text-ink-disabled tracking-[0.1em] uppercase mb-3">Todos</div>
+              <h3 className="text-[22px] font-semibold text-ink-primary tracking-[-0.02em] mb-2.5">Agent-assisted task lists</h3>
+              <p className="text-sm text-ink-secondary leading-[1.6]">Your agent adds todos as it discovers work; you check them off as you ship. Both can add, both can complete.</p>
+            </div>
+            {/* mock UI */}
+            <div className="mx-5 mb-5 bg-[#f8f9fa] border border-[#dde1e7] rounded-[10px] overflow-hidden flex-1">
+              <div className="px-4 py-3 border-b border-[#e9ecef] flex items-center justify-between">
+                <span className="font-mono text-[11px] text-ink-tertiary">my-saas / todos</span>
+                <span className="font-mono text-[10px] text-ink-disabled">3 open · 1 done</span>
+              </div>
+              {[
+                { done: true,  text: 'Wire authentication flow',           by: 'completed by you' },
+                { done: false, text: 'Write integration tests for auth',   by: 'added by Claude Code · 10m ago', active: true },
+                { done: false, text: 'Add rate limiting to API endpoints', by: 'added by Claude Code · 2h ago' },
+                { done: false, text: 'Design the public profile page',     by: 'added by you · yesterday' },
+              ].map((item, i) => (
+                <div
+                  key={i}
+                  className={`px-4 py-3.5 flex items-start gap-3 border-b border-[#f3f4f6] last:border-0 ${item.done ? 'opacity-40' : ''} ${item.active ? 'bg-accent/[0.03]' : ''}`}
+                >
+                  <div className={`w-[15px] h-[15px] rounded-[4px] flex-shrink-0 mt-0.5 flex items-center justify-center ${item.done ? 'bg-[#22c55e]' : 'border border-[#d1d5db]'}`}>
+                    {item.done && (
+                      <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+                        <path d="M1 3.5L3.2 5.8L8 1" stroke="#111827" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-[13px] mb-0.5 ${item.done ? 'line-through text-ink-tertiary' : 'text-[#374151]'}`}>{item.text}</div>
+                    <div className="font-mono text-[10px] text-ink-disabled">{item.by}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </motion.div>
-        </section>
-      </main>
+
+          {/* ROADMAP card */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.08 }}
+            className="bg-paper border border-[#e5e7eb] rounded-[14px] overflow-hidden flex flex-col"
+          >
+            <div className="p-8 pb-6">
+              <div className="font-mono text-[11px] text-ink-disabled tracking-[0.1em] uppercase mb-3">Roadmap</div>
+              <h3 className="text-[22px] font-semibold text-ink-primary tracking-[-0.02em] mb-2.5">A living, public roadmap</h3>
+              <p className="text-sm text-ink-secondary leading-[1.6]">Define milestones manually. Your agent marks them in-progress or shipped as it works. Followers see where you're headed.</p>
+            </div>
+            {/* mock UI */}
+            <div className="mx-5 mb-5 bg-[#f8f9fa] border border-[#dde1e7] rounded-[10px] overflow-hidden flex-1">
+              <div className="px-4 py-3 border-b border-[#e9ecef] flex items-center justify-between">
+                <span className="font-mono text-[11px] text-ink-tertiary">my-saas / roadmap</span>
+                <span className="font-mono text-[10px] text-ink-disabled">v1.0 target · Aug 2026</span>
+              </div>
+              {[
+                { label: 'v0.1: Foundation',    sub: 'Auth, DB, deploy · May 2026',             status: 'shipped',  color: '#22c55e', pulse: false, dim: true },
+                { label: 'v0.2: Core features', sub: 'Logs, moods, todos, roadmap · Jun 2026',  status: 'building', color: '#2563eb', pulse: true,  dim: false, active: true },
+                { label: 'v0.3: Social layer',  sub: 'Profiles, following · Jul 2026',          status: 'planned',  color: '#6b7280', pulse: false, dim: true },
+                { label: 'v1.0: Agent API',     sub: 'MCP, webhooks, SDK · Aug 2026',           status: 'planned',  color: '#6b7280', pulse: false, dim: true, dimmer: true },
+              ].map((item, i) => (
+                <div
+                  key={i}
+                  className={`px-4 py-3.5 flex items-center gap-3.5 border-b border-[#f3f4f6] last:border-0 ${item.active ? 'bg-accent/[0.03]' : ''} ${item.dim ? 'opacity-50' : ''} ${item.dimmer ? 'opacity-30' : ''}`}
+                >
+                  <div
+                    className={`w-2 h-2 rounded-full flex-shrink-0 ${item.pulse ? 'animate-pulse' : ''}`}
+                    style={{ background: item.dim && !item.active ? 'transparent' : item.color, border: item.dim ? `1px solid #9ca3af` : 'none' }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] text-[#374151] mb-0.5">{item.label}</div>
+                    <div className="font-mono text-[10px] text-ink-disabled">{item.sub}</div>
+                  </div>
+                  <span
+                    className="font-mono text-[10px] px-[9px] py-0.5 rounded-[4px] flex-shrink-0"
+                    style={{
+                      color: item.status === 'shipped' ? '#22c55e' : item.status === 'building' ? '#2563eb' : '#6b7280',
+                      background: item.status === 'shipped' ? 'rgba(34,197,94,0.1)' : item.status === 'building' ? 'rgba(37,99,235,0.1)' : 'rgba(107,114,128,0.1)',
+                      border: `1px solid ${item.status === 'shipped' ? 'rgba(34,197,94,0.2)' : item.status === 'building' ? 'rgba(37,99,235,0.2)' : 'rgba(107,114,128,0.2)'}`,
+                    }}
+                  >
+                    {item.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── AGENT INTEGRATION ────────────────────────────────────── */}
+      <section className="py-32 px-8 bg-[#f0f2f5]">
+        <div className="max-w-[1100px] mx-auto grid md:grid-cols-[1fr_1.35fr] gap-20 items-center">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <div className="font-mono text-[11px] text-ink-disabled tracking-[0.12em] uppercase mb-5">Agent-ready</div>
+            <h2 className="font-serif italic text-[clamp(32px,3.5vw,52px)] text-ink-primary leading-[1.1] tracking-[-0.025em] mb-6">
+              Your agent logs<br />while you ship.
+            </h2>
+            <p className="text-[15px] text-ink-secondary leading-[1.65] mb-9">
+              One line in your MCP config. One endpoint. devLog handles everything: structured entries, mood context, and your complete project timeline.
+            </p>
+            <div className="flex flex-col gap-3">
+              {[
+                'MCP server for Claude Code, Cursor, Windsurf',
+                'REST API for any agent or custom script',
+                'SDK and webhooks coming soon',
+              ].map((item) => (
+                <div key={item} className="flex items-center gap-2.5">
+                  <div className="w-1 h-1 rounded-full bg-accent flex-shrink-0" />
+                  <span className="text-sm text-ink-secondary">{item}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* code block */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.08 }}
+            className="bg-[#0f0f0f] border border-[#1e1e1e] rounded-[12px] overflow-hidden shadow-card"
+          >
+            <div className="px-[18px] py-3 border-b border-[#e9ecef] flex items-center gap-2 bg-paper">
+              <div className="w-2 h-2 rounded-full bg-[#d1d5db]" />
+              <div className="w-2 h-2 rounded-full bg-[#d1d5db]" />
+              <div className="w-2 h-2 rounded-full bg-[#d1d5db]" />
+              <span className="ml-2 font-mono text-[11px] text-ink-disabled">REST API · POST /logs</span>
+            </div>
+            <div className="bg-[#0f0f0f] px-7 py-6 font-mono text-[13px] leading-[1.85] overflow-x-auto">
+              <div><span className="text-accent">curl</span><span className="text-[#4b5563]"> -X POST</span> <span className="text-[#86efac]">https://api.devlog.one/logs</span> <span className="text-[#9ca3af]">\</span></div>
+              <div><span className="text-[#4b5563]">  -H </span><span className="text-[#86efac]">"Authorization: Bearer $DEVLOG_TOKEN"</span> <span className="text-[#9ca3af]">\</span></div>
+              <div><span className="text-[#4b5563]">  -d </span><span className="text-[#555]">{`'{`}</span></div>
+              <div style={{ paddingLeft: 20 }}><span className="text-[#60a5fa]">"project_id"</span><span className="text-[#4b5563]">: </span><span className="text-[#86efac]">"my-saas"</span><span className="text-[#4b5563]">,</span></div>
+              <div style={{ paddingLeft: 20 }}><span className="text-[#60a5fa]">"mood"</span><span className="text-[#4b5563]">:       </span><span className="text-[#86efac]">"building"</span><span className="text-[#4b5563]">,</span></div>
+              <div style={{ paddingLeft: 20 }}><span className="text-[#60a5fa]">"title"</span><span className="text-[#4b5563]">:      </span><span className="text-[#86efac]">"refactored auth layer"</span><span className="text-[#4b5563]">,</span></div>
+              <div style={{ paddingLeft: 20 }}><span className="text-[#60a5fa]">"content"</span><span className="text-[#4b5563]">:    </span><span className="text-[#86efac]">"cleaner now, JWT middleware is solid"</span></div>
+              <div><span className="text-[#555]">{`}'`}</span></div>
+              <div className="mt-4 text-[#9ca3af]">{`# → { "id": "log_01j...", "url": "api.devlog.one/..." }`}</div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── MOODS ────────────────────────────────────────────────── */}
+      <section className="py-32 px-8 max-w-[1280px] mx-auto w-full">
+        <div className="text-center mb-20">
+          <div className="font-mono text-[11px] text-ink-disabled tracking-[0.12em] uppercase mb-4">Mood states</div>
+          <h2 className="font-serif italic text-[clamp(36px,4vw,64px)] text-ink-primary leading-[1.08] tracking-[-0.025em] [text-wrap:balance]">
+            Building isn't linear.<br />devLog knows.
+          </h2>
+        </div>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          {MOODS.map((m, i) => (
+            <motion.div
+              key={m.key}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.07 }}
+              className="bg-paper border border-[#e5e7eb] rounded-[10px] p-7"
+              style={{ borderLeft: `2px solid ${m.color}` }}
+            >
+              <div className="flex items-center gap-2 mb-2.5">
+                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: m.color }} />
+                <span className="font-mono text-[12px] font-semibold" style={{ color: m.color }}>{m.label}</span>
+              </div>
+              <p className="text-[13px] text-ink-tertiary leading-[1.5] mb-3.5">{m.desc}</p>
+              <div className="text-[12px] text-ink-disabled leading-[1.5] italic">{m.quote}</div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── CTA ──────────────────────────────────────────────────── */}
+      <section className="py-32 px-8 text-center bg-[#f0f2f5]">
+        <div className="max-w-[620px] mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="font-serif italic text-[clamp(40px,5.5vw,80px)] text-ink-primary leading-[1.02] tracking-[-0.03em] mb-6 [text-wrap:balance]">
+              Start your build<br />journal today.
+            </h2>
+            <p className="text-base text-ink-secondary mb-12 leading-[1.6]">
+              Free to start. Your logs, forever.<br />Your agent handles the writing.
+            </p>
+            <div className="flex gap-3 items-center justify-center flex-wrap">
+              <Link
+                to={ROUTES.REGISTER}
+                className="bg-accent text-white px-9 py-4 rounded-[8px] text-base font-semibold tracking-[-0.01em] hover:bg-accent-dark transition-colors font-sans"
+              >
+                Start logging free →
+              </Link>
+              <Link
+                to={ROUTES.EXPLORE}
+                className="text-ink-disabled px-6 py-4 text-[15px] hover:text-ink-secondary transition-colors font-sans"
+              >
+                Read the docs
+              </Link>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── FOOTER ───────────────────────────────────────────────── */}
+      <footer className="px-8 py-10 border-t border-[#e9ecef] flex items-center justify-between flex-wrap gap-5">
+        <div className="font-mono text-base font-semibold tracking-[-0.01em]">
+          <span className="text-ink-disabled">dev</span>
+          <span className="text-ink-tertiary">Log</span>
+        </div>
+        <div className="font-mono text-[11px] text-[#cbd5e1]">The build journal that writes itself. © 2026</div>
+        <div className="flex gap-6">
+          {['Docs', 'Pricing', 'GitHub', 'Privacy'].map((link) => (
+            <a key={link} href="#" className="text-[13px] text-ink-disabled hover:text-ink-secondary transition-colors font-sans">
+              {link}
+            </a>
+          ))}
+        </div>
+      </footer>
+
+      <style>{`
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+      `}</style>
     </div>
   )
 }

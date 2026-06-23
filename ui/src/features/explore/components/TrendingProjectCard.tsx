@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { BookOpen, Eye, Flame } from 'lucide-react'
 import { Avatar } from '@/components/ui'
 import { cn, formatDate } from '@/utils'
+import { getCoverGradient } from '@/utils/coverGradient'
 import type { PublicProject } from '@/types'
 
 function stripMarkdown(text: string): string {
@@ -16,22 +17,8 @@ function stripMarkdown(text: string): string {
     .trim()
 }
 
-const COVER_GRADIENTS = [
-  'from-violet-900/80 via-surface-900/60 to-surface-950',
-  'from-indigo-900/80 via-surface-900/60 to-surface-950',
-  'from-slate-700/80 via-surface-900/60 to-surface-950',
-  'from-zinc-700/80 via-surface-900/60 to-surface-950',
-  'from-purple-900/80 via-surface-900/60 to-surface-950',
-  'from-blue-900/80 via-surface-900/60 to-surface-950',
-]
-
 interface TrendingProjectCardProps {
   project: PublicProject
-}
-
-function gradientForId(id: string) {
-  const idx = (id.charCodeAt(0) + id.charCodeAt(id.length - 1)) % COVER_GRADIENTS.length
-  return COVER_GRADIENTS[idx]
 }
 
 export function TrendingProjectCard({ project }: TrendingProjectCardProps) {
@@ -52,7 +39,7 @@ export function TrendingProjectCard({ project }: TrendingProjectCardProps) {
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
             />
           ) : (
-            <div className={cn('w-full h-full bg-gradient-to-br', gradientForId(project.id))} />
+            <div className="w-full h-full" style={{ background: getCoverGradient(project) }} />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-surface-950/75 to-transparent" />
           {(project.trend_score ?? 0) > 0 && (

@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AnimatedPage } from '@/components/shared/AnimatedPage'
-import { Avatar, Badge, Button, Input, Spinner } from '@/components/ui'
+import { Avatar, Spinner } from '@/components/ui'
 import { profilesService } from '@/services/profiles.service'
 import { useAuthStore } from '@/stores/authStore'
 import { ROUTES } from '@/utils'
@@ -168,217 +168,244 @@ export default function Profile() {
 
   return (
     <AnimatedPage>
-      <div className="max-w-2xl">
-        <div className="glass-elevated rounded-glass p-8">
-          <AnimatePresence mode="wait">
-            {!isEditing ? (
-              <motion.div
-                key="view"
-                variants={scaleIn}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-              >
-                <div className="flex items-start gap-6">
-                  <div className="relative flex-shrink-0">
-                    <Avatar src={profile.avatar_url ?? undefined} name={profile.username} size="xl" />
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1 flex-wrap">
-                      <h1 className="text-headline text-ink-primary">{profile.username}</h1>
-                      <Badge variant={profile.is_public ? 'success' : 'default'}>
-                        {profile.is_public ? 'Public' : 'Private'}
-                      </Badge>
-                    </div>
-
-                    {profile.bio && (
-                      <p className="text-body text-ink-secondary mb-4">{profile.bio}</p>
-                    )}
-
-                    {socialLinks.length > 0 && (
-                      <div className="flex flex-wrap gap-x-3 gap-y-1 mb-4">
-                        {socialLinks.map((link, i) => (
-                          <span key={link.href} className="flex items-center gap-3">
-                            {i > 0 && <span className="text-ink-disabled">·</span>}
-                            <a
-                              href={link.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-caption text-ink-tertiary hover:text-accent transition-colors"
-                            >
-                              {link.label}
-                            </a>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {isOwnProfile && (
-                      <div className="flex flex-wrap gap-2">
-                        <Button variant="secondary" size="sm" onClick={enterEditMode}>
-                          Edit profile
-                        </Button>
-                        <Link to={`/u/${profile.username}`}>
-                          <Button variant="ghost" size="sm">
-                            View public profile
-                          </Button>
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="edit"
-                variants={scaleIn}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                className="space-y-5"
-              >
-                <div className="flex items-center gap-2 mb-6">
-                  <h2 className="text-title text-ink-primary">Edit profile</h2>
+      <AnimatePresence mode="wait">
+        {!isEditing ? (
+          <motion.div
+            key="view"
+            variants={scaleIn}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="max-w-2xl bg-paper border border-border rounded-xl p-8"
+          >
+              <div className="flex items-start gap-6">
+                <div className="relative flex-shrink-0">
+                  <Avatar src={profile.avatar_url ?? undefined} name={profile.username} size="xl" />
                 </div>
 
-                {/* Avatar upload */}
-                <div className="flex items-center gap-4">
-                  <label className="relative cursor-pointer group flex-shrink-0">
-                    <Avatar
-                      src={profile.avatar_url ?? undefined}
-                      name={profile.username}
-                      size="xl"
-                    />
-                    {isUploadingAvatar ? (
-                      <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/60">
-                        <Spinner size="sm" />
-                      </div>
-                    ) : (
-                      <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/0 group-hover:bg-black/50 transition-colors">
-                        <span className="text-white text-caption opacity-0 group-hover:opacity-100 transition-opacity">
-                          Edit
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2.5 mb-1 flex-wrap">
+                    <h1 className="font-mono text-[20px] font-semibold text-ink-primary tracking-[-0.02em]">
+                      @{profile.username}
+                    </h1>
+                    <span className={cn(
+                      'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium border',
+                      profile.is_public
+                        ? 'bg-green-50 text-green-700 border-green-200'
+                        : 'bg-gray-100 text-ink-tertiary border-gray-200',
+                    )}>
+                      {profile.is_public ? 'Public' : 'Private'}
+                    </span>
+                  </div>
+
+                  {profile.bio && (
+                    <p className="text-[14px] text-ink-secondary leading-relaxed mb-4">{profile.bio}</p>
+                  )}
+
+                  {socialLinks.length > 0 && (
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 mb-5">
+                      {socialLinks.map((link, i) => (
+                        <span key={link.href} className="flex items-center gap-3">
+                          {i > 0 && <span className="text-ink-disabled">·</span>}
+                          <a
+                            href={link.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[13px] text-ink-tertiary hover:text-accent transition-colors"
+                          >
+                            {link.label}
+                          </a>
                         </span>
-                      </div>
-                    )}
+                      ))}
+                    </div>
+                  )}
+
+                  {isOwnProfile && (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={enterEditMode}
+                        className="text-[13px] font-medium bg-accent text-white hover:bg-accent-dark px-4 py-[7px] rounded-[7px] transition-colors"
+                      >
+                        Edit profile
+                      </button>
+                      <Link
+                        to={`/u/${profile.username}`}
+                        className="text-[13px] font-medium text-ink-secondary bg-gray-100 hover:bg-gray-200 px-4 py-[7px] rounded-[7px] transition-colors"
+                      >
+                        View public profile
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="edit"
+              variants={scaleIn}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              {/* Header */}
+              <div className="mb-5">
+                <h2 className="text-[18px] font-semibold text-ink-primary">Profile settings</h2>
+                <p className="text-[13px] text-ink-tertiary mt-0.5">Manage your public identity and social links</p>
+              </div>
+
+              {/* Two-column grid */}
+              <div className="grid grid-cols-[3fr_2fr] gap-4 mb-4">
+
+                {/* Left — Identity */}
+                <div className="bg-paper border border-border rounded-xl p-6 flex flex-col gap-5">
+                  <p className="text-[12px] uppercase tracking-wider font-medium text-ink-disabled">Identity</p>
+
+                  {/* Avatar upload */}
+                  <div className="flex items-center gap-4">
+                    <label className="relative cursor-pointer group flex-shrink-0">
+                      <Avatar
+                        src={profile.avatar_url ?? undefined}
+                        name={profile.username}
+                        size="xl"
+                      />
+                      {isUploadingAvatar ? (
+                        <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/50">
+                          <Spinner size="sm" />
+                        </div>
+                      ) : (
+                        <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors">
+                          <span className="text-white text-[11px] font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                            Change
+                          </span>
+                        </div>
+                      )}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        onChange={handleAvatarUpload}
+                        disabled={isUploadingAvatar}
+                      />
+                    </label>
+                    <div>
+                      <p className="text-[14px] font-medium text-ink-primary mb-0.5">Profile photo</p>
+                      <p className="text-[13px] text-ink-tertiary">Click to upload a new image</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[12px] uppercase tracking-wider font-medium text-ink-disabled">Username</label>
                     <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="sr-only"
-                      onChange={handleAvatarUpload}
-                      disabled={isUploadingAvatar}
+                      value={editUsername}
+                      onChange={(e) => setEditUsername(e.target.value)}
+                      disabled={isSaving}
+                      className="h-10 w-full rounded-lg border border-border bg-gray-50 text-ink-primary text-[14px] px-3.5 outline-none focus:border-accent/60 focus:bg-white transition-colors disabled:opacity-60"
                     />
-                  </label>
-                  <p className="text-caption text-ink-tertiary">
-                    Click your avatar to upload a new photo.
-                  </p>
-                </div>
+                  </div>
 
-                <Input
-                  label="Username"
-                  value={editUsername}
-                  onChange={(e) => setEditUsername(e.target.value)}
-                  disabled={isSaving}
-                />
-
-                {/* Bio textarea */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-label uppercase text-ink-secondary tracking-wider">
-                    Bio
-                  </label>
-                  <textarea
-                    value={editBio}
-                    onChange={(e) => setEditBio(e.target.value)}
-                    disabled={isSaving}
-                    rows={4}
-                    placeholder="Tell the world what you're building..."
-                    className={cn(
-                      'w-full rounded-glass glass text-ink-primary text-body',
-                      'px-4 py-3 outline-none border border-transparent',
-                      'placeholder:text-ink-disabled resize-none',
-                      'focus:border-accent/50 focus:shadow-glow',
-                      'transition-all duration-200',
-                    )}
-                  />
-                </div>
-
-                {/* Social links */}
-                <div>
-                  <p className="text-label uppercase text-ink-secondary tracking-wider mb-3">
-                    Social links
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input
-                      label="GitHub"
-                      placeholder="username"
-                      value={editGithub}
-                      onChange={(e) => setEditGithub(e.target.value)}
+                  <div className="flex flex-col gap-1.5 flex-1">
+                    <label className="text-[12px] uppercase tracking-wider font-medium text-ink-disabled">Bio</label>
+                    <textarea
+                      value={editBio}
+                      onChange={(e) => setEditBio(e.target.value)}
                       disabled={isSaving}
-                    />
-                    <Input
-                      label="Twitter"
-                      placeholder="username"
-                      value={editTwitter}
-                      onChange={(e) => setEditTwitter(e.target.value)}
-                      disabled={isSaving}
-                    />
-                    <Input
-                      label="Website"
-                      placeholder="https://yoursite.com"
-                      value={editWebsite}
-                      onChange={(e) => setEditWebsite(e.target.value)}
-                      disabled={isSaving}
-                    />
-                    <Input
-                      label="LinkedIn"
-                      placeholder="username"
-                      value={editLinkedin}
-                      onChange={(e) => setEditLinkedin(e.target.value)}
-                      disabled={isSaving}
+                      rows={4}
+                      placeholder="Tell the world what you're building..."
+                      className="w-full flex-1 rounded-lg border border-border bg-gray-50 text-ink-primary text-[14px] px-3.5 py-2.5 outline-none focus:border-accent/60 focus:bg-white transition-colors resize-none disabled:opacity-60 placeholder:text-ink-disabled"
                     />
                   </div>
                 </div>
 
-                {/* Public toggle */}
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={editIsPublic}
-                    onClick={() => setEditIsPublic(!editIsPublic)}
-                    disabled={isSaving}
-                    className={cn(
-                      'relative w-11 h-6 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
-                      editIsPublic ? 'bg-accent' : 'bg-surface-600',
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform duration-200',
-                        editIsPublic ? 'translate-x-5' : 'translate-x-0',
-                      )}
-                    />
-                  </button>
-                  <span className="text-body text-ink-secondary">
-                    {editIsPublic ? 'Public profile' : 'Private profile'}
-                  </span>
-                </div>
+                {/* Right — Social links + Visibility */}
+                <div className="flex flex-col gap-4">
 
-                {/* Actions */}
-                <div className="flex gap-3 pt-2">
-                  <Button size="md" loading={isSaving} onClick={handleSave}>
-                    Save changes
-                  </Button>
-                  <Button size="md" variant="ghost" onClick={cancelEdit} disabled={isSaving}>
-                    Cancel
-                  </Button>
+                  {/* Social links */}
+                  <div className="bg-paper border border-border rounded-xl p-6 flex flex-col gap-4">
+                    <p className="text-[12px] uppercase tracking-wider font-medium text-ink-disabled">Social links</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { label: 'GitHub',   placeholder: 'username',           value: editGithub,  onChange: setEditGithub  },
+                        { label: 'Twitter',  placeholder: 'username',           value: editTwitter, onChange: setEditTwitter },
+                        { label: 'Website',  placeholder: 'https://yoursite.com', value: editWebsite, onChange: setEditWebsite },
+                        { label: 'LinkedIn', placeholder: 'username',           value: editLinkedin, onChange: setEditLinkedin },
+                      ].map(({ label, placeholder, value, onChange }) => (
+                        <div key={label} className="flex flex-col gap-1.5">
+                          <label className="text-[12px] uppercase tracking-wider font-medium text-ink-disabled">{label}</label>
+                          <input
+                            value={value}
+                            onChange={(e) => onChange(e.target.value)}
+                            disabled={isSaving}
+                            placeholder={placeholder}
+                            className="h-10 w-full rounded-lg border border-border bg-gray-50 text-ink-primary text-[14px] px-3.5 outline-none focus:border-accent/60 focus:bg-white transition-colors disabled:opacity-60 placeholder:text-ink-disabled"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Visibility */}
+                  <div className="bg-paper border border-border rounded-xl p-6">
+                    <p className="text-[12px] uppercase tracking-wider font-medium text-ink-disabled mb-4">Visibility</p>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-[14px] font-medium text-ink-primary">
+                          {editIsPublic ? 'Public profile' : 'Private profile'}
+                        </p>
+                        <p className="text-[13px] text-ink-tertiary mt-0.5 leading-snug">
+                          {editIsPublic
+                            ? 'Anyone can find and view your profile'
+                            : 'Hidden from public discovery'}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={editIsPublic}
+                        onClick={() => setEditIsPublic(!editIsPublic)}
+                        disabled={isSaving}
+                        className={cn(
+                          'relative mt-0.5 w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
+                          editIsPublic ? 'bg-accent' : 'bg-gray-300',
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200',
+                            editIsPublic ? 'translate-x-5' : 'translate-x-0',
+                          )}
+                        />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  disabled={isSaving}
+                  onClick={handleSave}
+                  className="flex items-center gap-2 text-[13px] font-semibold bg-accent text-white hover:bg-accent-dark px-5 py-[9px] rounded-[7px] transition-colors disabled:opacity-60"
+                >
+                  {isSaving ? <Spinner size="sm" /> : null}
+                  {isSaving ? 'Saving…' : 'Save changes'}
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  disabled={isSaving}
+                  className="text-[13px] font-medium text-ink-secondary bg-gray-100 hover:bg-gray-200 px-5 py-[9px] rounded-[7px] transition-colors disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
     </AnimatedPage>
   )
 }

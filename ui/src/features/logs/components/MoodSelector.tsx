@@ -1,13 +1,13 @@
 import { cn } from '@/utils'
 import type { LogMood } from '@/types'
 
-const MOODS: Array<{ value: LogMood; label: string; emoji: string; color: string }> = [
-  { value: 'building',   label: 'Building',   emoji: '🔨', color: 'border-accent/40 bg-accent/10 text-accent-light hover:bg-accent/20' },
-  { value: 'shipped',    label: 'Shipped',    emoji: '🚀', color: 'border-success/40 bg-success/10 text-success hover:bg-success/20' },
-  { value: 'stuck',      label: 'Stuck',      emoji: '🪨', color: 'border-warning/40 bg-warning/10 text-warning hover:bg-warning/20' },
-  { value: 'reflecting', label: 'Reflecting', emoji: '🌊', color: 'border-blue-400/40 bg-blue-400/10 text-blue-300 hover:bg-blue-400/20' },
-  { value: 'inspired',   label: 'Inspired',   emoji: '⚡', color: 'border-yellow-400/40 bg-yellow-400/10 text-yellow-300 hover:bg-yellow-400/20' },
-  { value: 'learning',   label: 'Learning',   emoji: '🌱', color: 'border-teal-400/40 bg-teal-400/10 text-teal-300 hover:bg-teal-400/20' },
+const MOODS: Array<{ value: LogMood; label: string; emoji: string; activeClass: string }> = [
+  { value: 'building',   label: 'Building',   emoji: '🔨', activeClass: 'border-orange-300 bg-orange-50 text-mood-building' },
+  { value: 'shipped',    label: 'Shipped',    emoji: '🚀', activeClass: 'border-green-300 bg-green-50 text-mood-shipped' },
+  { value: 'stuck',      label: 'Stuck',      emoji: '🪨', activeClass: 'border-red-300 bg-red-50 text-mood-stuck' },
+  { value: 'reflecting', label: 'Reflecting', emoji: '🌊', activeClass: 'border-blue-300 bg-blue-50 text-mood-reflecting' },
+  { value: 'inspired',   label: 'Inspired',   emoji: '⚡', activeClass: 'border-purple-300 bg-purple-50 text-mood-inspired' },
+  { value: 'learning',   label: 'Learning',   emoji: '🌱', activeClass: 'border-teal-300 bg-teal-50 text-mood-learning' },
 ]
 
 interface MoodSelectorProps {
@@ -28,8 +28,10 @@ export function MoodSelector({ value, onChange, disabled }: MoodSelectorProps) {
             disabled={disabled}
             onClick={() => onChange(active ? null : m.value)}
             className={cn(
-              'flex items-center gap-1.5 rounded-pill border px-3 py-1 text-caption transition-all duration-150',
-              active ? m.color + ' ring-1 ring-inset ring-current/30' : 'border-surface-700 bg-surface-900 text-ink-tertiary hover:border-surface-600 hover:text-ink-secondary',
+              'flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-medium transition-all duration-150',
+              active
+                ? m.activeClass
+                : 'border-gray-200 bg-white text-ink-tertiary hover:border-gray-300 hover:text-ink-secondary',
               disabled && 'opacity-50 cursor-not-allowed',
             )}
           >

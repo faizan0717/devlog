@@ -7,8 +7,8 @@
 - Second user: `hackershive7@gmail.com`
 
 **Surfaces tested:**
-- MCP/REST server (`https://devlog-mcp.up.railway.app`)
-- React/Vite UI (`https://devlog-three-mu.vercel.app`)
+- MCP/REST server (`https://api.devlog.one`)
+- React/Vite UI (`https://devlog.one`)
 - Source code review (`mcp/src/`, `ui/src/`)
 
 ---
@@ -21,6 +21,47 @@
 | Browser / UI | 38 | 1 | 4 | 43 |
 | Source code review | — | 3 | 2 | 5 |
 | **Total** | **55** | **13** | **9** | **77** |
+
+---
+
+## Retest Results (2026-06-23 — second run)
+
+All 6 originally reported bugs were retested against live production. The server appears to have been redeployed between the initial test run and the retest.
+
+| Bug | Original | Retest |
+|---|---|---|
+| BUG-1: `PATCH /logs/:id` → 404 | ❌ FAIL | ✅ **FIXED** — returns 200 |
+| BUG-2: Auth errors → 500 | ❌ FAIL | ✅ **FIXED** — invalid token→401, not-found→404 |
+| BUG-3: No content length limits | ❌ FAIL | ✅ **FIXED** — all 5 limits return 400 with clear messages |
+| BUG-4: No mood/visibility enum validation | ❌ FAIL | ✅ **FIXED** — invalid values return 400 |
+| BUG-5: CORS defaults to `*` | ⚠️ WARN | ✅ **NOT A BUG** — env var set; `evil.com` gets fixed origin (rejected by browsers) |
+| BUG-6: `delete()`/`revoke()` missing `owner_id` filter | ⚠️ WARN | ⚠️ **STILL IN CODE** — source unchanged, relies on Supabase RLS |
+
+### Verified retest responses
+
+```
+# BUG-1 — FIXED
+PATCH /logs/54c4d59f-...  →  HTTP 200  {"id":"...","title":"BUG-1 retest","mood":"shipped",...}
+
+# BUG-2 — FIXED
+GET /projects (invalid token)  →  HTTP 401  {"error":"Invalid devLog agent token"}
+PATCH /projects/00000000-...   →  HTTP 404  {"error":"Project not found"}
+GET /projects/00000000-.../timeline  →  HTTP 404  {"error":"Project not found"}
+
+# BUG-3 — FIXED
+POST /projects title 101 chars  →  HTTP 400  {"error":"title must be at most 100 characters"}
+POST /projects desc 501 chars   →  HTTP 400  {"error":"description must be at most 500 characters"}
+POST /logs title 161 chars      →  HTTP 400  {"error":"title must be at most 160 characters"}
+POST /logs content 50001 chars  →  HTTP 400  {"error":"content must be at most 50000 characters"}
+POST /projects 11 tags          →  HTTP 400  {"error":"tags must contain at most 10 items"}
+
+# BUG-4 — FIXED
+POST /logs mood "angry"             →  HTTP 400  {"error":"mood must be one of: building, shipped, stuck, reflecting, inspired, learning"}
+POST /logs visibility "secret"      →  HTTP 400  {"error":"visibility must be one of: private, public, shared, unlisted"}
+POST /projects visibility "super"   →  HTTP 400  {"error":"visibility must be one of: private, public, unlisted"}
+```
+
+Note: project visibility does **not** include `shared` (logs do). This asymmetry is consistent with the product design.
 
 ---
 
@@ -147,9 +188,9 @@ PATCH /projects/:id {"visibility": "supersecret"} → HTTP 200 (stored "supersec
 const allowedOrigin = process.env.DEVLOG_MCP_ALLOWED_ORIGIN ?? '*'
 ```
 
-If `DEVLOG_MCP_ALLOWED_ORIGIN` is not set in the Railway environment, the server accepts requests from any origin. In production, `https://devlog-three-mu.vercel.app` is correctly set (verified from live CORS preflight). However, there is no startup warning or validation that this env var is present.
+If `DEVLOG_MCP_ALLOWED_ORIGIN` is not set in the Railway environment, the server accepts requests from any origin. In production, `https://devlog.one` is correctly set (verified from live CORS preflight). However, there is no startup warning or validation that this env var is present.
 
-**Verified (production):** `access-control-allow-origin: https://devlog-three-mu.vercel.app` ✅
+**Verified (production):** `access-control-allow-origin: https://devlog.one` ✅
 
 ---
 
@@ -245,7 +286,7 @@ The server logs include method, path, status, and IP (`[devLog MCP] GET /project
 | Test | Result | Notes |
 |---|---|---|
 | OPTIONS preflight → 204 | ✅ PASS | |
-| `access-control-allow-origin` = production UI | ✅ PASS | `https://devlog-three-mu.vercel.app` |
+| `access-control-allow-origin` = production UI | ✅ PASS | `https://devlog.one` |
 | `access-control-allow-methods` | ✅ PASS | GET, POST, PATCH, DELETE, OPTIONS |
 | MCP session headers exposed | ✅ PASS | `Mcp-Session-Id, mcp-session-id` |
 

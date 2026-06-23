@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
-import { AnimatedPage } from '@/components/shared/AnimatedPage'
 import { Spinner } from '@/components/ui'
 import { LogEditor } from '@/features/logs/components/LogEditor'
 import { logsService } from '@/services/logs.service'
@@ -34,20 +33,20 @@ export default function LogEditorPage() {
 
   if (loading) {
     return (
-      <AnimatedPage className="flex items-center justify-center py-32">
+      <div className="flex items-center justify-center h-full py-32">
         <Spinner size="lg" />
-      </AnimatedPage>
+      </div>
     )
   }
 
   return (
-    <AnimatedPage>
+    <div className="h-full">
       <LogEditor
         projectId={projectId}
         userId={user.id}
         logId={isNew ? null : (logId ?? null)}
         initialLog={log}
       />
-    </AnimatedPage>
+    </div>
   )
 }

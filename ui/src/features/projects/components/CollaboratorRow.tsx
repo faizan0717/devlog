@@ -47,7 +47,7 @@ export function CollaboratorRow({
         size="sm"
       />
       <div className="flex-1 min-w-0">
-        <p className="text-body text-ink-primary truncate">
+        <p className="font-mono text-[13px] text-ink-primary truncate">
           @{collaborator.profiles?.username}
         </p>
       </div>
@@ -57,8 +57,8 @@ export function CollaboratorRow({
           onChange={(e) => handleRoleChange(e.target.value as Collaborator['role'])}
           disabled={disabled || roleChanging}
           className={cn(
-            'text-caption bg-surface-800 border border-surface-700 rounded-glass px-2 py-1',
-            'text-ink-secondary focus:outline-none focus:border-accent/60 cursor-pointer',
+            'text-[12px] bg-gray-100 border border-border rounded-lg px-2 py-1',
+            'text-ink-secondary focus:outline-none focus:border-accent/60 cursor-pointer transition-colors',
             (disabled || roleChanging) && 'opacity-50',
           )}
         >
@@ -77,7 +77,7 @@ export function CollaboratorRow({
           onClick={onRemove}
           disabled={disabled}
           aria-label={`Remove @${collaborator.profiles?.username ?? 'collaborator'}`}
-          className="p-1.5 rounded-glass text-ink-tertiary hover:text-danger transition-colors disabled:opacity-50"
+          className="p-1.5 rounded-lg text-ink-tertiary hover:text-danger transition-colors disabled:opacity-50"
         >
           <Trash2 size={14} />
         </button>

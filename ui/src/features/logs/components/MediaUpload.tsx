@@ -46,8 +46,8 @@ export function MediaUpload({ onUpload, uploadingCount, disabled }: MediaUploadP
       className={cn(
         'relative flex flex-col items-center justify-center gap-2 rounded-glass border border-dashed py-6 transition-all duration-200 cursor-pointer',
         dragging
-          ? 'border-accent bg-accent/5'
-          : 'border-surface-700 bg-surface-950/40 hover:border-surface-500 hover:bg-surface-900/40',
+          ? 'border-accent bg-blue-50'
+          : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white',
         (disabled || busy) && 'pointer-events-none opacity-60',
       )}
     >

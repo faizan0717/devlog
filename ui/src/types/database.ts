@@ -54,6 +54,7 @@ export interface Database {
           description: string | null
           visibility: Visibility
           cover_image_url: string | null
+          cover_gradient: string | null
           tags: string[]
           view_count: number
           created_at: string
@@ -66,6 +67,7 @@ export interface Database {
           description?: string | null
           visibility?: Visibility
           cover_image_url?: string | null
+          cover_gradient?: string | null
           tags?: string[]
           view_count?: number
           created_at?: string
@@ -77,6 +79,7 @@ export interface Database {
           description?: string | null
           visibility?: Visibility
           cover_image_url?: string | null
+          cover_gradient?: string | null
           tags?: string[]
           view_count?: number
           updated_at?: string

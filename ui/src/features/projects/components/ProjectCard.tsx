@@ -5,26 +5,13 @@ import { formatDate } from '@/utils'
 import { Avatar } from '@/components/ui'
 import type { Project, ProjectWithDetails, Visibility } from '@/types'
 import { cn } from '@/utils'
-
-const COVER_GRADIENTS = [
-  'from-violet-900/80 via-surface-900/60 to-surface-950',
-  'from-indigo-900/80 via-surface-900/60 to-surface-950',
-  'from-slate-700/80 via-surface-900/60 to-surface-950',
-  'from-zinc-700/80 via-surface-900/60 to-surface-950',
-  'from-purple-900/80 via-surface-900/60 to-surface-950',
-  'from-blue-900/80 via-surface-900/60 to-surface-950',
-]
+import { getCoverGradient } from '@/utils/coverGradient'
 
 const VISIBILITY_META: Record<Visibility, { icon: React.ElementType; label: string; color: string }> = {
   private:  { icon: Lock,  label: 'Private',  color: 'text-ink-tertiary' },
   public:   { icon: Globe, label: 'Public',   color: 'text-green-400' },
   unlisted: { icon: Link2, label: 'Unlisted', color: 'text-amber-400' },
   shared:   { icon: Users, label: 'Shared',   color: 'text-accent-light' },
-}
-
-function gradientForId(id: string) {
-  const idx = (id.charCodeAt(0) + id.charCodeAt(id.length - 1)) % COVER_GRADIENTS.length
-  return COVER_GRADIENTS[idx]
 }
 
 interface ProjectCardProps {
@@ -65,7 +52,7 @@ export function ProjectCard({ project, navigateTo }: ProjectCardProps) {
             <div className="absolute inset-0 bg-gradient-to-t from-surface-950/80 via-transparent to-transparent" />
           </>
         ) : (
-          <div className={cn('w-full h-full bg-gradient-to-br', gradientForId(project.id))} />
+          <div className="w-full h-full" style={{ background: getCoverGradient(project) }} />
         )}
       </div>
 

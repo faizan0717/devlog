@@ -52,7 +52,7 @@ export function SearchResultsPanel({ results, loading, onClose }: SearchResultsP
       initial="initial"
       animate="animate"
       exit="exit"
-      className="absolute top-full left-0 right-0 mt-2 glass-elevated rounded-glass border border-white/8 shadow-glass-lg z-50 overflow-hidden max-h-[480px] overflow-y-auto"
+      className="absolute top-full left-0 right-0 mt-2 bg-paper rounded-xl border border-border shadow-card z-50 overflow-hidden max-h-[480px] overflow-y-auto"
     >
       {loading && (
         <div className="flex items-center justify-center py-8">
@@ -61,14 +61,14 @@ export function SearchResultsPanel({ results, loading, onClose }: SearchResultsP
       )}
 
       {!loading && !hasResults && (
-        <div className="py-8 text-center text-body text-ink-tertiary">No results found.</div>
+        <div className="py-8 text-center text-[13px] text-ink-disabled">No results found.</div>
       )}
 
       {!loading && hasResults && (
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-gray-100">
           {results.projects.length > 0 && (
-            <section className="p-3">
-              <p className="text-label uppercase text-ink-tertiary tracking-wider px-2 mb-2 flex items-center gap-1.5">
+            <section className="p-2">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-ink-disabled px-2 mb-1.5 flex items-center gap-1.5">
                 <FolderOpen size={11} /> Projects
               </p>
               {results.projects.map((p) => (
@@ -76,15 +76,15 @@ export function SearchResultsPanel({ results, loading, onClose }: SearchResultsP
                   key={p.id}
                   to={`/p/${p.id}`}
                   onClick={onClose}
-                  className="flex items-center gap-3 px-2 py-2 rounded-glass hover:bg-surface-700 transition-colors"
+                  className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   {p.cover_image_url
                     ? <img src={p.cover_image_url} className="w-8 h-8 rounded object-cover flex-shrink-0" alt="" />
-                    : <div className="w-8 h-8 rounded bg-accent/20 flex-shrink-0" />
+                    : <div className="w-8 h-8 rounded bg-blue-50 flex-shrink-0" />
                   }
                   <div className="min-w-0">
-                    <p className="text-body text-ink-primary truncate">{p.title}</p>
-                    <p className="text-caption text-ink-tertiary">@{p.owner.username}</p>
+                    <p className="text-[13px] text-ink-primary truncate">{p.title}</p>
+                    <p className="text-[11px] text-ink-tertiary">@{p.owner.username}</p>
                   </div>
                 </Link>
               ))}
@@ -92,8 +92,8 @@ export function SearchResultsPanel({ results, loading, onClose }: SearchResultsP
           )}
 
           {results.users.length > 0 && (
-            <section className="p-3">
-              <p className="text-label uppercase text-ink-tertiary tracking-wider px-2 mb-2 flex items-center gap-1.5">
+            <section className="p-2">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-ink-disabled px-2 mb-1.5 flex items-center gap-1.5">
                 <User size={11} /> People
               </p>
               {results.users.map((u) => (
@@ -101,12 +101,12 @@ export function SearchResultsPanel({ results, loading, onClose }: SearchResultsP
                   key={u.id}
                   to={`/u/${u.username}`}
                   onClick={onClose}
-                  className="flex items-center gap-3 px-2 py-2 rounded-glass hover:bg-surface-700 transition-colors"
+                  className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   <Avatar src={u.avatar_url} name={u.username} size="sm" />
                   <div className="min-w-0">
-                    <p className="text-body text-ink-primary truncate">@{u.username}</p>
-                    {u.bio && <p className="text-caption text-ink-tertiary truncate">{stripMarkdown(u.bio)}</p>}
+                    <p className="text-[13px] text-ink-primary truncate">@{u.username}</p>
+                    {u.bio && <p className="text-[11px] text-ink-tertiary truncate">{stripMarkdown(u.bio)}</p>}
                   </div>
                 </Link>
               ))}
@@ -114,8 +114,8 @@ export function SearchResultsPanel({ results, loading, onClose }: SearchResultsP
           )}
 
           {results.logs.length > 0 && (
-            <section className="p-3">
-              <p className="text-label uppercase text-ink-tertiary tracking-wider px-2 mb-2 flex items-center gap-1.5">
+            <section className="p-2">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-ink-disabled px-2 mb-1.5 flex items-center gap-1.5">
                 <BookOpen size={11} /> Logs
               </p>
               {results.logs.map((l) => (
@@ -123,7 +123,7 @@ export function SearchResultsPanel({ results, loading, onClose }: SearchResultsP
                   key={l.id}
                   to={`/p/${l.project.id}/logs/${l.id}`}
                   onClick={onClose}
-                  className="flex items-center gap-3 px-2 py-2 rounded-glass hover:bg-surface-700 transition-colors"
+                  className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   <Avatar
                     src={l.project.owner?.avatar_url}
@@ -131,8 +131,8 @@ export function SearchResultsPanel({ results, loading, onClose }: SearchResultsP
                     size="sm"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-body text-ink-primary truncate">{l.title}</p>
-                    <p className="text-caption text-ink-tertiary truncate">
+                    <p className="text-[13px] text-ink-primary truncate">{l.title}</p>
+                    <p className="text-[11px] text-ink-tertiary truncate">
                       @{l.project.owner?.username ?? 'maker'} · {l.project.title} · {formatDate(l.created_at, 'relative')}
                     </p>
                   </div>

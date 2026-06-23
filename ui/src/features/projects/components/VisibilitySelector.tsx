@@ -8,83 +8,37 @@ interface VisibilitySelectorProps {
   disabled?: boolean
 }
 
-const OPTIONS: {
-  value: Visibility
-  label: string
-  description: string
-  icon: React.ElementType
-}[] = [
-  {
-    value: 'private',
-    label: 'Private',
-    description: 'Only you can see this',
-    icon: Lock,
-  },
-  {
-    value: 'public',
-    label: 'Public',
-    description: 'Anyone can discover and view',
-    icon: Globe,
-  },
-  {
-    value: 'unlisted',
-    label: 'Unlisted',
-    description: 'Accessible via link only',
-    icon: Link2,
-  },
-  {
-    value: 'shared',
-    label: 'Shared',
-    description: 'Only invited collaborators',
-    icon: Users,
-  },
+const OPTIONS: { value: Visibility; label: string; description: string; icon: React.ElementType }[] = [
+  { value: 'private',  label: 'Private',  description: 'Only you can see this',          icon: Lock  },
+  { value: 'public',   label: 'Public',   description: 'Anyone can discover and view',    icon: Globe },
+  { value: 'unlisted', label: 'Unlisted', description: 'Accessible via link only',        icon: Link2 },
+  { value: 'shared',   label: 'Shared',   description: 'Only invited collaborators',      icon: Users },
 ]
 
 export function VisibilitySelector({ value, onChange, disabled }: VisibilitySelectorProps) {
   return (
-    <div className="flex flex-wrap gap-4">
+    <div className="flex flex-wrap gap-2">
       {OPTIONS.map((option) => {
         const Icon = option.icon
         const selected = value === option.value
         return (
-          <div key={option.value} className="group relative flex-1 min-w-0">
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => onChange(option.value)}
-              aria-label={`${option.label}: ${option.description}`}
-              className={cn(
-                'flex w-full items-center justify-center gap-1.5 rounded-glass px-2.5 py-1.5 transition-all duration-150',
-                'border focus-ring',
-                selected
-                  ? 'border-accent bg-accent-muted'
-                  : 'border-surface-700 bg-surface-800 hover:border-surface-600 hover:bg-surface-700',
-                disabled && 'cursor-not-allowed opacity-50',
-              )}
-            >
-              <Icon
-                size={14}
-                className={cn(
-                  'shrink-0',
-                  selected ? 'text-accent' : 'text-ink-tertiary',
-                )}
-              />
-              <span
-                className={cn(
-                  'text-label font-medium truncate',
-                  selected ? 'text-accent' : 'text-ink-primary',
-                )}
-              >
-                {option.label}
-              </span>
-            </button>
-            <span
-              role="tooltip"
-              className="pointer-events-none absolute left-1/2 top-full z-10 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-glass border border-surface-700 bg-surface-900 px-2 py-1 text-caption text-ink-secondary opacity-0 shadow-glass transition-opacity duration-150 group-hover:opacity-100"
-            >
-              {option.description}
-            </span>
-          </div>
+          <button
+            key={option.value}
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(option.value)}
+            title={option.description}
+            className={cn(
+              'flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-medium transition-all duration-150',
+              selected
+                ? 'border-accent bg-accent text-white'
+                : 'border-gray-200 bg-gray-50 text-ink-tertiary hover:border-gray-300 hover:bg-gray-100 hover:text-ink-secondary',
+              disabled && 'opacity-50 cursor-not-allowed',
+            )}
+          >
+            <Icon size={12} className="shrink-0" />
+            {option.label}
+          </button>
         )
       })}
     </div>

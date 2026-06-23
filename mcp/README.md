@@ -44,7 +44,7 @@ npm run dev:http       # dev server on :8787
 DEVLOG_SUPABASE_URL=https://your-project.supabase.co
 DEVLOG_SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 PORT=8787
-DEVLOG_MCP_ALLOWED_ORIGIN=*
+DEVLOG_MCP_ALLOWED_ORIGIN=https://devlog.one
 ```
 
 ## Agent setup (for users)
@@ -53,7 +53,7 @@ DEVLOG_MCP_ALLOWED_ORIGIN=*
 2. Run the setup script:
 
 ```bash
-curl -fsSL https://your-mcp-host.example.com/setup.sh | bash -s -- dl_agent_your_token
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- dl_agent_your_token
 ```
 
 The script interactively handles token storage, `.gitignore`, and writes the context snippet into your agent's config file (CLAUDE.md, `.cursor/rules`, `.windsurfrules`, or Copilot instructions).

@@ -9,22 +9,8 @@ import { MOODS } from '@/features/logs/components/MoodSelector'
 import { exploreService } from '@/services/explore.service'
 import { profilesService } from '@/services/profiles.service'
 import { useAuthStore } from '@/stores/authStore'
-import { cn } from '@/utils'
+import { getCoverGradient } from '@/utils/coverGradient'
 import type { PublicProject as PublicProjectType, Profile, PublicLog } from '@/types'
-
-const COVER_GRADIENTS = [
-  'from-violet-900 to-surface-950',
-  'from-indigo-900 to-surface-950',
-  'from-slate-800 to-surface-950',
-  'from-zinc-800 to-surface-950',
-  'from-purple-900 to-surface-950',
-  'from-blue-900 to-surface-950',
-]
-
-function gradientForId(id: string) {
-  const idx = (id.charCodeAt(0) + id.charCodeAt(id.length - 1)) % COVER_GRADIENTS.length
-  return COVER_GRADIENTS[idx]
-}
 
 export default function PublicProject() {
   const { id } = useParams<{ id: string }>()
@@ -97,7 +83,7 @@ export default function PublicProject() {
         {project.cover_image_url ? (
           <img src={project.cover_image_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
         ) : (
-          <div className={cn('absolute inset-0 bg-gradient-to-br', gradientForId(project.id))} />
+          <div className="absolute inset-0" style={{ background: getCoverGradient(project) }} />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-surface-950 via-surface-950/50 to-transparent" />
 

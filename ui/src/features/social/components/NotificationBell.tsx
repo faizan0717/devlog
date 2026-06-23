@@ -49,7 +49,7 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="relative p-2 rounded-glass text-ink-secondary hover:text-ink-primary hover:bg-surface-700 transition-colors"
+        className="relative p-2 rounded-lg text-ink-tertiary hover:text-ink-secondary hover:bg-gray-100 transition-colors"
         aria-label="Notifications"
       >
         <Bell size={18} />
@@ -67,15 +67,15 @@ export function NotificationBell() {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="absolute right-0 top-full mt-2 w-80 glass-elevated rounded-glass border border-white/8 shadow-glass-lg z-50 overflow-hidden sm:block hidden"
+            className="absolute right-0 top-full mt-2 w-80 bg-paper rounded-xl border border-border shadow-card z-50 overflow-hidden sm:block hidden"
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-              <span className="text-body font-medium text-ink-primary">Notifications</span>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <span className="text-[14px] font-medium text-ink-primary">Notifications</span>
               {unreadCount > 0 && (
                 <button
                   type="button"
                   onClick={markAllRead}
-                  className="flex items-center gap-1 text-caption text-ink-tertiary hover:text-accent-light transition-colors"
+                  className="flex items-center gap-1 text-[12px] text-ink-tertiary hover:text-accent transition-colors"
                 >
                   <CheckCheck size={13} />
                   Mark all read
@@ -88,7 +88,7 @@ export function NotificationBell() {
                 <div className="flex justify-center py-6"><Spinner size="sm" /></div>
               )}
               {!loading && (!notifications || notifications.length === 0) && (
-                <div className="py-8 text-center text-body text-ink-tertiary">
+                <div className="py-8 text-center text-[14px] text-ink-disabled">
                   You're all caught up.
                 </div>
               )}
@@ -98,17 +98,17 @@ export function NotificationBell() {
                   to={notificationHref(n)}
                   onClick={() => { markRead(n.id); setOpen(false) }}
                   className={cn(
-                    'flex items-start gap-3 px-4 py-3 hover:bg-surface-700/50 transition-colors border-b border-white/3',
+                    'flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50',
                     !n.read_at && 'border-l-2 border-l-accent bg-accent/5',
                   )}
                 >
                   <Avatar src={n.actor.avatar_url} name={n.actor.username} size="sm" className="flex-shrink-0 mt-0.5" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-caption text-ink-secondary">
+                    <p className="text-[12px] text-ink-secondary">
                       <span className="text-ink-primary font-medium">@{n.actor.username}</span>{' '}
                       {notificationText(n)}
                     </p>
-                    <p className="text-label text-ink-disabled mt-0.5">{formatDate(n.created_at, 'relative')}</p>
+                    <p className="text-[11px] text-ink-disabled mt-0.5">{formatDate(n.created_at, 'relative')}</p>
                   </div>
                 </Link>
               ))}
@@ -125,13 +125,13 @@ export function NotificationBell() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 400, damping: 40 }}
-            className="fixed bottom-0 left-0 right-0 glass-elevated rounded-t-glass border-t border-white/8 z-50 max-h-[70vh] flex flex-col sm:hidden"
+            className="fixed bottom-0 left-0 right-0 bg-paper rounded-t-2xl border-t border-border z-50 max-h-[70vh] flex flex-col sm:hidden shadow-[0_-8px_24px_rgba(0,0,0,0.08)]"
           >
-            <div className="w-10 h-1 rounded-full bg-surface-600 mx-auto mt-3 mb-1 flex-shrink-0" />
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 flex-shrink-0">
-              <span className="text-body font-medium text-ink-primary">Notifications</span>
+            <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mt-3 mb-1 flex-shrink-0" />
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
+              <span className="text-[14px] font-medium text-ink-primary">Notifications</span>
               {unreadCount > 0 && (
-                <button type="button" onClick={markAllRead} className="flex items-center gap-1 text-caption text-ink-tertiary hover:text-accent-light transition-colors">
+                <button type="button" onClick={markAllRead} className="flex items-center gap-1 text-[12px] text-ink-tertiary hover:text-accent transition-colors">
                   <CheckCheck size={13} /> Mark all read
                 </button>
               )}
@@ -141,7 +141,7 @@ export function NotificationBell() {
                 <div className="flex justify-center py-6"><Spinner size="sm" /></div>
               )}
               {!loading && (!notifications || notifications.length === 0) && (
-                <div className="py-8 text-center text-body text-ink-tertiary">
+                <div className="py-8 text-center text-[14px] text-ink-disabled">
                   You're all caught up.
                 </div>
               )}
@@ -151,17 +151,17 @@ export function NotificationBell() {
                   to={notificationHref(n)}
                   onClick={() => { markRead(n.id); setOpen(false) }}
                   className={cn(
-                    'flex items-start gap-3 px-4 py-3 hover:bg-surface-700/50 transition-colors border-b border-white/3',
+                    'flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50',
                     !n.read_at && 'border-l-2 border-l-accent bg-accent/5',
                   )}
                 >
                   <Avatar src={n.actor.avatar_url} name={n.actor.username} size="sm" className="flex-shrink-0 mt-0.5" />
                   <div className="min-w-0">
-                    <p className="text-caption text-ink-secondary">
+                    <p className="text-[12px] text-ink-secondary">
                       <span className="text-ink-primary font-medium">@{n.actor.username}</span>{' '}
                       {notificationText(n)}
                     </p>
-                    <p className="text-label text-ink-disabled mt-0.5">{formatDate(n.created_at, 'relative')}</p>
+                    <p className="text-[11px] text-ink-disabled mt-0.5">{formatDate(n.created_at, 'relative')}</p>
                   </div>
                 </Link>
               ))}

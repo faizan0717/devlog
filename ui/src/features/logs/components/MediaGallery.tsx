@@ -33,7 +33,7 @@ export function MediaGallery({ media, onRemove, readonly }: MediaGalleryProps) {
         )}
       >
         {media.map((item) => (
-          <div key={item.url} className="group relative rounded-glass overflow-hidden aspect-video bg-surface-900">
+          <div key={item.url} className="group relative rounded-lg overflow-hidden aspect-video bg-gray-100">
             {item.type === 'video' ? (
               <video
                 src={item.url}
@@ -54,7 +54,7 @@ export function MediaGallery({ media, onRemove, readonly }: MediaGalleryProps) {
               <button
                 type="button"
                 onClick={() => onRemove(item.url)}
-                className="absolute top-2 right-2 flex items-center justify-center w-6 h-6 rounded-full bg-surface-950/80 border border-surface-700 text-ink-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-150 hover:text-danger hover:border-danger/50"
+                className="absolute top-2 right-2 flex items-center justify-center w-6 h-6 rounded-full bg-white/90 border border-border text-ink-secondary opacity-0 group-hover:opacity-100 transition-opacity duration-150 hover:text-danger hover:border-red-200"
               >
                 <X size={12} />
               </button>
@@ -66,20 +66,20 @@ export function MediaGallery({ media, onRemove, readonly }: MediaGalleryProps) {
       {/* Lightbox */}
       {lightbox && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
           onClick={() => setLightbox(null)}
         >
           <button
             type="button"
             onClick={() => setLightbox(null)}
-            className="absolute top-4 right-4 flex items-center justify-center w-8 h-8 rounded-full bg-surface-900/80 border border-surface-700 text-ink-secondary hover:text-ink-primary transition-colors"
+            className="absolute top-4 right-4 flex items-center justify-center w-8 h-8 rounded-full bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-colors"
           >
             <X size={16} />
           </button>
           <img
             src={lightbox}
             alt=""
-            className="max-w-[90vw] max-h-[90vh] rounded-glass object-contain"
+            className="max-w-[90vw] max-h-[90vh] rounded-lg object-contain"
             onClick={(e) => e.stopPropagation()}
           />
         </div>

@@ -1,23 +1,45 @@
-import { NavLink, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { FolderOpen, Compass, User, LogOut, KeyRound, MessageCircle } from 'lucide-react'
+import { NavLink, Link, useNavigate } from 'react-router-dom'
+import { Compass, CheckSquare, Map, Settings, LogOut, KeyRound, MessageCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import { cn, ROUTES } from '@/utils'
+import { getCoverGradient } from '@/utils/coverGradient'
 import { useAuthStore } from '@/stores/authStore'
+import { useProjects } from '@/features/projects/hooks/useProjects'
 import { authService } from '@/services/auth.service'
-import { ROUTES } from '@/utils'
-import { cn } from '@/utils'
+import type { Project } from '@/types'
 
-const navItems = [
-  { label: 'Projects', to: ROUTES.PROJECTS, Icon: FolderOpen },
-  { label: 'Explore', to: ROUTES.EXPLORE, Icon: Compass },
-  { label: 'Agents', to: ROUTES.AGENT_ACCESS, Icon: KeyRound },
-]
-
-const feedbackHref = 'https://github.com/faizan0717/devlog/issues/new?title=Beta%20feedback'
+function ProjectItem({ project }: { project: Project }) {
+  return (
+    <NavLink
+      to={ROUTES.PROJECT_DETAIL.replace(':id', project.id)}
+      className={({ isActive }) =>
+        cn(
+          'flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] transition-colors',
+          isActive ? 'bg-gray-100' : 'hover:bg-gray-50',
+        )
+      }
+    >
+      <div
+        className="h-8 w-8 shrink-0 rounded-[5px] overflow-hidden border border-border"
+        style={!project.cover_image_url ? { background: getCoverGradient(project) } : undefined}
+      >
+        {project.cover_image_url && (
+          <img src={project.cover_image_url} className="h-full w-full object-cover" alt="" />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="truncate font-mono text-[12px] font-semibold text-ink-secondary">
+          {project.title}
+        </div>
+      </div>
+    </NavLink>
+  )
+}
 
 export function Sidebar() {
   const navigate = useNavigate()
   const { user, signOut } = useAuthStore()
+  const { owned } = useProjects(user?.id)
 
   const username = user?.profile?.username
   const profileTo = username ? ROUTES.PUBLIC_PROFILE.replace(':username', username) : null
@@ -35,130 +57,137 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Desktop rail */}
-      <motion.aside
-        initial={false}
-        whileHover="expanded"
-        className="fixed left-4 top-1/2 z-40 hidden -translate-y-1/2 flex-col md:flex"
-      >
-        <motion.div
-          variants={{ expanded: { width: 160 } }}
-          initial={{ width: 52 }}
-          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-          className="glass flex flex-col gap-1 overflow-hidden rounded-[26px] border border-white/10 px-2 py-3 shadow-xl"
-          style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(124,111,224,0.08)' }}
-        >
-          {navItems.map(({ label, to, Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                cn(
-                  'group flex items-center gap-3 rounded-[18px] px-2.5 py-2.5 transition-colors duration-150',
-                  isActive
-                    ? 'bg-accent/20 text-accent-light'
-                    : 'text-ink-secondary hover:bg-white/6 hover:text-ink-primary',
-                )
-              }
+      {/* Desktop sidebar */}
+      <aside className="fixed left-0 top-14 z-40 hidden h-[calc(100vh-56px)] w-60 flex-col border-r border-border bg-paper px-2.5 py-4 md:flex">
+
+        {/* Main nav */}
+        <div className="flex flex-col gap-0.5 mb-1">
+          <NavLink
+            to={ROUTES.EXPLORE}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] transition-colors',
+                isActive
+                  ? 'bg-accent/10 font-semibold text-accent'
+                  : 'text-ink-tertiary hover:bg-gray-50 hover:text-ink-secondary',
+              )
+            }
+          >
+            <Compass size={14} className="shrink-0" />
+            Explore
+          </NavLink>
+
+          {[
+            { label: 'Todos',   Icon: CheckSquare },
+            { label: 'Roadmap', Icon: Map },
+          ].map(({ label, Icon }) => (
+            <div
+              key={label}
+              title={`${label} — coming soon`}
+              className="flex cursor-default items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-ink-disabled opacity-50"
             >
-              <Icon size={18} className="flex-shrink-0" />
-              <motion.span
-                variants={{ expanded: { opacity: 1, x: 0 } }}
-                initial={{ opacity: 0, x: -6 }}
-                transition={{ duration: 0.15, ease: 'easeOut' }}
-                className="overflow-hidden whitespace-nowrap text-body"
-              >
-                {label}
-              </motion.span>
-            </NavLink>
+              <Icon size={14} className="shrink-0" />
+              {label}
+            </div>
           ))}
 
-          <div className="mx-2 my-2 h-px bg-white/10" />
+          <NavLink
+            to={ROUTES.AGENT_ACCESS}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] transition-colors',
+                isActive
+                  ? 'bg-accent/10 font-semibold text-accent'
+                  : 'text-ink-tertiary hover:bg-gray-50 hover:text-ink-secondary',
+              )
+            }
+          >
+            <KeyRound size={14} className="shrink-0" />
+            Agents
+          </NavLink>
+        </div>
 
-          {profileTo ? (
+        {/* Divider */}
+        <div className="my-2 h-px bg-gray-100" />
+
+        {/* Projects */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="mb-2 flex items-center justify-between px-3">
+            <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-disabled">
+              Projects
+            </span>
+            <Link
+              to={ROUTES.NEW_PROJECT}
+              className="flex items-center gap-0.5 text-[11px] font-medium text-accent hover:text-accent-dark transition-colors"
+            >
+              <span className="text-base leading-none">+</span> New
+            </Link>
+          </div>
+
+          <div className="flex flex-col gap-0.5">
+            {owned.map((p) => <ProjectItem key={p.id} project={p} />)}
+            {owned.length === 0 && (
+              <p className="px-3 py-2 text-[12px] text-ink-disabled">No projects yet.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom */}
+        <div className="mt-auto border-t border-gray-100 pt-3 flex flex-col gap-0.5">
+          {profileTo && (
             <NavLink
               to={profileTo}
               end
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-[18px] px-2.5 py-2.5 transition-colors duration-150',
+                  'flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] transition-colors',
                   isActive
-                    ? 'bg-accent/20 text-accent-light'
-                    : 'text-ink-secondary hover:bg-white/6 hover:text-ink-primary',
+                    ? 'bg-accent/10 font-semibold text-accent'
+                    : 'text-ink-tertiary hover:bg-gray-50 hover:text-ink-secondary',
                 )
               }
             >
-              <User size={18} className="flex-shrink-0" />
-              <motion.span
-                variants={{ expanded: { opacity: 1, x: 0 } }}
-                initial={{ opacity: 0, x: -6 }}
-                transition={{ duration: 0.15, ease: 'easeOut' }}
-                className="overflow-hidden whitespace-nowrap text-body"
-              >
-                Profile
-              </motion.span>
+              <Settings size={14} className="shrink-0" />
+              Settings
             </NavLink>
-          ) : (
-            <div className="flex cursor-default items-center gap-3 rounded-[18px] px-2.5 py-2.5 text-ink-tertiary">
-              <User size={18} className="flex-shrink-0" />
-              <motion.span
-                variants={{ expanded: { opacity: 1, x: 0 } }}
-                initial={{ opacity: 0, x: -6 }}
-                transition={{ duration: 0.15, ease: 'easeOut' }}
-                className="overflow-hidden whitespace-nowrap text-body"
-              >
-                Profile
-              </motion.span>
-            </div>
           )}
 
           <a
-            href={feedbackHref}
+            href="https://github.com/faizan0717/devlog/issues/new?title=Beta%20feedback"
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-3 rounded-[18px] px-2.5 py-2.5 text-ink-secondary transition-colors duration-150 hover:bg-white/6 hover:text-ink-primary"
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-ink-tertiary transition-colors hover:bg-gray-50 hover:text-ink-secondary"
           >
-            <MessageCircle size={18} className="flex-shrink-0" />
-            <motion.span
-              variants={{ expanded: { opacity: 1, x: 0 } }}
-              initial={{ opacity: 0, x: -6 }}
-              transition={{ duration: 0.15, ease: 'easeOut' }}
-              className="overflow-hidden whitespace-nowrap text-body"
-            >
-              Feedback
-            </motion.span>
+            <MessageCircle size={14} className="shrink-0" />
+            Feedback
           </a>
 
           <button
             type="button"
             onClick={handleLogout}
-            className="flex items-center gap-3 rounded-[18px] px-2.5 py-2.5 text-ink-secondary transition-colors duration-150 hover:bg-danger/10 hover:text-danger"
-            aria-label="Log out"
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-ink-tertiary transition-colors hover:bg-red-50 hover:text-danger"
           >
-            <LogOut size={18} className="flex-shrink-0" />
-            <motion.span
-              variants={{ expanded: { opacity: 1, x: 0 } }}
-              initial={{ opacity: 0, x: -6 }}
-              transition={{ duration: 0.15, ease: 'easeOut' }}
-              className="overflow-hidden whitespace-nowrap text-body"
-            >
-              Logout
-            </motion.span>
+            <LogOut size={14} className="shrink-0" />
+            Logout
           </button>
-        </motion.div>
-      </motion.aside>
+        </div>
+      </aside>
 
-      {/* Mobile bottom navigation */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-surface-950/85 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur-xl md:hidden">
-        <div className="mx-auto flex max-w-md items-center justify-between gap-1 overflow-x-auto rounded-[24px] border border-white/10 bg-surface-900/80 p-1.5 shadow-glass">
-          {navItems.map(({ label, to, Icon }) => (
+      {/* Mobile bottom nav */}
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-paper/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur-sm md:hidden">
+        <div className="mx-auto flex max-w-md items-center justify-between gap-1">
+          {[
+            { label: 'Explore',  to: ROUTES.EXPLORE,      Icon: Compass },
+            { label: 'Projects', to: ROUTES.PROJECTS,     Icon: FolderOpen },
+            { label: 'Agents',   to: ROUTES.AGENT_ACCESS, Icon: KeyRound },
+          ].map(({ label, to, Icon }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
                 cn(
-                  'flex min-w-[58px] flex-1 flex-col items-center gap-1 rounded-[18px] px-2 py-2 text-[10px] font-medium transition-colors',
-                  isActive ? 'bg-accent/20 text-accent-light' : 'text-ink-tertiary hover:text-ink-primary',
+                  'flex flex-1 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[10px] font-medium transition-colors',
+                  isActive ? 'text-accent' : 'text-ink-disabled hover:text-ink-tertiary',
                 )
               }
             >
@@ -167,41 +196,30 @@ export function Sidebar() {
             </NavLink>
           ))}
 
-          {profileTo && (
+          {profileTo ? (
             <NavLink
               to={profileTo}
               end
               className={({ isActive }) =>
                 cn(
-                  'flex min-w-[58px] flex-1 flex-col items-center gap-1 rounded-[18px] px-2 py-2 text-[10px] font-medium transition-colors',
-                  isActive ? 'bg-accent/20 text-accent-light' : 'text-ink-tertiary hover:text-ink-primary',
+                  'flex flex-1 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[10px] font-medium transition-colors',
+                  isActive ? 'text-accent' : 'text-ink-disabled hover:text-ink-tertiary',
                 )
               }
             >
-              <User size={18} />
-              <span>Profile</span>
+              <Settings size={18} />
+              <span>Settings</span>
             </NavLink>
+          ) : (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex flex-1 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[10px] font-medium text-ink-disabled hover:text-danger transition-colors"
+            >
+              <LogOut size={18} />
+              <span>Logout</span>
+            </button>
           )}
-
-          <a
-            href={feedbackHref}
-            target="_blank"
-            rel="noreferrer"
-            className="flex min-w-[58px] flex-1 flex-col items-center gap-1 rounded-[18px] px-2 py-2 text-[10px] font-medium text-ink-tertiary transition-colors hover:text-ink-primary"
-          >
-            <MessageCircle size={18} />
-            <span>Feedback</span>
-          </a>
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex min-w-[58px] flex-1 flex-col items-center gap-1 rounded-[18px] px-2 py-2 text-[10px] font-medium text-ink-tertiary transition-colors hover:text-danger"
-            aria-label="Log out"
-          >
-            <LogOut size={18} />
-            <span>Logout</span>
-          </button>
         </div>
       </nav>
     </>

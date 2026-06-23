@@ -234,11 +234,12 @@ create policy "avatars: public read" on storage.objects
   for select using (bucket_id = 'avatars');
 
 -- ──────────────────────────────────────────────
--- Migrations: projects cover image + tags
+-- Migrations: projects cover image + tags + gradient
 -- ──────────────────────────────────────────────
 alter table public.projects
   add column if not exists cover_image_url text,
-  add column if not exists tags text[] not null default '{}';
+  add column if not exists tags text[] not null default '{}',
+  add column if not exists cover_gradient text;
 
 -- Unlisted projects: anyone with the UUID link can read
 do $$ begin
