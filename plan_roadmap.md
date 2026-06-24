@@ -300,9 +300,9 @@ Implementation order:
    - Display completed-by label when available.
    - Preserve agent fields for Phase 4 source labels.
 3. Done-state UX
-   - Visually separate done/open todos.
-   - Make completed todos scannable without hiding useful context.
-   - Add small empty/done-state copy where needed.
+   - Keep open and completed todos in one ordered list.
+   - Show completed todos with a scratched/line-through title.
+   - Keep open todos normal/unstruck for quick scanning.
 
 Deferred todo ↔ log linking:
 
