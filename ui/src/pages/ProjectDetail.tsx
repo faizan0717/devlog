@@ -19,7 +19,7 @@ import { TagInput } from '@/features/projects/components/TagInput'
 import { VisibilitySelector } from '@/features/projects/components/VisibilitySelector'
 import { projectsService } from '@/services/projects.service'
 import { planService } from '@/services/plan.service'
-import type { Log, PlanMilestone, PlanMilestoneWithTodos, PlanStatus, PlanTodo, Visibility } from '@/types'
+import type { Log, PlanMilestone, PlanMilestoneWithTodos, PlanStatus, PlanTodo, PlanTodoWithSources, Visibility } from '@/types'
 import { cn, formatDate } from '@/utils'
 import { COVER_GRADIENTS, getCoverGradient } from '@/utils/coverGradient'
 
@@ -270,12 +270,28 @@ function statusCompletedAt(status: PlanStatus, previousCompletedAt?: string | nu
   return null
 }
 
-function completionSourceLabel(todo: PlanTodo, currentUserId?: string) {
+function userSourceLabel(userId: string | null, profile: { username?: string | null } | null | undefined, currentUserId?: string) {
+  if (!userId) return null
+  if (userId === currentUserId) return 'you'
+  if (profile?.username) return `@${profile.username}`
+  return 'teammate'
+}
+
+function agentSourceLabel(agent: { name?: string | null } | null | undefined) {
+  return agent?.name ? `agent ${agent.name}` : 'agent'
+}
+
+function addedSourceLabel(todo: PlanTodoWithSources, currentUserId?: string) {
+  if (todo.created_by_agent_token_id) return `added by ${agentSourceLabel(todo.created_by_agent)}`
+  const userLabel = userSourceLabel(todo.created_by, todo.created_by_profile, currentUserId)
+  return userLabel ? `added by ${userLabel}` : 'added manually'
+}
+
+function completionSourceLabel(todo: PlanTodoWithSources, currentUserId?: string) {
   if (todo.status !== 'done') return null
-  if (todo.completed_by_agent_token_id) return 'by agent'
-  if (!todo.completed_by) return null
-  if (todo.completed_by === currentUserId) return 'by you'
-  return 'by teammate'
+  if (todo.completed_by_agent_token_id) return `completed by ${agentSourceLabel(todo.completed_by_agent)}`
+  const userLabel = userSourceLabel(todo.completed_by, todo.completed_by_profile, currentUserId)
+  return userLabel ? `completed by ${userLabel}` : 'completed'
 }
 
 function planMilestoneRef(milestoneIndex: number) {
@@ -845,8 +861,8 @@ function PlanTab({
                       {todo.description && <div className={cn('text-[13px] text-ink-tertiary mt-1 line-clamp-2', done && 'opacity-70')}>{todo.description}</div>}
                       <div className="font-mono text-[10px] text-ink-disabled mt-0.5">
                         {done
-                          ? <>completed {formatDate(todo.completed_at ?? todo.updated_at, 'relative')}{source ? ` ${source}` : ''}</>
-                          : <>added {formatDate(todo.created_at, 'relative')}</>}
+                          ? <>{source ?? 'completed'} {formatDate(todo.completed_at ?? todo.updated_at, 'relative')}</>
+                          : <>{addedSourceLabel(todo, userId)} {formatDate(todo.created_at, 'relative')}</>}
                         {' · '}{todo.visibility}
                       </div>
                     </div>

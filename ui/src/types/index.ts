@@ -5,6 +5,7 @@ export type Project      = Database['public']['Tables']['projects']['Row']
 export type Log          = Database['public']['Tables']['logs']['Row']
 export type PlanMilestone = Database['public']['Tables']['plan_milestones']['Row']
 export type PlanTodo      = Database['public']['Tables']['plan_todos']['Row']
+export type AgentToken    = Database['public']['Tables']['agent_tokens']['Row']
 export type Collaborator = Database['public']['Tables']['collaborators']['Row']
 export type Comment      = Database['public']['Tables']['comments']['Row']
 export type Follow       = Database['public']['Tables']['follows']['Row']
@@ -46,8 +47,20 @@ export type ProjectWithDetails = Project & {
   owner: ProjectOwner
 }
 
+export type PlanActor = Pick<Profile, 'id' | 'username' | 'avatar_url'>
+export type PlanAgent = Pick<AgentToken, 'id' | 'name'>
+
+export type PlanTodoWithSources = PlanTodo & {
+  created_by_profile?: PlanActor | null
+  completed_by_profile?: PlanActor | null
+  created_by_agent?: PlanAgent | null
+  completed_by_agent?: PlanAgent | null
+}
+
 export type PlanMilestoneWithTodos = PlanMilestone & {
-  todos: PlanTodo[]
+  created_by_profile?: PlanActor | null
+  created_by_agent?: PlanAgent | null
+  todos: PlanTodoWithSources[]
 }
 
 export type CommentWithProfile = Comment & {
