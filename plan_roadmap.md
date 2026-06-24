@@ -285,39 +285,39 @@ features/plan/
 - [x] Add empty states
 - [x] Make the Plan tab mobile-friendly
 
-### Phase 3 — Todo Completion + Logs
+### Phase 3 — Todo Completion Polish
+
+Decision: skip todo ↔ log linking for now. Keep Phase 3 focused on making todo completion feel good without adding log creation/linking complexity yet.
 
 Implementation order:
 
-1. Completion modal
-   - Open `TodoCompleteLogModal` when a todo is marked done from pending/doing.
+1. Completion interaction polish
+   - Mark a todo done inline with strong feedback.
    - Keep reopening behavior inline/no modal.
-   - Actions: Create devLog entry, Link existing log, Skip.
-2. Create log from completed todo
-   - Prefill title from todo title.
-   - Prefill markdown content from todo description plus milestone context.
-   - Let user choose visibility and mood, defaulting to todo visibility and `shipped`.
-   - Save created log id to `plan_todos.linked_log_id`.
-3. Link existing log
-   - Fetch current project logs.
-   - Search/select an existing log.
-   - Save selected log id to `plan_todos.linked_log_id`.
-4. Linked-log display
-   - Show a clear linked-log chip on the todo.
-   - Link owner context to `/projects/:projectId/logs/:logId/preview`.
-5. Completion metadata polish
-   - Display completed time and completed-by label.
+   - Avoid todo-to-log prompts for now.
+2. Completion metadata polish
+   - Display completed time clearly.
+   - Display completed-by label when available.
    - Preserve agent fields for Phase 4 source labels.
+3. Done-state UX
+   - Visually separate done/open todos.
+   - Make completed todos scannable without hiding useful context.
+   - Add small empty/done-state copy where needed.
+
+Deferred todo ↔ log linking:
+
+- Create new log from completed todo.
+- Link todo to an existing log.
+- Show linked log on todo.
+- Completion modal with Create/Link/Skip actions.
 
 Checklist:
 
 - [x] Mark todo as done
 - [x] Reopen completed todo
-- [ ] Ask user to create a devLog entry when todo is completed
-- [ ] Link todo to an existing log
-- [ ] Create new log from todo title/description
-- [ ] Show linked log on todo
 - [ ] Show completion source: completed by user/agent
+- [ ] Polish done/open todo presentation
+- [ ] Add clearer completion feedback/copy
 
 ### Phase 4 — Agent + Public Roadmap
 
