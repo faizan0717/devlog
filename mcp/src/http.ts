@@ -86,7 +86,29 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<voi
   await runWithAgentToken(token, () => transport.handleRequest(req, res, parsedBody))
 }
 
-const ALL_ENDPOINTS = ['/health', '/docs', '/setup.sh', 'GET /projects', 'POST /projects', 'PATCH /projects/:id', 'GET /projects/:id/timeline', 'POST /logs', 'PATCH /logs/:id', '/mcp']
+const ALL_ENDPOINTS = [
+  '/health',
+  '/docs',
+  '/setup.sh',
+  'GET /projects',
+  'POST /projects',
+  'PATCH /projects/:id',
+  'GET /projects/:id/timeline',
+  'GET /projects/:id/plan',
+  'POST /projects/:id/milestones',
+  'POST /projects/:id/todos/complete',
+  'POST /projects/:id/todos/reopen',
+  'POST /logs',
+  'PATCH /logs/:id',
+  'PATCH /milestones/:id',
+  'DELETE /milestones/:id',
+  'POST /milestones/:id/todos',
+  'PATCH /todos/:id',
+  'DELETE /todos/:id',
+  'POST /todos/:id/complete',
+  'POST /todos/:id/reopen',
+  '/mcp',
+]
 
 const server = http.createServer((req, res) => {
   void (async () => {
@@ -112,7 +134,8 @@ const server = http.createServer((req, res) => {
     }
 
     const restPaths = ['/docs', '/setup.sh', '/projects', '/logs']
-    const isRestPath = restPaths.some((p) => url.pathname === p) || url.pathname.startsWith('/projects/') || url.pathname.startsWith('/logs/')
+    const restPrefixes = ['/projects/', '/logs/', '/milestones/', '/todos/']
+    const isRestPath = restPaths.some((p) => url.pathname === p) || restPrefixes.some((p) => url.pathname.startsWith(p))
     if (isRestPath) {
       setCors(res)
       await handleRest(req, res, url.pathname)

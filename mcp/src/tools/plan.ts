@@ -8,6 +8,7 @@ import {
   getAgentContext,
   requireScope,
 } from '../auth.js'
+import type { AgentContext } from '../auth.js'
 import { auditAgentAction } from '../audit.js'
 
 const visibilitySchema = z.enum(['private', 'public', 'shared', 'unlisted']).default('private')
@@ -25,6 +26,69 @@ function completionPatch(status: 'pending' | 'doing' | 'done' | undefined): Reco
   return {}
 }
 
+type PlanRow = Record<string, any>
+
+function withPlanRefs(milestones: PlanRow[], todos: PlanRow[]): { milestones: PlanRow[]; todos: PlanRow[] } {
+  const milestoneIndex = new Map<string, number>()
+  milestones.forEach((milestone, index) => {
+    milestoneIndex.set(String(milestone.id), index)
+  })
+
+  const todoIndexByMilestone = new Map<string, number>()
+  const enrichedTodos = todos.map((todo) => {
+    const milestoneId = String(todo.milestone_id)
+    const milestoneNumber = (milestoneIndex.get(milestoneId) ?? 0) + 1
+    const todoNumber = (todoIndexByMilestone.get(milestoneId) ?? 0) + 1
+    todoIndexByMilestone.set(milestoneId, todoNumber)
+    return { ...todo, plan_ref: `1.${milestoneNumber}.${todoNumber}` }
+  })
+
+  return {
+    milestones: milestones.map((milestone, index) => ({ ...milestone, plan_ref: `1.${index + 1}` })),
+    todos: enrichedTodos,
+  }
+}
+
+async function readProjectPlan(projectId: string) {
+  const [milestonesRes, todosRes] = await Promise.all([
+    supabase
+      .from('plan_milestones')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('plan_todos')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true }),
+  ])
+
+  if (milestonesRes.error) throw new Error(`Failed to read milestones: ${milestonesRes.error.message}`)
+  if (todosRes.error) throw new Error(`Failed to read todos: ${todosRes.error.message}`)
+
+  return withPlanRefs((milestonesRes.data ?? []) as PlanRow[], (todosRes.data ?? []) as PlanRow[])
+}
+
+async function resolveTodoRefs(ctx: AgentContext, projectId: string, todoRef: string): Promise<PlanRow[]> {
+  await assertProjectAccess(ctx, projectId)
+  const { milestones, todos } = await readProjectPlan(projectId)
+  const parts = todoRef.split('.')
+  if (parts.length !== 3 || parts[2] === '0') throw new Error('todo_ref must look like 1.1.3 or 1.1.*')
+
+  const milestoneRef = `${parts[0]}.${parts[1]}`
+  const milestone = milestones.find((m) => m.plan_ref === milestoneRef)
+  if (!milestone) throw new Error(`No milestone found for todo_ref ${todoRef}`)
+
+  const matches = todos.filter((todo) => {
+    if (todo.milestone_id !== milestone.id) return false
+    return parts[2] === '*' || todo.plan_ref === todoRef
+  })
+  if (matches.length === 0) throw new Error(`No todo found for todo_ref ${todoRef}`)
+  return matches
+}
+
 export function registerPlanTools(server: McpServer): void {
   server.tool(
     'devlog_get_project_plan',
@@ -35,30 +99,14 @@ export function registerPlanTools(server: McpServer): void {
       requireScope(ctx, 'read_plan')
       await assertProjectAccess(ctx, project_id)
 
-      const [milestonesRes, todosRes] = await Promise.all([
-        supabase
-          .from('plan_milestones')
-          .select('*')
-          .eq('project_id', project_id)
-          .order('sort_order', { ascending: true })
-          .order('created_at', { ascending: true }),
-        supabase
-          .from('plan_todos')
-          .select('*')
-          .eq('project_id', project_id)
-          .order('sort_order', { ascending: true })
-          .order('created_at', { ascending: true }),
-      ])
-
-      if (milestonesRes.error) throw new Error(`Failed to read milestones: ${milestonesRes.error.message}`)
-      if (todosRes.error) throw new Error(`Failed to read todos: ${todosRes.error.message}`)
+      const plan = await readProjectPlan(project_id)
 
       await auditAgentAction(ctx, 'devlog_get_project_plan', {
         projectId: project_id,
-        metadata: { milestoneCount: milestonesRes.data?.length ?? 0, todoCount: todosRes.data?.length ?? 0 },
+        metadata: { milestoneCount: plan.milestones.length, todoCount: plan.todos.length },
       })
 
-      return jsonText({ milestones: milestonesRes.data ?? [], todos: todosRes.data ?? [] })
+      return jsonText(plan)
     },
   )
 
@@ -253,12 +301,29 @@ export function registerPlanTools(server: McpServer): void {
 
   server.tool(
     'devlog_complete_plan_todo',
-    'Mark a plan todo as done and record the completing agent. Requires complete_todo scope.',
-    { todo_id: z.string().uuid() },
-    async ({ todo_id }) => {
+    'Mark plan todo(s) as done and record the completing agent. Use todo_id, or project_id + todo_ref like 1.1.3 / 1.1.*. Requires complete_todo scope.',
+    {
+      todo_id: z.string().uuid().optional(),
+      project_id: z.string().uuid().optional(),
+      todo_ref: z.string().regex(/^\d+\.\d+\.(\d+|\*)$/).optional(),
+    },
+    async ({ todo_id, project_id, todo_ref }) => {
       const ctx = await getAgentContext()
       requireScope(ctx, 'complete_todo')
-      const { projectId } = await assertTodoOwnership(ctx, todo_id)
+      let projectId: string
+      let todoIds: string[]
+      if (todo_ref) {
+        if (!project_id) throw new Error('project_id is required when using todo_ref')
+        projectId = project_id
+        todoIds = (await resolveTodoRefs(ctx, project_id, todo_ref)).map((todo) => String(todo.id))
+      } else if (todo_id) {
+        const ownership = await assertTodoOwnership(ctx, todo_id)
+        projectId = ownership.projectId
+        todoIds = [todo_id]
+      } else {
+        throw new Error('todo_id or project_id + todo_ref is required')
+      }
+
       const { data, error } = await supabase
         .from('plan_todos')
         .update({
@@ -268,23 +333,40 @@ export function registerPlanTools(server: McpServer): void {
           completed_by_agent_token_id: ctx.tokenId,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', todo_id)
+        .in('id', todoIds)
         .select('*')
-        .single()
       if (error) throw new Error(`Failed to complete todo: ${error.message}`)
-      await auditAgentAction(ctx, 'devlog_complete_plan_todo', { projectId, metadata: { todoId: todo_id, title: data.title } })
-      return jsonText(data)
+      await auditAgentAction(ctx, 'devlog_complete_plan_todo', { projectId, metadata: { todoIds, todoRef: todo_ref ?? null, count: data?.length ?? 0 } })
+      return jsonText(todoIds.length === 1 ? data?.[0] : { completed: data ?? [] })
     },
   )
 
   server.tool(
     'devlog_reopen_plan_todo',
-    'Reopen a completed plan todo. Requires complete_todo scope.',
-    { todo_id: z.string().uuid(), status: z.enum(['pending', 'doing']).default('pending') },
-    async ({ todo_id, status }) => {
+    'Reopen completed plan todo(s). Use todo_id, or project_id + todo_ref like 1.1.3 / 1.1.*. Requires complete_todo scope.',
+    {
+      todo_id: z.string().uuid().optional(),
+      project_id: z.string().uuid().optional(),
+      todo_ref: z.string().regex(/^\d+\.\d+\.(\d+|\*)$/).optional(),
+      status: z.enum(['pending', 'doing']).default('pending'),
+    },
+    async ({ todo_id, project_id, todo_ref, status }) => {
       const ctx = await getAgentContext()
       requireScope(ctx, 'complete_todo')
-      const { projectId } = await assertTodoOwnership(ctx, todo_id)
+      let projectId: string
+      let todoIds: string[]
+      if (todo_ref) {
+        if (!project_id) throw new Error('project_id is required when using todo_ref')
+        projectId = project_id
+        todoIds = (await resolveTodoRefs(ctx, project_id, todo_ref)).map((todo) => String(todo.id))
+      } else if (todo_id) {
+        const ownership = await assertTodoOwnership(ctx, todo_id)
+        projectId = ownership.projectId
+        todoIds = [todo_id]
+      } else {
+        throw new Error('todo_id or project_id + todo_ref is required')
+      }
+
       const { data, error } = await supabase
         .from('plan_todos')
         .update({
@@ -294,12 +376,11 @@ export function registerPlanTools(server: McpServer): void {
           completed_by_agent_token_id: null,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', todo_id)
+        .in('id', todoIds)
         .select('*')
-        .single()
       if (error) throw new Error(`Failed to reopen todo: ${error.message}`)
-      await auditAgentAction(ctx, 'devlog_reopen_plan_todo', { projectId, metadata: { todoId: todo_id, title: data.title, status } })
-      return jsonText(data)
+      await auditAgentAction(ctx, 'devlog_reopen_plan_todo', { projectId, metadata: { todoIds, todoRef: todo_ref ?? null, status, count: data?.length ?? 0 } })
+      return jsonText(todoIds.length === 1 ? data?.[0] : { reopened: data ?? [] })
     },
   )
 }

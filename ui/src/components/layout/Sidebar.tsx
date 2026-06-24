@@ -78,17 +78,24 @@ export function Sidebar() {
           </NavLink>
 
           {[
-            { label: 'Todos',   Icon: CheckSquare },
-            { label: 'Roadmap', Icon: Map },
-          ].map(({ label, Icon }) => (
-            <div
-              key={label}
-              title={`${label} — coming soon`}
-              className="flex cursor-default items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-ink-disabled opacity-50"
+            { label: 'Todos',   to: ROUTES.TODOS,   Icon: CheckSquare },
+            { label: 'Roadmap', to: ROUTES.ROADMAP, Icon: Map },
+          ].map(({ label, to, Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] transition-colors',
+                  isActive
+                    ? 'bg-accent/10 font-semibold text-accent'
+                    : 'text-ink-tertiary hover:bg-gray-50 hover:text-ink-secondary',
+                )
+              }
             >
               <Icon size={14} className="shrink-0" />
               {label}
-            </div>
+            </NavLink>
           ))}
 
           <NavLink

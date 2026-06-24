@@ -9,6 +9,8 @@ export const ROUTES = {
   RESET_PASSWORD: '/reset-password',
   DASHBOARD: '/dashboard',
   PROJECTS: '/projects',
+  TODOS: '/todos',
+  ROADMAP: '/roadmap',
   PROJECT_DETAIL: '/projects/:id',
   NEW_PROJECT: '/projects/new',
   PROFILE: '/profile/:username',

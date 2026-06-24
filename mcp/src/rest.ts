@@ -11,6 +11,7 @@ import {
   assertMilestoneOwnership,
   assertTodoOwnership,
 } from './auth.js'
+import type { AgentContext } from './auth.js'
 import { auditAgentAction } from './audit.js'
 import { runWithAgentToken } from './requestContext.js'
 
@@ -210,6 +211,49 @@ function completionPatch(status: string | null): Record<string, unknown> {
   if (status === 'done') return { completed_at: new Date().toISOString() }
   if (status === 'pending' || status === 'doing') return { completed_at: null }
   return {}
+}
+
+type PlanRow = Record<string, any>
+
+function withPlanRefs(milestones: PlanRow[], todos: PlanRow[]): { milestones: PlanRow[]; todos: PlanRow[] } {
+  const milestoneIndex = new Map<string, number>()
+  milestones.forEach((milestone, index) => milestoneIndex.set(String(milestone.id), index))
+
+  const todoIndexByMilestone = new Map<string, number>()
+  const enrichedTodos = todos.map((todo) => {
+    const milestoneId = String(todo.milestone_id)
+    const milestoneNumber = (milestoneIndex.get(milestoneId) ?? 0) + 1
+    const todoNumber = (todoIndexByMilestone.get(milestoneId) ?? 0) + 1
+    todoIndexByMilestone.set(milestoneId, todoNumber)
+    return { ...todo, plan_ref: `1.${milestoneNumber}.${todoNumber}` }
+  })
+
+  return {
+    milestones: milestones.map((milestone, index) => ({ ...milestone, plan_ref: `1.${index + 1}` })),
+    todos: enrichedTodos,
+  }
+}
+
+async function readProjectPlan(projectId: string) {
+  const [milestonesRes, todosRes] = await Promise.all([
+    supabase.from('plan_milestones').select('*').eq('project_id', projectId).order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
+    supabase.from('plan_todos').select('*').eq('project_id', projectId).order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
+  ])
+  if (milestonesRes.error) throw new Error(milestonesRes.error.message)
+  if (todosRes.error) throw new Error(todosRes.error.message)
+  return withPlanRefs((milestonesRes.data ?? []) as PlanRow[], (todosRes.data ?? []) as PlanRow[])
+}
+
+async function resolveTodoRefs(ctx: AgentContext, projectId: string, todoRef: string): Promise<PlanRow[]> {
+  await assertProjectAccess(ctx, projectId)
+  const { milestones, todos } = await readProjectPlan(projectId)
+  const parts = todoRef.split('.')
+  if (parts.length !== 3 || parts[2] === '0') throw new Error('todo_ref must look like 1.1.3 or 1.1.*')
+  const milestone = milestones.find((m) => m.plan_ref === `${parts[0]}.${parts[1]}`)
+  if (!milestone) throw new Error(`No milestone found for todo_ref ${todoRef}`)
+  const matches = todos.filter((todo) => todo.milestone_id === milestone.id && (parts[2] === '*' || todo.plan_ref === todoRef))
+  if (matches.length === 0) throw new Error(`No todo found for todo_ref ${todoRef}`)
+  return matches
 }
 
 function validateDateField(value: unknown, field: string): string | null {
@@ -417,14 +461,9 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
       requireScope(ctx, 'read_plan')
       const projectId = planMatch[1]
       await assertProjectAccess(ctx, projectId)
-      const [milestonesRes, todosRes] = await Promise.all([
-        supabase.from('plan_milestones').select('*').eq('project_id', projectId).order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
-        supabase.from('plan_todos').select('*').eq('project_id', projectId).order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
-      ])
-      if (milestonesRes.error) { send(res, 500, { error: milestonesRes.error.message }); return }
-      if (todosRes.error) { send(res, 500, { error: todosRes.error.message }); return }
-      await auditAgentAction(ctx, 'rest_get_project_plan', { projectId, metadata: { milestoneCount: milestonesRes.data?.length ?? 0, todoCount: todosRes.data?.length ?? 0 } })
-      send(res, 200, { milestones: milestonesRes.data ?? [], todos: todosRes.data ?? [] })
+      const plan = await readProjectPlan(projectId)
+      await auditAgentAction(ctx, 'rest_get_project_plan', { projectId, metadata: { milestoneCount: plan.milestones.length, todoCount: plan.todos.length } })
+      send(res, 200, plan)
       return
     }
 
@@ -593,6 +632,58 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
       return
     }
 
+    // POST /projects/:id/todos/complete { todo_ref: "1.1.3" | "1.1.*" }
+    const projectTodoCompleteMatch = /^\/projects\/([^/]+)\/todos\/complete$/.exec(pathname)
+    if (method === 'POST' && projectTodoCompleteMatch) {
+      requireScope(ctx, 'complete_todo')
+      const projectId = projectTodoCompleteMatch[1]
+      const body = await readJsonBody(req)
+      let todoRef: string
+      try {
+        todoRef = validateStringField(body.todo_ref, 'todo_ref', 32, true) as string
+        if (!/^\d+\.\d+\.(\d+|\*)$/.test(todoRef)) throw new Error('todo_ref must look like 1.1.3 or 1.1.*')
+      } catch (error) { sendValidationError(res, error); return }
+      const todoIds = (await resolveTodoRefs(ctx, projectId, todoRef)).map((todo) => String(todo.id))
+      const { data, error } = await supabase.from('plan_todos').update({
+        status: 'done',
+        completed_at: new Date().toISOString(),
+        completed_by: null,
+        completed_by_agent_token_id: ctx.tokenId,
+        updated_at: new Date().toISOString(),
+      }).in('id', todoIds).select('*')
+      if (error) { send(res, 500, { error: error.message }); return }
+      await auditAgentAction(ctx, 'rest_complete_plan_todo_by_ref', { projectId, metadata: { todoRef, todoIds, count: data?.length ?? 0 } })
+      send(res, 200, todoIds.length === 1 ? data?.[0] : { completed: data ?? [] })
+      return
+    }
+
+    // POST /projects/:id/todos/reopen { todo_ref: "1.1.3" | "1.1.*", status?: "pending" | "doing" }
+    const projectTodoReopenMatch = /^\/projects\/([^/]+)\/todos\/reopen$/.exec(pathname)
+    if (method === 'POST' && projectTodoReopenMatch) {
+      requireScope(ctx, 'complete_todo')
+      const projectId = projectTodoReopenMatch[1]
+      const body = await readJsonBody(req)
+      let todoRef: string
+      let status: string | null = 'pending'
+      try {
+        todoRef = validateStringField(body.todo_ref, 'todo_ref', 32, true) as string
+        if (!/^\d+\.\d+\.(\d+|\*)$/.test(todoRef)) throw new Error('todo_ref must look like 1.1.3 or 1.1.*')
+        if (body.status !== undefined) status = validateEnumField(body.status, 'status', new Set(['pending', 'doing']), 'pending')
+      } catch (error) { sendValidationError(res, error); return }
+      const todoIds = (await resolveTodoRefs(ctx, projectId, todoRef)).map((todo) => String(todo.id))
+      const { data, error } = await supabase.from('plan_todos').update({
+        status,
+        completed_at: null,
+        completed_by: null,
+        completed_by_agent_token_id: null,
+        updated_at: new Date().toISOString(),
+      }).in('id', todoIds).select('*')
+      if (error) { send(res, 500, { error: error.message }); return }
+      await auditAgentAction(ctx, 'rest_reopen_plan_todo_by_ref', { projectId, metadata: { todoRef, todoIds, status, count: data?.length ?? 0 } })
+      send(res, 200, todoIds.length === 1 ? data?.[0] : { reopened: data ?? [] })
+      return
+    }
+
     // POST /todos/:id/complete
     const todoCompleteMatch = /^\/todos\/([^/]+)\/complete$/.exec(pathname)
     if (method === 'POST' && todoCompleteMatch) {
@@ -638,7 +729,7 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
       return
     }
 
-    send(res, 404, { error: 'Not found', endpoints: ['GET /docs', 'GET /projects', 'GET /projects/:id/timeline', 'GET /projects/:id/plan', 'POST /projects', 'PATCH /projects/:id', 'POST /logs', 'PATCH /logs/:id', 'POST /projects/:id/milestones', 'PATCH /milestones/:id', 'DELETE /milestones/:id', 'POST /milestones/:id/todos', 'PATCH /todos/:id', 'DELETE /todos/:id', 'POST /todos/:id/complete', 'POST /todos/:id/reopen'] })
+    send(res, 404, { error: 'Not found', endpoints: ['GET /docs', 'GET /projects', 'GET /projects/:id/timeline', 'GET /projects/:id/plan', 'POST /projects', 'PATCH /projects/:id', 'POST /logs', 'PATCH /logs/:id', 'POST /projects/:id/milestones', 'PATCH /milestones/:id', 'DELETE /milestones/:id', 'POST /milestones/:id/todos', 'PATCH /todos/:id', 'DELETE /todos/:id', 'POST /todos/:id/complete', 'POST /todos/:id/reopen', 'POST /projects/:id/todos/complete', 'POST /projects/:id/todos/reopen'] })
   })
 
   return true

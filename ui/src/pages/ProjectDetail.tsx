@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import {
@@ -276,6 +276,14 @@ function completionSourceLabel(todo: PlanTodo, currentUserId?: string) {
   if (!todo.completed_by) return null
   if (todo.completed_by === currentUserId) return 'by you'
   return 'by teammate'
+}
+
+function planMilestoneRef(milestoneIndex: number) {
+  return `1.${milestoneIndex + 1}`
+}
+
+function planTodoRef(milestoneIndex: number, todoIndex: number) {
+  return `${planMilestoneRef(milestoneIndex)}.${todoIndex + 1}`
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -717,6 +725,7 @@ function PlanTab({
   }
 
   const selected = milestones.find((m) => m.id === selectedId) ?? milestones[0]
+  const selectedMilestoneIndex = Math.max(0, milestones.findIndex((m) => m.id === selected.id))
   const shipped = milestones.filter((m) => m.status === 'done').length
   const total = milestones.length
   const totalProgress = Math.round((shipped / total) * 100)
@@ -764,7 +773,7 @@ function PlanTab({
                     <div className={cn('w-[7px] h-[7px] rounded-full flex-shrink-0', meta.dotClass)} />
                     <div className="flex-1 min-w-0">
                       <div className={cn('text-[12px] truncate', active ? 'font-semibold text-ink-primary' : 'text-ink-secondary')}>{m.title}</div>
-                      <div className="font-mono text-[10px] text-ink-disabled mt-0.5">{formatTargetDate(m.target_date)}</div>
+                      <div className="font-mono text-[10px] text-ink-disabled mt-0.5">#{planMilestoneRef(index)} · {formatTargetDate(m.target_date)}</div>
                     </div>
                     <span className="font-mono text-[9px] px-1.5 py-[1px] rounded-[3px] flex-shrink-0" style={meta.badgeStyle}>{meta.label}</span>
                   </button>
@@ -783,7 +792,10 @@ function PlanTab({
         <div className="bg-paper px-8 py-7 overflow-y-auto">
           <div className="flex items-start justify-between gap-3 mb-3.5">
             <div>
-              <h3 className="text-[15px] font-semibold text-ink-primary mb-1">{selected.title}</h3>
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <span className="font-mono text-[10px] text-accent bg-blue-50 border border-blue-100 rounded px-1.5 py-[1px]">#{planMilestoneRef(selectedMilestoneIndex)}</span>
+                <h3 className="text-[15px] font-semibold text-ink-primary">{selected.title}</h3>
+              </div>
               {selected.description && <p className="text-[13px] text-ink-secondary max-w-xl mb-2">{selected.description}</p>}
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={cn('font-mono text-[10px]', statusMeta.textClass)}>{statusMeta.label}</span>
@@ -822,11 +834,14 @@ function PlanTab({
                 const source = completionSourceLabel(todo, userId)
                 return (
                   <div key={todo.id} className={cn('px-4 py-3.5 flex items-start gap-3 transition-colors', done ? 'bg-green-50/30' : 'bg-white')}>
-                    <button type="button" disabled={!canEdit || mutatingId === todo.id} onClick={() => toggleTodo(todo)} className="mt-0.5 disabled:cursor-default" aria-label={done ? `Reopen ${todo.title}` : `Complete ${todo.title}`}>
+                    <button type="button" disabled={!canEdit || mutatingId === todo.id} onClick={() => toggleTodo(todo)} className="mt-0.5 disabled:cursor-default" aria-label={done ? `Reopen ${planTodoRef(selectedMilestoneIndex, index)} ${todo.title}` : `Complete ${planTodoRef(selectedMilestoneIndex, index)} ${todo.title}`}>
                       <TodoCheck done={done} />
                     </button>
                     <div className="min-w-0 flex-1">
-                      <div className={cn('text-[14px]', done ? 'text-ink-disabled line-through decoration-green-500/50' : 'text-ink-primary')}>{todo.title}</div>
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-mono text-[10px] text-accent bg-blue-50 border border-blue-100 rounded px-1.5 py-[1px] flex-shrink-0">#{planTodoRef(selectedMilestoneIndex, index)}</span>
+                        <div className={cn('text-[14px]', done ? 'text-ink-disabled line-through decoration-green-500/50' : 'text-ink-primary')}>{todo.title}</div>
+                      </div>
                       {todo.description && <div className={cn('text-[13px] text-ink-tertiary mt-1 line-clamp-2', done && 'opacity-70')}>{todo.description}</div>}
                       <div className="font-mono text-[10px] text-ink-disabled mt-0.5">
                         {done
@@ -881,6 +896,7 @@ function PlanTab({
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const user = useAuthStore((s) => s.user)
   const { data: project, loading, error, refresh } = useProject(id)
   const { data: logs, loading: logsLoading } = useLogs(id)
@@ -919,12 +935,23 @@ export default function ProjectDetail() {
       setPlanMilestoneId(null)
       return
     }
+
+    const requestedMilestone = searchParams.get('milestone')
+    if (requestedMilestone && plan.some((milestone) => milestone.id === requestedMilestone)) {
+      setPlanMilestoneId(requestedMilestone)
+      return
+    }
+
     setPlanMilestoneId((current) => (
       current && plan.some((milestone) => milestone.id === current)
         ? current
         : plan[0].id
     ))
-  }, [plan])
+  }, [plan, searchParams])
+
+  useEffect(() => {
+    if (searchParams.get('tab') === 'plan') setTab('plan')
+  }, [searchParams])
 
   function openSettings() {
     if (project && !settingsInit) {

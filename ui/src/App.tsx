@@ -14,6 +14,7 @@ const Login = lazy(() => import('@/pages/Login'))
 const Register = lazy(() => import('@/pages/Register'))
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const Projects = lazy(() => import('@/pages/Projects'))
+const PlanOverview = lazy(() => import('@/pages/PlanOverview'))
 const ProjectDetail = lazy(() => import('@/pages/ProjectDetail'))
 const NewProject = lazy(() => import('@/pages/NewProject'))
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'))
@@ -102,6 +103,22 @@ function AnimatedRoutes() {
               element={
                 <Suspense fallback={<PageLoader />}>
                   <Projects />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.TODOS}
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <PlanOverview mode="todos" />
+                </Suspense>
+              }
+            />
+            <Route
+              path={ROUTES.ROADMAP}
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <PlanOverview mode="roadmap" />
                 </Suspense>
               }
             />

@@ -68,7 +68,7 @@ Read project plan milestones and todos.
 
 **Params:** `project_id` uuid.
 
-Returns `{ milestones, todos }`.
+Returns `{ milestones, todos }`. Each returned milestone has `plan_ref` like `1.1`; each todo has `plan_ref` like `1.1.3`.
 
 **Requires scope:** `read_plan`
 
@@ -142,18 +142,18 @@ Delete a plan todo.
 ---
 
 ### devlog_complete_plan_todo
-Mark a todo as done and record the completing agent token.
+Mark todo(s) as done and record the completing agent token.
 
-**Params:** `todo_id` uuid.
+**Params:** either `todo_id` uuid, or `project_id` uuid + `todo_ref` (`1.1.3` for one todo, `1.1.*` for all todos in a milestone).
 
 **Requires scope:** `complete_todo`
 
 ---
 
 ### devlog_reopen_plan_todo
-Reopen a completed todo.
+Reopen completed todo(s).
 
-**Params:** `todo_id` uuid, optional `status` (`pending` | `doing`, default `pending`).
+**Params:** either `todo_id` uuid, or `project_id` uuid + `todo_ref` (`1.1.3` or `1.1.*`), optional `status` (`pending` | `doing`, default `pending`).
 
 **Requires scope:** `complete_todo`
 
@@ -181,6 +181,8 @@ All requests require `Authorization: Bearer <token>`.
 | DELETE | `/todos/:id` | `update_plan` | Delete todo |
 | POST | `/todos/:id/complete` | `complete_todo` | Complete todo |
 | POST | `/todos/:id/reopen` | `complete_todo` | Reopen todo |
+| POST | `/projects/:id/todos/complete` | `complete_todo` | Complete todo(s) by `todo_ref` body (`1.1.3` or `1.1.*`) |
+| POST | `/projects/:id/todos/reopen` | `complete_todo` | Reopen todo(s) by `todo_ref` body (`1.1.3` or `1.1.*`) |
 
 ## References
 
@@ -189,6 +191,8 @@ Moods: `building` | `shipped` | `stuck` | `reflecting` | `inspired` | `learning`
 Visibility: `private` | `public` | `unlisted` | `shared`
 
 Plan statuses: `pending` | `doing` | `done`
+
+Plan refs: `1.<milestone>.<todo>` are generated from sorted plan order, e.g. `1.1.3`; use `1.1.*` to target every todo in milestone `1.1`.
 
 ## Notes
 
