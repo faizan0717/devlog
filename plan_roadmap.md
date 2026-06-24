@@ -315,9 +315,9 @@ Checklist:
 
 - [x] Mark todo as done
 - [x] Reopen completed todo
-- [ ] Show completion source: completed by user/agent
-- [ ] Polish done/open todo presentation
-- [ ] Add clearer completion feedback/copy
+- [x] Show completion source: completed by user/agent
+- [x] Polish done/open todo presentation
+- [x] Add clearer completion feedback/copy
 
 ### Phase 4 — Agent + Public Roadmap
 

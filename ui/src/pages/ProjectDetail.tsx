@@ -273,6 +273,14 @@ function statusCompletedAt(status: PlanStatus, previousCompletedAt?: string | nu
   return null
 }
 
+function completionSourceLabel(todo: PlanTodo, currentUserId?: string) {
+  if (todo.status !== 'done') return null
+  if (todo.completed_by_agent_token_id) return 'by agent'
+  if (!todo.completed_by) return null
+  if (todo.completed_by === currentUserId) return 'by you'
+  return 'by teammate'
+}
+
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="text-[12px] uppercase tracking-wider font-medium text-ink-disabled">{children}</label>
 }
@@ -673,7 +681,7 @@ function PlanTab({
         completed_at: nextStatus === 'done' ? new Date().toISOString() : null,
         completed_by: nextStatus === 'done' ? userId : null,
       })
-      toast.success(nextStatus === 'done' ? 'Todo completed' : 'Todo reopened')
+      toast.success(nextStatus === 'done' ? `Done — "${todo.title}" moved to completed` : `Reopened — "${todo.title}" moved back to open`)
       onRefresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to update todo')
@@ -716,8 +724,10 @@ function PlanTab({
   const total = milestones.length
   const totalProgress = Math.round((shipped / total) * 100)
   const todos = selected.todos ?? []
-  const doneTodos = todos.filter((todo) => todo.status === 'done').length
-  const openTodos = todos.length - doneTodos
+  const openTodoItems = todos.filter((todo) => todo.status !== 'done')
+  const doneTodoItems = todos.filter((todo) => todo.status === 'done')
+  const doneTodos = doneTodoItems.length
+  const openTodos = openTodoItems.length
   const todoProgress = todos.length === 0 ? 0 : Math.round((doneTodos / todos.length) * 100)
   const statusMeta = PLAN_STATUS_META[selected.status]
 
@@ -811,33 +821,84 @@ function PlanTab({
               {canEdit && <button type="button" onClick={openCreateTodo} className="text-[13px] font-medium text-accent hover:text-accent-dark transition-colors">+ Add the first one</button>}
             </div>
           ) : (
-            <div className="border border-gray-100 rounded-xl overflow-hidden divide-y divide-gray-50">
-              {todos.map((todo, index) => {
-                const done = todo.status === 'done'
-                return (
-                  <div key={todo.id} className={cn('px-4 py-3.5 flex items-start gap-3', done && 'opacity-50')}>
-                    <button type="button" disabled={!canEdit || mutatingId === todo.id} onClick={() => toggleTodo(todo)} className="mt-0.5 disabled:cursor-default">
-                      <TodoCheck done={done} />
-                    </button>
-                    <div className="min-w-0 flex-1">
-                      <div className={cn('text-[14px]', done ? 'text-ink-disabled line-through' : 'text-ink-primary')}>{todo.title}</div>
-                      {todo.description && <div className="text-[13px] text-ink-tertiary mt-1 line-clamp-2">{todo.description}</div>}
-                      <div className="font-mono text-[10px] text-ink-disabled mt-0.5">
-                        {done ? 'completed' : 'added'} {formatDate(done ? todo.completed_at ?? todo.updated_at : todo.created_at, 'relative')}
-                        {todo.linked_log_id ? ' · linked log' : ''} · {todo.visibility}
-                      </div>
-                    </div>
-                    {canEdit && (
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <button type="button" disabled={index === 0} onClick={() => updateTodoOrder(todos, index, -1)} className="p-1 text-ink-disabled hover:text-ink-secondary disabled:opacity-20"><ChevronUp size={13} /></button>
-                        <button type="button" disabled={index === todos.length - 1} onClick={() => updateTodoOrder(todos, index, 1)} className="p-1 text-ink-disabled hover:text-ink-secondary disabled:opacity-20"><ChevronDown size={13} /></button>
-                        <button type="button" onClick={() => openEditTodo(todo)} className="p-1.5 text-ink-tertiary hover:text-accent transition-colors"><Pencil size={14} /></button>
-                        <button type="button" onClick={() => deleteTodo(todo)} className="p-1.5 text-ink-tertiary hover:text-danger transition-colors"><Trash2 size={14} /></button>
-                      </div>
-                    )}
+            <div className="flex flex-col gap-4">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-disabled">Open</span>
+                  <span className="font-mono text-[10px] text-ink-disabled">{openTodos} remaining</span>
+                </div>
+                {openTodoItems.length === 0 ? (
+                  <div className="rounded-xl border border-green-100 bg-green-50/50 px-4 py-5 text-center">
+                    <p className="text-[13px] font-medium text-mood-shipped">All todos are done for this milestone.</p>
+                    <p className="text-[12px] text-ink-tertiary mt-1">Reopen a completed todo below if more work is needed.</p>
                   </div>
-                )
-              })}
+                ) : (
+                  <div className="border border-gray-100 rounded-xl overflow-hidden divide-y divide-gray-50">
+                    {openTodoItems.map((todo) => {
+                      const index = todos.findIndex((item) => item.id === todo.id)
+                      return (
+                        <div key={todo.id} className="px-4 py-3.5 flex items-start gap-3 bg-white">
+                          <button type="button" disabled={!canEdit || mutatingId === todo.id} onClick={() => toggleTodo(todo)} className="mt-0.5 disabled:cursor-default" aria-label={`Complete ${todo.title}`}>
+                            <TodoCheck done={false} />
+                          </button>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[14px] text-ink-primary">{todo.title}</div>
+                            {todo.description && <div className="text-[13px] text-ink-tertiary mt-1 line-clamp-2">{todo.description}</div>}
+                            <div className="font-mono text-[10px] text-ink-disabled mt-0.5">
+                              added {formatDate(todo.created_at, 'relative')} · {todo.visibility}
+                            </div>
+                          </div>
+                          {canEdit && (
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <button type="button" disabled={index === 0 || mutatingId === todo.id} onClick={() => updateTodoOrder(todos, index, -1)} className="p-1 text-ink-disabled hover:text-ink-secondary disabled:opacity-20"><ChevronUp size={13} /></button>
+                              <button type="button" disabled={index === todos.length - 1 || mutatingId === todo.id} onClick={() => updateTodoOrder(todos, index, 1)} className="p-1 text-ink-disabled hover:text-ink-secondary disabled:opacity-20"><ChevronDown size={13} /></button>
+                              <button type="button" onClick={() => openEditTodo(todo)} className="p-1.5 text-ink-tertiary hover:text-accent transition-colors"><Pencil size={14} /></button>
+                              <button type="button" onClick={() => deleteTodo(todo)} className="p-1.5 text-ink-tertiary hover:text-danger transition-colors"><Trash2 size={14} /></button>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {doneTodoItems.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-mood-shipped">Completed</span>
+                    <span className="font-mono text-[10px] text-ink-disabled">{doneTodos} done</span>
+                  </div>
+                  <div className="border border-green-100 rounded-xl overflow-hidden divide-y divide-green-50 bg-green-50/30">
+                    {doneTodoItems.map((todo) => {
+                      const index = todos.findIndex((item) => item.id === todo.id)
+                      const source = completionSourceLabel(todo, userId)
+                      return (
+                        <div key={todo.id} className="px-4 py-3.5 flex items-start gap-3 bg-green-50/30">
+                          <button type="button" disabled={!canEdit || mutatingId === todo.id} onClick={() => toggleTodo(todo)} className="mt-0.5 disabled:cursor-default" aria-label={`Reopen ${todo.title}`}>
+                            <TodoCheck done />
+                          </button>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[14px] text-ink-secondary line-through decoration-green-500/50">{todo.title}</div>
+                            {todo.description && <div className="text-[13px] text-ink-tertiary mt-1 line-clamp-2">{todo.description}</div>}
+                            <div className="font-mono text-[10px] text-ink-disabled mt-0.5">
+                              completed {formatDate(todo.completed_at ?? todo.updated_at, 'relative')}{source ? ` ${source}` : ''} · {todo.visibility}
+                            </div>
+                          </div>
+                          {canEdit && (
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <button type="button" disabled={index === 0 || mutatingId === todo.id} onClick={() => updateTodoOrder(todos, index, -1)} className="p-1 text-ink-disabled hover:text-ink-secondary disabled:opacity-20"><ChevronUp size={13} /></button>
+                              <button type="button" disabled={index === todos.length - 1 || mutatingId === todo.id} onClick={() => updateTodoOrder(todos, index, 1)} className="p-1 text-ink-disabled hover:text-ink-secondary disabled:opacity-20"><ChevronDown size={13} /></button>
+                              <button type="button" onClick={() => openEditTodo(todo)} className="p-1.5 text-ink-tertiary hover:text-accent transition-colors"><Pencil size={14} /></button>
+                              <button type="button" onClick={() => deleteTodo(todo)} className="p-1.5 text-ink-tertiary hover:text-danger transition-colors"><Trash2 size={14} /></button>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
