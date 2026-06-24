@@ -13,16 +13,15 @@ import { ProfileLogTimeline } from '@/features/profile/components/ProfileLogTime
 import { exploreService } from '@/services/explore.service'
 import { useAuthStore } from '@/stores/authStore'
 import { formatDate } from '@/utils'
-import { MOODS } from '@/features/logs/components/MoodSelector'
 import type { PublicLog as PublicLogType } from '@/types'
 
 const MOOD_ACCENT: Record<string, string> = {
-  shipped:    '#34d399',
-  building:   '#7c6fe0',
-  stuck:      '#fbbf24',
-  reflecting: '#60a5fa',
-  inspired:   '#fde047',
-  learning:   '#2dd4bf',
+  building:   '#f97316',
+  shipped:    '#22c55e',
+  stuck:      '#ef4444',
+  learning:   '#60a5fa',
+  inspired:   '#c084fc',
+  reflecting: '#94a3b8',
 }
 
 export default function PublicLog() {
@@ -58,7 +57,6 @@ export default function PublicLog() {
 
   const owner = log?.project.owner
   const isOwner = user?.id === log?.project.owner_id
-  const moodMeta = log?.mood ? MOODS.find((m) => m.value === log.mood) : null
   const accentColor = log?.mood ? MOOD_ACCENT[log.mood] : undefined
 
   if (loading) {
@@ -78,111 +76,149 @@ export default function PublicLog() {
   }
 
   return (
-    <AnimatedPage className="max-w-2xl pb-24">
-      {/* Mood accent stripe */}
+    <AnimatedPage className="max-w-5xl pb-24">
+      {/* Mood accent stripe — full width */}
       {accentColor && (
-        <div className="mb-8 h-1 w-full rounded-full" style={{ background: accentColor, opacity: 0.7 }} />
+        <div className="mb-8 h-px w-full" style={{ background: accentColor, opacity: 0.5 }} />
       )}
 
-      {/* Breadcrumb */}
-      <div className="mb-8 flex items-center justify-between">
-        <Link
-          to={`/p/${projectId}`}
-          className="flex items-center gap-1.5 text-body text-ink-tertiary hover:text-ink-primary transition-colors"
-        >
-          <ChevronLeft size={16} />
-          {log.project.title}
-        </Link>
-        {isOwner && (
-          <Link
-            to={`/projects/${projectId}/logs/${log.id}`}
-            className="flex items-center gap-1.5 text-caption text-ink-tertiary hover:text-accent-light transition-colors"
-          >
-            <Pencil size={13} /> Edit
-          </Link>
-        )}
-      </div>
-
-      {/* Header */}
-      <div className="mb-8">
-        {/* Mood badge */}
-        {moodMeta && (
-          <div className="mb-4">
-            <span className={`inline-flex items-center gap-1.5 rounded-pill border px-3 py-1 text-caption font-medium ${moodMeta.color}`}>
-              {moodMeta.emoji} {moodMeta.label}
-            </span>
-          </div>
-        )}
-
-        <h1 className="text-headline text-ink-primary leading-tight">
-          {log.title || 'Untitled'}
-        </h1>
-
-        {/* Author row */}
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          {owner && (
+      <div className="lg:grid lg:grid-cols-[1fr_272px] lg:gap-16">
+        {/* ── Main content ── */}
+        <div className="min-w-0">
+          {/* Breadcrumb */}
+          <div className="mb-8 flex items-center justify-between">
             <Link
-              to={`/u/${owner.username}`}
-              className="flex items-center gap-2 text-body text-ink-secondary hover:text-ink-primary transition-colors"
+              to={`/p/${projectId}`}
+              className="flex items-center gap-1.5 text-body text-ink-tertiary hover:text-ink-primary transition-colors"
             >
-              <Avatar src={owner.avatar_url} name={owner.username} size="sm" />
-              <span className="font-medium">@{owner.username}</span>
+              <ChevronLeft size={16} />
+              {log.project.title}
             </Link>
+            {isOwner && (
+              <Link
+                to={`/projects/${projectId}/logs/${log.id}`}
+                className="flex items-center gap-1.5 text-caption text-ink-tertiary hover:text-accent-light transition-colors"
+              >
+                <Pencil size={13} /> Edit
+              </Link>
+            )}
+          </div>
+
+          {/* Header */}
+          <div className="mb-8">
+            {accentColor && (
+              <div className="mb-4">
+                <span className="inline-flex items-center gap-2 rounded-pill border border-surface-700 px-3 py-1 text-caption font-mono">
+                  <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: accentColor }} />
+                  <span style={{ color: accentColor }}>{log.mood}</span>
+                </span>
+              </div>
+            )}
+
+            <h1 className="font-serif italic text-[2rem] leading-[1.15] tracking-[-0.02em] text-ink-primary">
+              {log.title || 'Untitled'}
+            </h1>
+
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              {owner && (
+                <Link
+                  to={`/u/${owner.username}`}
+                  className="flex items-center gap-2 text-body text-ink-secondary hover:text-ink-primary transition-colors"
+                >
+                  <Avatar src={owner.avatar_url} name={owner.username} size="sm" />
+                  <span className="font-medium">@{owner.username}</span>
+                </Link>
+              )}
+              {owner && (
+                <FollowButton targetUserId={log.project.owner_id} currentUserId={user?.id} size="sm" />
+              )}
+              <span className="font-mono text-caption text-ink-tertiary">{formatDate(log.created_at, 'long')}</span>
+            </div>
+          </div>
+
+          {/* Content */}
+          {log.content && (
+            <div className="prose prose-invert max-w-none mb-8 [&_p]:text-[1.0625rem] [&_p]:leading-relaxed [&_p]:text-ink-secondary">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {log.content}
+              </ReactMarkdown>
+            </div>
           )}
-          {owner && (
-            <FollowButton targetUserId={log.project.owner_id} currentUserId={user?.id} size="sm" />
+
+          {/* Media */}
+          {log.media && log.media.length > 0 && (
+            <div className="mb-8">
+              <MediaGallery media={log.media} readonly />
+            </div>
           )}
-          <span className="font-mono text-caption text-ink-tertiary">{formatDate(log.created_at, 'long')}</span>
+
+          {/* Reactions */}
+          {logId && (
+            <div className="mb-10 rounded-[1.25rem] border border-surface-800 bg-surface-900/50 p-5">
+              <ReactionBar
+                logId={logId}
+                userId={user?.id}
+                logOwnerId={log.project.owner_id}
+                projectId={projectId ?? ''}
+              />
+            </div>
+          )}
+
+          {/* Comments */}
+          {logId && (
+            <CommentThread
+              logId={logId}
+              logOwnerId={log.project.owner_id}
+              projectId={projectId ?? ''}
+              currentUserId={user?.id}
+            />
+          )}
+
+          {/* More from this project — mobile only */}
+          {relatedLogs.length > 0 && (
+            <div className="mt-14 border-t border-surface-800 pt-10 lg:hidden">
+              <p className="mb-6 font-mono text-caption uppercase tracking-widest text-ink-tertiary">
+                More from this project
+              </p>
+              <ProfileLogTimeline logs={relatedLogs} loading={false} />
+            </div>
+          )}
         </div>
+
+        {/* ── Sidebar ── */}
+        <aside className="hidden lg:block">
+          <div className="sticky top-8 space-y-8">
+            {/* Author card */}
+            {owner && (
+              <div className="rounded-[14px] border border-border bg-white p-5 ">
+                <Link
+                  to={`/u/${owner.username}`}
+                  className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                >
+                  <Avatar src={owner.avatar_url} name={owner.username} size="md" />
+                  <div>
+                    <p className="text-body font-medium text-ink-primary">@{owner.username}</p>
+                    <p className="font-mono text-caption text-ink-tertiary">{log.project.title}</p>
+                  </div>
+                </Link>
+                <div className="mt-4">
+                  <FollowButton targetUserId={log.project.owner_id} currentUserId={user?.id} size="sm" />
+                </div>
+              </div>
+            )}
+
+            {/* More from this project */}
+            {relatedLogs.length > 0 && (
+              <div>
+                <p className="mb-4 font-mono text-[10px] uppercase tracking-widest text-ink-tertiary">
+                  More from this project
+                </p>
+                <ProfileLogTimeline logs={relatedLogs} loading={false} />
+              </div>
+            )}
+          </div>
+        </aside>
       </div>
-
-      {/* Content */}
-      {log.content && (
-        <div className="prose prose-invert max-w-none mb-8 [&_p]:text-[1.0625rem] [&_p]:leading-relaxed [&_p]:text-ink-secondary">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {log.content}
-          </ReactMarkdown>
-        </div>
-      )}
-
-      {/* Media */}
-      {log.media && log.media.length > 0 && (
-        <div className="mb-8">
-          <MediaGallery media={log.media} readonly />
-        </div>
-      )}
-
-      {/* Reactions — prominent, before comments */}
-      {logId && (
-        <div className="mb-10 rounded-[1.25rem] border border-surface-800 bg-surface-900/50 p-5">
-          <ReactionBar
-            logId={logId}
-            userId={user?.id}
-            logOwnerId={log.project.owner_id}
-            projectId={projectId ?? ''}
-          />
-        </div>
-      )}
-
-      {/* Comments */}
-      {logId && (
-        <CommentThread
-          logId={logId}
-          logOwnerId={log.project.owner_id}
-          projectId={projectId ?? ''}
-          currentUserId={user?.id}
-        />
-      )}
-
-      {/* More from this project */}
-      {relatedLogs.length > 0 && (
-        <div className="mt-14 border-t border-surface-800 pt-10">
-          <p className="mb-6 font-mono text-caption uppercase tracking-widest text-ink-tertiary">
-            More from this project
-          </p>
-          <ProfileLogTimeline logs={relatedLogs} loading={false} />
-        </div>
-      )}
     </AnimatedPage>
   )
 }

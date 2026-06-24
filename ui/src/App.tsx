@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
 import { RootLayout } from '@/components/layout/RootLayout'
@@ -15,7 +15,6 @@ const Register = lazy(() => import('@/pages/Register'))
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const Projects = lazy(() => import('@/pages/Projects'))
 const ProjectDetail = lazy(() => import('@/pages/ProjectDetail'))
-const ProjectPreview = lazy(() => import('@/pages/ProjectPreview'))
 const NewProject = lazy(() => import('@/pages/NewProject'))
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'))
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'))
@@ -28,6 +27,11 @@ const PublicProfile = lazy(() => import('@/pages/PublicProfile'))
 const PublicProject = lazy(() => import('@/pages/PublicProject'))
 const PublicLog = lazy(() => import('@/pages/PublicLog'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
+
+function ProjectPreviewRedirect() {
+  const { id } = useParams<{ id: string }>()
+  return <Navigate to={`/projects/${id}`} replace />
+}
 
 function PageLoader() {
   return (
@@ -119,11 +123,7 @@ function AnimatedRoutes() {
             />
             <Route
               path="/projects/:id/preview"
-              element={
-                <Suspense fallback={<PageLoader />}>
-                  <ProjectPreview />
-                </Suspense>
-              }
+              element={<ProjectPreviewRedirect />}
             />
             <Route
               path="/projects/:id/logs/new"

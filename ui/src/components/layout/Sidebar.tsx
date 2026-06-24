@@ -1,5 +1,5 @@
 import { NavLink, Link, useNavigate } from 'react-router-dom'
-import { Compass, CheckSquare, Map, Settings, LogOut, KeyRound, MessageCircle, FolderOpen } from 'lucide-react'
+import { Compass, CheckSquare, Map, Settings, LogOut, KeyRound, MessageCircle, FolderOpen, LayoutGrid } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn, ROUTES } from '@/utils'
 import { getCoverGradient } from '@/utils/coverGradient'
@@ -39,7 +39,7 @@ function ProjectItem({ project }: { project: Project }) {
 export function Sidebar() {
   const navigate = useNavigate()
   const { user, signOut } = useAuthStore()
-  const { owned } = useProjects(user?.id)
+  const { owned, shared } = useProjects(user?.id)
 
   const username = user?.profile?.username
   const profileTo = username ? ROUTES.PUBLIC_PROFILE.replace(':username', username) : null
@@ -92,6 +92,21 @@ export function Sidebar() {
           ))}
 
           <NavLink
+            to={ROUTES.PROJECTS}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] transition-colors',
+                isActive
+                  ? 'bg-accent/10 font-semibold text-accent'
+                  : 'text-ink-tertiary hover:bg-gray-50 hover:text-ink-secondary',
+              )
+            }
+          >
+            <LayoutGrid size={14} className="shrink-0" />
+            Projects
+          </NavLink>
+
+          <NavLink
             to={ROUTES.AGENT_ACCESS}
             className={({ isActive }) =>
               cn(
@@ -130,6 +145,17 @@ export function Sidebar() {
               <p className="px-3 py-2 text-[12px] text-ink-disabled">No projects yet.</p>
             )}
           </div>
+
+          {shared.length > 0 && (
+            <div className="mt-5">
+              <div className="mb-2 px-3 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-disabled">
+                Shared with me
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {shared.map((p) => <ProjectItem key={p.id} project={p} />)}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Bottom */}

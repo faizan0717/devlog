@@ -3,6 +3,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json } | 
 type Visibility = 'private' | 'public' | 'shared' | 'unlisted'
 type LogMood = 'building' | 'shipped' | 'stuck' | 'reflecting' | 'inspired' | 'learning'
 type LogMedia = { url: string; type: 'image' | 'video'; name: string }
+type PlanStatus = 'pending' | 'doing' | 'done'
 type SocialLinks = {
   github?: string
   twitter?: string
@@ -117,6 +118,113 @@ export interface Database {
           mood?: LogMood | null
           media?: LogMedia[]
           updated_at?: string
+        }
+        Relationships: []
+      }
+      plan_milestones: {
+        Row: {
+          id: string
+          project_id: string
+          owner_id: string
+          title: string
+          description: string | null
+          status: PlanStatus
+          visibility: Visibility
+          target_date: string | null
+          sort_order: number
+          created_by: string | null
+          created_by_agent_token_id: string | null
+          created_at: string
+          updated_at: string
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          owner_id: string
+          title: string
+          description?: string | null
+          status?: PlanStatus
+          visibility?: Visibility
+          target_date?: string | null
+          sort_order?: number
+          created_by?: string | null
+          created_by_agent_token_id?: string | null
+          created_at?: string
+          updated_at?: string
+          completed_at?: string | null
+        }
+        Update: {
+          project_id?: string
+          owner_id?: string
+          title?: string
+          description?: string | null
+          status?: PlanStatus
+          visibility?: Visibility
+          target_date?: string | null
+          sort_order?: number
+          created_by?: string | null
+          created_by_agent_token_id?: string | null
+          updated_at?: string
+          completed_at?: string | null
+        }
+        Relationships: []
+      }
+      plan_todos: {
+        Row: {
+          id: string
+          project_id: string
+          milestone_id: string
+          owner_id: string
+          title: string
+          description: string | null
+          status: PlanStatus
+          visibility: Visibility
+          sort_order: number
+          created_by: string | null
+          created_by_agent_token_id: string | null
+          completed_by: string | null
+          completed_by_agent_token_id: string | null
+          linked_log_id: string | null
+          created_at: string
+          updated_at: string
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          milestone_id: string
+          owner_id: string
+          title: string
+          description?: string | null
+          status?: PlanStatus
+          visibility?: Visibility
+          sort_order?: number
+          created_by?: string | null
+          created_by_agent_token_id?: string | null
+          completed_by?: string | null
+          completed_by_agent_token_id?: string | null
+          linked_log_id?: string | null
+          created_at?: string
+          updated_at?: string
+          completed_at?: string | null
+        }
+        Update: {
+          project_id?: string
+          milestone_id?: string
+          owner_id?: string
+          title?: string
+          description?: string | null
+          status?: PlanStatus
+          visibility?: Visibility
+          sort_order?: number
+          created_by?: string | null
+          created_by_agent_token_id?: string | null
+          completed_by?: string | null
+          completed_by_agent_token_id?: string | null
+          linked_log_id?: string | null
+          updated_at?: string
+          completed_at?: string | null
         }
         Relationships: []
       }

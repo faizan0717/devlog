@@ -522,3 +522,168 @@ do $$ begin
       for select using (auth.uid() = owner_id);
   end if;
 end $$;
+
+-- ──────────────────────────────────────────────
+-- Plan Phase 1: milestones + todos
+-- ──────────────────────────────────────────────
+
+create table if not exists public.plan_milestones (
+  id uuid primary key default uuid_generate_v4(),
+  project_id uuid not null references public.projects(id) on delete cascade,
+  owner_id uuid not null references public.profiles(id) on delete cascade,
+
+  title text not null,
+  description text,
+  status text not null default 'pending' check (status in ('pending', 'doing', 'done')),
+  visibility visibility not null default 'private',
+  target_date date,
+  sort_order integer not null default 0,
+
+  created_by uuid references public.profiles(id) on delete set null,
+  created_by_agent_token_id uuid references public.agent_tokens(id) on delete set null,
+
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  completed_at timestamptz
+);
+
+create table if not exists public.plan_todos (
+  id uuid primary key default uuid_generate_v4(),
+  project_id uuid not null references public.projects(id) on delete cascade,
+  milestone_id uuid not null references public.plan_milestones(id) on delete cascade,
+  owner_id uuid not null references public.profiles(id) on delete cascade,
+
+  title text not null,
+  description text,
+  status text not null default 'pending' check (status in ('pending', 'doing', 'done')),
+  visibility visibility not null default 'private',
+  sort_order integer not null default 0,
+
+  created_by uuid references public.profiles(id) on delete set null,
+  created_by_agent_token_id uuid references public.agent_tokens(id) on delete set null,
+  completed_by uuid references public.profiles(id) on delete set null,
+  completed_by_agent_token_id uuid references public.agent_tokens(id) on delete set null,
+
+  linked_log_id uuid references public.logs(id) on delete set null,
+
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  completed_at timestamptz
+);
+
+create index if not exists plan_milestones_project_id_sort_order_idx
+  on public.plan_milestones (project_id, sort_order, created_at);
+create index if not exists plan_milestones_owner_id_idx
+  on public.plan_milestones (owner_id);
+create index if not exists plan_todos_project_milestone_sort_order_idx
+  on public.plan_todos (project_id, milestone_id, sort_order, created_at);
+create index if not exists plan_todos_owner_id_idx
+  on public.plan_todos (owner_id);
+
+do $$ begin
+  if not exists (select 1 from pg_trigger where tgname = 'plan_milestones_updated_at') then
+    create trigger plan_milestones_updated_at before update on public.plan_milestones
+      for each row execute function update_updated_at();
+  end if;
+  if not exists (select 1 from pg_trigger where tgname = 'plan_todos_updated_at') then
+    create trigger plan_todos_updated_at before update on public.plan_todos
+      for each row execute function update_updated_at();
+  end if;
+end $$;
+
+alter table public.plan_milestones enable row level security;
+alter table public.plan_todos      enable row level security;
+
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename='plan_milestones' and policyname='plan_milestones: owner all') then
+    create policy "plan_milestones: owner all" on public.plan_milestones for all using (
+      exists (select 1 from public.projects p where p.id = plan_milestones.project_id and p.owner_id = auth.uid())
+    ) with check (
+      owner_id = auth.uid()
+      and exists (select 1 from public.projects p where p.id = plan_milestones.project_id and p.owner_id = auth.uid())
+    );
+  end if;
+
+  if not exists (select 1 from pg_policies where tablename='plan_milestones' and policyname='plan_milestones: collab read') then
+    create policy "plan_milestones: collab read" on public.plan_milestones for select using (
+      visibility in ('shared', 'unlisted', 'public')
+      and exists (select 1 from public.collaborators c where c.project_id = plan_milestones.project_id and c.user_id = auth.uid())
+    );
+  end if;
+
+  if not exists (select 1 from pg_policies where tablename='plan_milestones' and policyname='plan_milestones: collab write') then
+    create policy "plan_milestones: collab write" on public.plan_milestones for all using (
+      exists (
+        select 1 from public.collaborators c
+        where c.project_id = plan_milestones.project_id
+          and c.user_id = auth.uid()
+          and c.role in ('editor', 'admin')
+      )
+    ) with check (
+      owner_id = public.get_project_owner(project_id)
+      and exists (
+        select 1 from public.collaborators c
+        where c.project_id = plan_milestones.project_id
+          and c.user_id = auth.uid()
+          and c.role in ('editor', 'admin')
+      )
+    );
+  end if;
+
+  if not exists (select 1 from pg_policies where tablename='plan_milestones' and policyname='plan_milestones: public read') then
+    create policy "plan_milestones: public read" on public.plan_milestones for select using (
+      visibility in ('public', 'unlisted')
+      and exists (
+        select 1 from public.projects p
+        where p.id = plan_milestones.project_id
+          and p.visibility in ('public', 'unlisted')
+      )
+    );
+  end if;
+
+  if not exists (select 1 from pg_policies where tablename='plan_todos' and policyname='plan_todos: owner all') then
+    create policy "plan_todos: owner all" on public.plan_todos for all using (
+      exists (select 1 from public.projects p where p.id = plan_todos.project_id and p.owner_id = auth.uid())
+    ) with check (
+      owner_id = auth.uid()
+      and exists (select 1 from public.projects p where p.id = plan_todos.project_id and p.owner_id = auth.uid())
+    );
+  end if;
+
+  if not exists (select 1 from pg_policies where tablename='plan_todos' and policyname='plan_todos: collab read') then
+    create policy "plan_todos: collab read" on public.plan_todos for select using (
+      visibility in ('shared', 'unlisted', 'public')
+      and exists (select 1 from public.collaborators c where c.project_id = plan_todos.project_id and c.user_id = auth.uid())
+    );
+  end if;
+
+  if not exists (select 1 from pg_policies where tablename='plan_todos' and policyname='plan_todos: collab write') then
+    create policy "plan_todos: collab write" on public.plan_todos for all using (
+      exists (
+        select 1 from public.collaborators c
+        where c.project_id = plan_todos.project_id
+          and c.user_id = auth.uid()
+          and c.role in ('editor', 'admin')
+      )
+    ) with check (
+      owner_id = public.get_project_owner(project_id)
+      and exists (
+        select 1 from public.collaborators c
+        where c.project_id = plan_todos.project_id
+          and c.user_id = auth.uid()
+          and c.role in ('editor', 'admin')
+      )
+    );
+  end if;
+
+  if not exists (select 1 from pg_policies where tablename='plan_todos' and policyname='plan_todos: public read') then
+    create policy "plan_todos: public read" on public.plan_todos for select using (
+      visibility in ('public', 'unlisted')
+      and exists (
+        select 1 from public.projects p
+        where p.id = plan_todos.project_id
+          and p.visibility in ('public', 'unlisted')
+      )
+    );
+  end if;
+end $$;

@@ -39,7 +39,7 @@ export function DeleteProjectModal({
     <Modal open={open} onClose={onClose} title="Delete project">
       <p className="text-body text-ink-secondary mb-4">
         This action is permanent. Type{' '}
-        <span className="font-mono text-ink-primary bg-surface-800 px-1.5 py-0.5 rounded">
+        <span className="font-mono text-ink-primary bg-gray-100 px-1.5 py-0.5 rounded">
           {projectTitle}
         </span>{' '}
         to confirm.

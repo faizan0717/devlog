@@ -1,13 +1,15 @@
-import { useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import {
   Globe, Link2, Lock, Users, UserPlus, BookOpen, Plus, Check, Upload,
+  Pencil, Trash2, ChevronUp, ChevronDown,
 } from 'lucide-react'
-import { Button, Avatar, Spinner } from '@/components/ui'
+import { Button, Avatar, Spinner, Modal } from '@/components/ui'
 import { useProject } from '@/features/projects/hooks/useProject'
 import { useLogs } from '@/features/logs/hooks/useLogs'
+import { usePlan } from '@/features/plan/hooks/usePlan'
 import { useAuthStore } from '@/stores/authStore'
 import { CollaboratorRow } from '@/features/projects/components/CollaboratorRow'
 import { CollaboratorInviteModal } from '@/features/projects/components/CollaboratorInviteModal'
@@ -16,7 +18,8 @@ import { GradientPicker } from '@/features/projects/components/GradientPicker'
 import { TagInput } from '@/features/projects/components/TagInput'
 import { VisibilitySelector } from '@/features/projects/components/VisibilitySelector'
 import { projectsService } from '@/services/projects.service'
-import type { Log, Visibility } from '@/types'
+import { planService } from '@/services/plan.service'
+import type { Log, PlanMilestone, PlanMilestoneWithTodos, PlanStatus, PlanTodo, Visibility } from '@/types'
 import { cn, formatDate } from '@/utils'
 import { COVER_GRADIENTS, getCoverGradient } from '@/utils/coverGradient'
 
@@ -61,7 +64,6 @@ const VIS_META: Record<Visibility, { icon: React.ElementType; label: string }> =
 // ── Tab type ──────────────────────────────────────────────────────────────────
 
 type Tab = 'logs' | 'plan' | 'settings'
-type PlanMilestone = 'v01' | 'v02' | 'v03' | 'v10'
 
 // ── Content strip helper ──────────────────────────────────────────────────────
 
@@ -224,57 +226,36 @@ function ProjectTimeline({
 
 // ── Plan Tab ──────────────────────────────────────────────────────────────────
 
-const MILESTONES = [
-  {
-    id: 'v01' as PlanMilestone,
-    label: 'v0.1 — Foundation',
-    date: 'May 2026',
-    status: 'done' as const,
-    dotClass: 'bg-mood-shipped',
-    badgeClass: 'text-mood-shipped bg-green-50',
-    badgeLabel: 'done',
-    opacity: 'opacity-50',
+const PLAN_STATUS_META = {
+  pending: {
+    label: 'pending',
+    dotClass: 'bg-transparent border-[1.5px] border-gray-300',
+    badgeClass: 'text-ink-disabled bg-gray-50',
+    textClass: 'text-ink-disabled',
+    opacity: 'opacity-70',
   },
-  {
-    id: 'v02' as PlanMilestone,
-    label: 'v0.2 — Core features',
-    date: 'Jun 2026',
-    status: 'now' as const,
+  doing: {
+    label: 'doing',
     dotClass: 'bg-mood-building animate-pulse-slow',
     badgeClass: 'text-mood-building bg-orange-50',
-    badgeLabel: 'now',
+    textClass: 'text-mood-building',
     opacity: '',
   },
-  {
-    id: 'v03' as PlanMilestone,
-    label: 'v0.3 — Social layer',
-    date: 'Jul 2026',
-    status: 'soon' as const,
-    dotClass: 'bg-transparent border-[1.5px] border-gray-300',
-    badgeClass: 'text-ink-disabled bg-gray-50',
-    badgeLabel: 'soon',
-    opacity: 'opacity-45',
+  done: {
+    label: 'done',
+    dotClass: 'bg-mood-shipped',
+    badgeClass: 'text-mood-shipped bg-green-50',
+    textClass: 'text-mood-shipped',
+    opacity: 'opacity-60',
   },
-  {
-    id: 'v10' as PlanMilestone,
-    label: 'v1.0 — Agent API',
-    date: 'Aug 2026',
-    status: 'later' as const,
-    dotClass: 'bg-transparent border-[1.5px] border-gray-300',
-    badgeClass: 'text-ink-disabled bg-gray-50',
-    badgeLabel: 'later',
-    opacity: 'opacity-30',
-  },
-]
+} as const
 
 function TodoCheck({ done }: { done: boolean }) {
   return (
     <div
       className={cn(
         'w-4 h-4 rounded flex-shrink-0 flex items-center justify-center',
-        done
-          ? 'bg-mood-shipped'
-          : 'border-[1.5px] border-gray-300',
+        done ? 'bg-mood-shipped' : 'border-[1.5px] border-gray-300',
       )}
     >
       {done && <Check size={9} strokeWidth={2.5} className="text-white" />}
@@ -282,178 +263,608 @@ function TodoCheck({ done }: { done: boolean }) {
   )
 }
 
-function PlanTab({ milestone, onSelect }: { milestone: PlanMilestone; onSelect: (m: PlanMilestone) => void }) {
+function formatTargetDate(targetDate: string | null) {
+  if (!targetDate) return 'No target date'
+  return formatDate(targetDate)
+}
+
+function statusCompletedAt(status: PlanStatus, previousCompletedAt?: string | null) {
+  if (status === 'done') return previousCompletedAt ?? new Date().toISOString()
+  return null
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return <label className="text-[12px] uppercase tracking-wider font-medium text-ink-disabled">{children}</label>
+}
+
+function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <div className="-mx-10 grid grid-cols-[236px_1fr] min-h-[520px]">
-      {/* Left: milestone list */}
-      <div className="border-r border-border bg-chalk px-3 py-5 flex flex-col">
-        <div className="flex items-center justify-between px-1.5 mb-3.5">
-          <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-disabled">
-            Milestones
-          </span>
-          <button
-            type="button"
-            className="text-[12px] font-medium text-accent hover:text-accent-dark transition-colors"
-          >
-            + Add
-          </button>
-        </div>
+    <input
+      {...props}
+      className={cn(
+        'h-10 w-full rounded-lg border border-border bg-gray-50 text-ink-primary text-[14px] px-3.5 outline-none focus:border-accent/60 focus:bg-white transition-colors disabled:opacity-60 placeholder:text-ink-disabled',
+        props.className,
+      )}
+    />
+  )
+}
 
-        {/* Progress bar */}
-        <div className="px-1.5 mb-4">
-          <div className="h-[3px] bg-gray-200 rounded-full overflow-hidden mb-1.5">
-            <div className="w-[25%] h-full bg-mood-shipped rounded-full" />
+function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      {...props}
+      className={cn(
+        'w-full rounded-lg border border-border bg-gray-50 text-ink-primary text-[14px] px-3.5 py-2.5 outline-none focus:border-accent/60 focus:bg-white transition-colors resize-none disabled:opacity-60 placeholder:text-ink-disabled',
+        props.className,
+      )}
+    />
+  )
+}
+
+function SelectInput(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select
+      {...props}
+      className={cn(
+        'h-10 w-full rounded-lg border border-border bg-gray-50 text-ink-primary text-[14px] px-3.5 outline-none focus:border-accent/60 focus:bg-white transition-colors disabled:opacity-60',
+        props.className,
+      )}
+    />
+  )
+}
+
+function MilestoneEditorModal({
+  open,
+  milestone,
+  projectId,
+  ownerId,
+  userId,
+  sortOrder,
+  onClose,
+  onSaved,
+}: {
+  open: boolean
+  milestone: PlanMilestone | null
+  projectId: string
+  ownerId: string
+  userId: string | undefined
+  sortOrder: number
+  onClose: () => void
+  onSaved: (id?: string) => void
+}) {
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [status, setStatus] = useState<PlanStatus>('pending')
+  const [visibility, setVisibility] = useState<Visibility>('private')
+  const [targetDate, setTargetDate] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    setTitle(milestone?.title ?? '')
+    setDescription(milestone?.description ?? '')
+    setStatus(milestone?.status ?? 'pending')
+    setVisibility(milestone?.visibility ?? 'private')
+    setTargetDate(milestone?.target_date ?? '')
+  }, [open, milestone])
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!title.trim()) return
+    setSaving(true)
+    try {
+      if (milestone) {
+        await planService.updateMilestone(milestone.id, {
+          title: title.trim(),
+          description: description.trim() || null,
+          status,
+          visibility,
+          target_date: targetDate || null,
+          completed_at: statusCompletedAt(status, milestone.completed_at),
+        })
+        toast.success('Milestone updated')
+        onSaved(milestone.id)
+      } else {
+        const created = await planService.createMilestone({
+          project_id: projectId,
+          owner_id: ownerId,
+          title: title.trim(),
+          description: description.trim() || null,
+          status,
+          visibility,
+          target_date: targetDate || null,
+          sort_order: sortOrder,
+          created_by: userId,
+        })
+        toast.success('Milestone added')
+        onSaved(created.id)
+      }
+      onClose()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save milestone')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title={milestone ? 'Edit milestone' : 'Add milestone'}>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <FieldLabel>Title</FieldLabel>
+          <TextInput value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus disabled={saving} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <FieldLabel>Description</FieldLabel>
+          <TextArea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} disabled={saving} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <FieldLabel>Status</FieldLabel>
+            <SelectInput value={status} onChange={(e) => setStatus(e.target.value as PlanStatus)} disabled={saving}>
+              <option value="pending">Pending</option>
+              <option value="doing">Doing</option>
+              <option value="done">Done</option>
+            </SelectInput>
           </div>
-          <span className="font-mono text-[10px] text-ink-disabled">
-            1 of 4 shipped · v1.0 Aug 2026
-          </span>
+          <div className="flex flex-col gap-1.5">
+            <FieldLabel>Target date</FieldLabel>
+            <TextInput type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} disabled={saving} />
+          </div>
         </div>
+        <div className="flex flex-col gap-2">
+          <FieldLabel>Visibility</FieldLabel>
+          <VisibilitySelector value={visibility} onChange={setVisibility} disabled={saving} />
+        </div>
+        <div className="flex justify-end gap-2 pt-1">
+          <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button type="submit" loading={saving}>{milestone ? 'Save' : 'Add milestone'}</Button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
 
-        <div className="flex flex-col gap-0.5">
-          {MILESTONES.map((m) => {
-            const active = milestone === m.id
-            return (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => onSelect(m.id)}
-                className={cn(
-                  'flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer transition-all text-left',
-                  m.opacity,
-                  active
-                    ? 'bg-blue-50 shadow-[inset_2px_0_0_theme(colors.accent.DEFAULT)]'
-                    : 'hover:bg-gray-100',
-                )}
-              >
-                <div className={cn('w-[7px] h-[7px] rounded-full flex-shrink-0', m.dotClass)} />
-                <div className="flex-1 min-w-0">
-                  <div
+function TodoEditorModal({
+  open,
+  todo,
+  milestones,
+  selectedMilestone,
+  ownerId,
+  userId,
+  sortOrder,
+  onClose,
+  onSaved,
+}: {
+  open: boolean
+  todo: PlanTodo | null
+  milestones: PlanMilestoneWithTodos[]
+  selectedMilestone: PlanMilestoneWithTodos
+  ownerId: string
+  userId: string | undefined
+  sortOrder: number
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [status, setStatus] = useState<PlanStatus>('pending')
+  const [visibility, setVisibility] = useState<Visibility>('private')
+  const [milestoneId, setMilestoneId] = useState(selectedMilestone.id)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    setTitle(todo?.title ?? '')
+    setDescription(todo?.description ?? '')
+    setStatus(todo?.status ?? 'pending')
+    setVisibility(todo?.visibility ?? 'private')
+    setMilestoneId(todo?.milestone_id ?? selectedMilestone.id)
+  }, [open, todo, selectedMilestone.id])
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!title.trim()) return
+    setSaving(true)
+    try {
+      if (todo) {
+        await planService.updateTodo(todo.id, {
+          title: title.trim(),
+          description: description.trim() || null,
+          status,
+          visibility,
+          milestone_id: milestoneId,
+          completed_at: statusCompletedAt(status, todo.completed_at),
+          completed_by: status === 'done' ? todo.completed_by ?? userId : null,
+        })
+        toast.success('Todo updated')
+      } else {
+        await planService.createTodo({
+          project_id: selectedMilestone.project_id,
+          milestone_id: milestoneId,
+          owner_id: ownerId,
+          title: title.trim(),
+          description: description.trim() || null,
+          status,
+          visibility,
+          sort_order: sortOrder,
+          created_by: userId,
+        })
+        toast.success('Todo added')
+      }
+      onSaved()
+      onClose()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save todo')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title={todo ? 'Edit todo' : 'Add todo'}>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <FieldLabel>Title</FieldLabel>
+          <TextInput value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus disabled={saving} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <FieldLabel>Description</FieldLabel>
+          <TextArea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} disabled={saving} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <FieldLabel>Status</FieldLabel>
+            <SelectInput value={status} onChange={(e) => setStatus(e.target.value as PlanStatus)} disabled={saving}>
+              <option value="pending">Pending</option>
+              <option value="doing">Doing</option>
+              <option value="done">Done</option>
+            </SelectInput>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <FieldLabel>Milestone</FieldLabel>
+            <SelectInput value={milestoneId} onChange={(e) => setMilestoneId(e.target.value)} disabled={saving}>
+              {milestones.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}
+            </SelectInput>
+          </div>
+        </div>
+        <div className="flex flex-col gap-2">
+          <FieldLabel>Visibility</FieldLabel>
+          <VisibilitySelector value={visibility} onChange={setVisibility} disabled={saving} />
+        </div>
+        <div className="flex justify-end gap-2 pt-1">
+          <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button type="submit" loading={saving}>{todo ? 'Save' : 'Add todo'}</Button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
+function PlanTab({
+  milestones,
+  loading,
+  error,
+  selectedId,
+  projectId,
+  ownerId,
+  userId,
+  canEdit,
+  onSelect,
+  onRefresh,
+}: {
+  milestones: PlanMilestoneWithTodos[]
+  loading: boolean
+  error: string | null
+  selectedId: string | null
+  projectId: string
+  ownerId: string
+  userId: string | undefined
+  canEdit: boolean
+  onSelect: (id: string) => void
+  onRefresh: () => void
+}) {
+  const [milestoneModalOpen, setMilestoneModalOpen] = useState(false)
+  const [editingMilestone, setEditingMilestone] = useState<PlanMilestone | null>(null)
+  const [todoModalOpen, setTodoModalOpen] = useState(false)
+  const [editingTodo, setEditingTodo] = useState<PlanTodo | null>(null)
+  const [mutatingId, setMutatingId] = useState<string | null>(null)
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[360px]">
+        <Spinner size="lg" />
+      </div>
+    )
+  }
+
+  if (error) return <p className="text-[14px] text-danger">{error}</p>
+
+  function openCreateMilestone() {
+    setEditingMilestone(null)
+    setMilestoneModalOpen(true)
+  }
+
+  function openEditMilestone(milestone: PlanMilestone) {
+    setEditingMilestone(milestone)
+    setMilestoneModalOpen(true)
+  }
+
+  function openCreateTodo() {
+    setEditingTodo(null)
+    setTodoModalOpen(true)
+  }
+
+  function openEditTodo(todo: PlanTodo) {
+    setEditingTodo(todo)
+    setTodoModalOpen(true)
+  }
+
+  async function deleteMilestone(milestone: PlanMilestoneWithTodos) {
+    if (!window.confirm(`Delete "${milestone.title}" and its ${milestone.todos.length} todos?`)) return
+    setMutatingId(milestone.id)
+    try {
+      await planService.deleteMilestone(milestone.id)
+      toast.success('Milestone deleted')
+      onRefresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete milestone')
+    } finally {
+      setMutatingId(null)
+    }
+  }
+
+  async function deleteTodo(todo: PlanTodo) {
+    if (!window.confirm(`Delete "${todo.title}"?`)) return
+    setMutatingId(todo.id)
+    try {
+      await planService.deleteTodo(todo.id)
+      toast.success('Todo deleted')
+      onRefresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete todo')
+    } finally {
+      setMutatingId(null)
+    }
+  }
+
+  async function updateMilestoneOrder(index: number, direction: -1 | 1) {
+    const target = milestones[index]
+    const swap = milestones[index + direction]
+    if (!target || !swap) return
+    setMutatingId(target.id)
+    try {
+      await Promise.all([
+        planService.updateMilestone(target.id, { sort_order: index + direction }),
+        planService.updateMilestone(swap.id, { sort_order: index }),
+      ])
+      onRefresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to reorder milestone')
+    } finally {
+      setMutatingId(null)
+    }
+  }
+
+  async function updateTodoOrder(todos: PlanTodo[], index: number, direction: -1 | 1) {
+    const target = todos[index]
+    const swap = todos[index + direction]
+    if (!target || !swap) return
+    setMutatingId(target.id)
+    try {
+      await Promise.all([
+        planService.updateTodo(target.id, { sort_order: index + direction }),
+        planService.updateTodo(swap.id, { sort_order: index }),
+      ])
+      onRefresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to reorder todo')
+    } finally {
+      setMutatingId(null)
+    }
+  }
+
+  async function toggleTodo(todo: PlanTodo) {
+    const nextStatus: PlanStatus = todo.status === 'done' ? 'pending' : 'done'
+    setMutatingId(todo.id)
+    try {
+      await planService.updateTodo(todo.id, {
+        status: nextStatus,
+        completed_at: nextStatus === 'done' ? new Date().toISOString() : null,
+        completed_by: nextStatus === 'done' ? userId : null,
+      })
+      toast.success(nextStatus === 'done' ? 'Todo completed' : 'Todo reopened')
+      onRefresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update todo')
+    } finally {
+      setMutatingId(null)
+    }
+  }
+
+  if (milestones.length === 0) {
+    return (
+      <>
+        <div className="flex flex-col items-center justify-center min-h-[360px] text-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-gray-50 border border-border flex items-center justify-center">
+            <Check size={18} className="text-ink-disabled" />
+          </div>
+          <div>
+            <p className="text-[15px] font-semibold text-ink-secondary mb-1">No milestones yet.</p>
+            <p className="text-[14px] text-ink-tertiary max-w-xs mb-4">
+              Add roadmap milestones to turn your project plan into visible progress.
+            </p>
+            {canEdit && <Button size="sm" onClick={openCreateMilestone}><Plus size={13} /> Add milestone</Button>}
+          </div>
+        </div>
+        <MilestoneEditorModal
+          open={milestoneModalOpen}
+          milestone={editingMilestone}
+          projectId={projectId}
+          ownerId={ownerId}
+          userId={userId}
+          sortOrder={0}
+          onClose={() => setMilestoneModalOpen(false)}
+          onSaved={(id) => { if (id) onSelect(id); onRefresh() }}
+        />
+      </>
+    )
+  }
+
+  const selected = milestones.find((m) => m.id === selectedId) ?? milestones[0]
+  const shipped = milestones.filter((m) => m.status === 'done').length
+  const total = milestones.length
+  const totalProgress = Math.round((shipped / total) * 100)
+  const todos = selected.todos ?? []
+  const doneTodos = todos.filter((todo) => todo.status === 'done').length
+  const openTodos = todos.length - doneTodos
+  const todoProgress = todos.length === 0 ? 0 : Math.round((doneTodos / todos.length) * 100)
+  const statusMeta = PLAN_STATUS_META[selected.status]
+
+  return (
+    <>
+      <div className="-mx-10 grid grid-cols-1 lg:grid-cols-[236px_1fr] min-h-[520px]">
+        <div className="border-r border-border bg-chalk px-3 py-5 flex flex-col">
+          <div className="flex items-center justify-between px-1.5 mb-3.5">
+            <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-disabled">Milestones</span>
+            {canEdit && (
+              <button type="button" onClick={openCreateMilestone} className="text-[12px] font-medium text-accent hover:text-accent-dark transition-colors">
+                + Add
+              </button>
+            )}
+          </div>
+
+          <div className="px-1.5 mb-4">
+            <div className="h-[3px] bg-gray-200 rounded-full overflow-hidden mb-1.5">
+              <div className="h-full bg-mood-shipped rounded-full" style={{ width: `${totalProgress}%` }} />
+            </div>
+            <span className="font-mono text-[10px] text-ink-disabled">{shipped} of {total} done</span>
+          </div>
+
+          <div className="flex flex-col gap-0.5">
+            {milestones.map((m, index) => {
+              const active = selected.id === m.id
+              const meta = PLAN_STATUS_META[m.status]
+              return (
+                <div key={m.id} className="group flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onSelect(m.id)}
                     className={cn(
-                      'text-[12px] truncate',
-                      active ? 'font-semibold text-ink-primary' : 'text-ink-secondary',
+                      'flex-1 min-w-0 flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer transition-all text-left',
+                      meta.opacity,
+                      active ? 'bg-blue-50 shadow-[inset_2px_0_0_theme(colors.accent.DEFAULT)]' : 'hover:bg-gray-100',
                     )}
                   >
-                    {m.label}
-                  </div>
-                  <div className="font-mono text-[10px] text-ink-disabled mt-0.5">{m.date}</div>
-                </div>
-                <span
-                  className={cn(
-                    'font-mono text-[9px] px-1.5 py-[1px] rounded-[3px] flex-shrink-0',
-                    m.badgeClass,
+                    <div className={cn('w-[7px] h-[7px] rounded-full flex-shrink-0', meta.dotClass)} />
+                    <div className="flex-1 min-w-0">
+                      <div className={cn('text-[12px] truncate', active ? 'font-semibold text-ink-primary' : 'text-ink-secondary')}>{m.title}</div>
+                      <div className="font-mono text-[10px] text-ink-disabled mt-0.5">{formatTargetDate(m.target_date)}</div>
+                    </div>
+                    <span className={cn('font-mono text-[9px] px-1.5 py-[1px] rounded-[3px] flex-shrink-0', meta.badgeClass)}>{meta.label}</span>
+                  </button>
+                  {canEdit && active && (
+                    <div className="flex flex-col">
+                      <button type="button" disabled={index === 0 || mutatingId === m.id} onClick={() => updateMilestoneOrder(index, -1)} className="text-ink-disabled hover:text-ink-secondary disabled:opacity-20"><ChevronUp size={13} /></button>
+                      <button type="button" disabled={index === milestones.length - 1 || mutatingId === m.id} onClick={() => updateMilestoneOrder(index, 1)} className="text-ink-disabled hover:text-ink-secondary disabled:opacity-20"><ChevronDown size={13} /></button>
+                    </div>
                   )}
-                >
-                  {m.badgeLabel}
-                </span>
-              </button>
-            )
-          })}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="bg-paper px-8 py-7 overflow-y-auto">
+          <div className="flex items-start justify-between gap-3 mb-3.5">
+            <div>
+              <h3 className="text-[15px] font-semibold text-ink-primary mb-1">{selected.title}</h3>
+              {selected.description && <p className="text-[13px] text-ink-secondary max-w-xl mb-2">{selected.description}</p>}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={cn('font-mono text-[10px]', statusMeta.textClass)}>{statusMeta.label}</span>
+                <span className="text-gray-200">·</span>
+                <span className="font-mono text-[10px] text-ink-primary">{openTodos} open</span>
+                <span className="font-mono text-[10px] text-ink-disabled">{doneTodos} done</span>
+                <span className="text-gray-200">·</span>
+                <span className="font-mono text-[10px] text-ink-disabled">{selected.visibility}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="font-mono text-[10px] text-ink-disabled hidden sm:inline">{formatTargetDate(selected.target_date)}</span>
+              {canEdit && (
+                <>
+                  <button type="button" onClick={() => openEditMilestone(selected)} className="p-1.5 text-ink-tertiary hover:text-accent transition-colors"><Pencil size={14} /></button>
+                  <button type="button" onClick={() => deleteMilestone(selected)} className="p-1.5 text-ink-tertiary hover:text-danger transition-colors"><Trash2 size={14} /></button>
+                  <button type="button" onClick={openCreateTodo} className="text-[12px] font-medium text-accent hover:text-accent-dark transition-colors ml-1">+ Add todo</button>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="h-[2px] bg-gray-100 rounded-full overflow-hidden mb-5">
+            <div className={cn('h-full rounded-full', selected.status === 'done' ? 'bg-mood-shipped' : 'bg-mood-building')} style={{ width: `${todoProgress}%` }} />
+          </div>
+
+          {todos.length === 0 ? (
+            <div className="py-14 text-center">
+              <p className="text-[14px] text-ink-disabled mb-2.5">No todos yet for this milestone.</p>
+              {canEdit && <button type="button" onClick={openCreateTodo} className="text-[13px] font-medium text-accent hover:text-accent-dark transition-colors">+ Add the first one</button>}
+            </div>
+          ) : (
+            <div className="border border-gray-100 rounded-xl overflow-hidden divide-y divide-gray-50">
+              {todos.map((todo, index) => {
+                const done = todo.status === 'done'
+                return (
+                  <div key={todo.id} className={cn('px-4 py-3.5 flex items-start gap-3', done && 'opacity-50')}>
+                    <button type="button" disabled={!canEdit || mutatingId === todo.id} onClick={() => toggleTodo(todo)} className="mt-0.5 disabled:cursor-default">
+                      <TodoCheck done={done} />
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <div className={cn('text-[14px]', done ? 'text-ink-disabled line-through' : 'text-ink-primary')}>{todo.title}</div>
+                      {todo.description && <div className="text-[13px] text-ink-tertiary mt-1 line-clamp-2">{todo.description}</div>}
+                      <div className="font-mono text-[10px] text-ink-disabled mt-0.5">
+                        {done ? 'completed' : 'added'} {formatDate(done ? todo.completed_at ?? todo.updated_at : todo.created_at, 'relative')}
+                        {todo.linked_log_id ? ' · linked log' : ''} · {todo.visibility}
+                      </div>
+                    </div>
+                    {canEdit && (
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button type="button" disabled={index === 0} onClick={() => updateTodoOrder(todos, index, -1)} className="p-1 text-ink-disabled hover:text-ink-secondary disabled:opacity-20"><ChevronUp size={13} /></button>
+                        <button type="button" disabled={index === todos.length - 1} onClick={() => updateTodoOrder(todos, index, 1)} className="p-1 text-ink-disabled hover:text-ink-secondary disabled:opacity-20"><ChevronDown size={13} /></button>
+                        <button type="button" onClick={() => openEditTodo(todo)} className="p-1.5 text-ink-tertiary hover:text-accent transition-colors"><Pencil size={14} /></button>
+                        <button type="button" onClick={() => deleteTodo(todo)} className="p-1.5 text-ink-tertiary hover:text-danger transition-colors"><Trash2 size={14} /></button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Right: todos panel */}
-      <div className="bg-paper px-8 py-7 overflow-y-auto">
-        {milestone === 'v01' && (
-          <div>
-            <div className="mb-3.5">
-              <h3 className="text-[15px] font-semibold text-ink-primary mb-1">Foundation</h3>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] text-mood-shipped">shipped</span>
-                <span className="text-gray-200">·</span>
-                <span className="font-mono text-[10px] text-ink-disabled">1 done</span>
-              </div>
-            </div>
-            <div className="h-[2px] bg-mood-shipped rounded-full mb-5" />
-            <div className="border border-gray-100 rounded-xl overflow-hidden">
-              <div className="px-4 py-3.5 flex items-center gap-3 opacity-45">
-                <TodoCheck done />
-                <div>
-                  <div className="text-[14px] text-ink-disabled line-through">Wire authentication flow</div>
-                  <div className="font-mono text-[10px] text-ink-disabled mt-0.5">completed by you</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {milestone === 'v02' && (
-          <div>
-            <div className="flex items-start justify-between gap-3 mb-3.5">
-              <div>
-                <h3 className="text-[15px] font-semibold text-ink-primary mb-1">Core features</h3>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] text-mood-building">building</span>
-                  <span className="text-gray-200">·</span>
-                  <span className="font-mono text-[10px] text-ink-primary">3 open</span>
-                  <span className="font-mono text-[10px] text-ink-disabled">1 done</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                className="text-[12px] font-medium text-accent hover:text-accent-dark transition-colors flex-shrink-0"
-              >
-                + Add todo
-              </button>
-            </div>
-            <div className="h-[2px] bg-gray-100 rounded-full overflow-hidden mb-5">
-              <div className="w-[25%] h-full bg-mood-building rounded-full" />
-            </div>
-            <div className="border border-gray-100 rounded-xl overflow-hidden divide-y divide-gray-50">
-              <div className="px-4 py-3.5 flex items-center gap-3 opacity-45">
-                <TodoCheck done />
-                <div>
-                  <div className="text-[14px] text-ink-disabled line-through">Wire authentication flow</div>
-                  <div className="font-mono text-[10px] text-ink-disabled mt-0.5">completed by you</div>
-                </div>
-              </div>
-              <div className="px-4 py-3.5 flex items-center gap-3">
-                <TodoCheck done={false} />
-                <div>
-                  <div className="text-[14px] text-ink-primary">Write integration tests for auth</div>
-                  <div className="font-mono text-[10px] text-ink-disabled mt-0.5">added by Claude Code · 10m ago</div>
-                </div>
-              </div>
-              <div className="px-4 py-3.5 flex items-center gap-3">
-                <TodoCheck done={false} />
-                <div>
-                  <div className="text-[14px] text-ink-primary">Add rate limiting to API endpoints</div>
-                  <div className="font-mono text-[10px] text-ink-disabled mt-0.5">added by Claude Code · 2h ago</div>
-                </div>
-              </div>
-              <div className="px-4 py-3.5 flex items-center gap-3">
-                <TodoCheck done={false} />
-                <div>
-                  <div className="text-[14px] text-ink-primary">Design the public profile page</div>
-                  <div className="font-mono text-[10px] text-ink-disabled mt-0.5">added by you · yesterday</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {(milestone === 'v03' || milestone === 'v10') && (
-          <div>
-            <div className="mb-5">
-              <h3 className="text-[15px] font-semibold text-ink-primary mb-1">
-                {milestone === 'v03' ? 'Social layer' : 'Agent API'}
-              </h3>
-              <span className="font-mono text-[10px] text-ink-disabled">
-                planned · {milestone === 'v03' ? 'Jul 2026' : 'Aug 2026'}
-              </span>
-            </div>
-            <div className="py-14 text-center">
-              <p className="text-[14px] text-ink-disabled mb-2.5">No todos yet for this milestone.</p>
-              <button
-                type="button"
-                className="text-[13px] font-medium text-accent hover:text-accent-dark transition-colors"
-              >
-                + Add the first one
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+      <MilestoneEditorModal
+        open={milestoneModalOpen}
+        milestone={editingMilestone}
+        projectId={projectId}
+        ownerId={ownerId}
+        userId={userId}
+        sortOrder={milestones.length}
+        onClose={() => setMilestoneModalOpen(false)}
+        onSaved={(id) => { if (id) onSelect(id); onRefresh() }}
+      />
+      <TodoEditorModal
+        open={todoModalOpen}
+        todo={editingTodo}
+        milestones={milestones}
+        selectedMilestone={selected}
+        ownerId={ownerId}
+        userId={userId}
+        sortOrder={todos.length}
+        onClose={() => setTodoModalOpen(false)}
+        onSaved={onRefresh}
+      />
+    </>
   )
 }
 
@@ -465,10 +876,11 @@ export default function ProjectDetail() {
   const user = useAuthStore((s) => s.user)
   const { data: project, loading, error, refresh } = useProject(id)
   const { data: logs, loading: logsLoading } = useLogs(id)
+  const { data: plan, loading: planLoading, error: planError, refresh: refreshPlan } = usePlan(id)
 
   // Tab & plan
   const [tab, setTab] = useState<Tab>('logs')
-  const [planMilestone, setPlanMilestone] = useState<PlanMilestone>('v02')
+  const [planMilestoneId, setPlanMilestoneId] = useState<string | null>(null)
 
   // Cover upload
   const coverInputRef = useRef<HTMLInputElement>(null)
@@ -493,6 +905,18 @@ export default function ProjectDetail() {
   )
 
   const latestMood = logs?.[0]?.mood ?? null
+
+  useEffect(() => {
+    if (!plan?.length) {
+      setPlanMilestoneId(null)
+      return
+    }
+    setPlanMilestoneId((current) => (
+      current && plan.some((milestone) => milestone.id === current)
+        ? current
+        : plan[0].id
+    ))
+  }, [plan])
 
   function openSettings() {
     if (project && !settingsInit) {
@@ -728,7 +1152,18 @@ export default function ProjectDetail() {
             transition={{ duration: 0.18 }}
             className="px-10 py-8"
           >
-            <PlanTab milestone={planMilestone} onSelect={setPlanMilestone} />
+            <PlanTab
+              milestones={plan ?? []}
+              loading={planLoading}
+              error={planError}
+              selectedId={planMilestoneId}
+              projectId={project.id}
+              ownerId={project.owner_id}
+              userId={user?.id}
+              canEdit={!!isEditor}
+              onSelect={setPlanMilestoneId}
+              onRefresh={refreshPlan}
+            />
           </motion.div>
         )}
 
@@ -862,15 +1297,6 @@ export default function ProjectDetail() {
               </div>
             </div>
 
-            {/* Preview link */}
-            <div className="mt-4">
-              <Link
-                to={`/projects/${project.id}/preview`}
-                className="text-[13px] text-ink-tertiary hover:text-accent transition-colors"
-              >
-                View public preview →
-              </Link>
-            </div>
           </motion.div>
         )}
 

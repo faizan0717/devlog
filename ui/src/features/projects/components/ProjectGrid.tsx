@@ -13,22 +13,22 @@ interface ProjectGridProps {
 
 function SkeletonCard() {
   return (
-    <div className="rounded-glass border border-surface-700 bg-surface-900 overflow-hidden animate-pulse">
-      <div className="aspect-[16/7] bg-surface-800" />
-      <div className="p-4 space-y-3">
+    <div className="rounded-xl border border-border bg-white overflow-hidden animate-pulse">
+      <div className="aspect-[16/7] bg-gray-100" />
+      <div className="p-4 space-y-2.5">
         <div className="flex justify-between gap-2">
-          <div className="h-5 w-2/3 rounded bg-surface-700" />
-          <div className="h-4 w-1/5 rounded bg-surface-800" />
+          <div className="h-4 w-2/3 rounded bg-gray-100" />
+          <div className="h-3 w-1/5 rounded bg-gray-100" />
         </div>
         <div className="space-y-1.5">
-          <div className="h-3.5 w-full rounded bg-surface-800" />
-          <div className="h-3.5 w-4/5 rounded bg-surface-800" />
+          <div className="h-3 w-full rounded bg-gray-100" />
+          <div className="h-3 w-4/5 rounded bg-gray-100" />
         </div>
         <div className="flex gap-1">
-          <div className="h-5 w-12 rounded-full bg-surface-800" />
-          <div className="h-5 w-16 rounded-full bg-surface-800" />
+          <div className="h-4 w-12 rounded-full bg-gray-100" />
+          <div className="h-4 w-16 rounded-full bg-gray-100" />
         </div>
-        <div className="h-3.5 w-1/4 rounded bg-surface-800 pt-1" />
+        <div className="h-3 w-1/4 rounded bg-gray-100" />
       </div>
     </div>
   )
@@ -37,10 +37,8 @@ function SkeletonCard() {
 export function ProjectGrid({ projects, loading, emptyMessage, emptyAction }: ProjectGridProps) {
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-        {[0, 1, 2].map((i) => (
-          <SkeletonCard key={i} />
-        ))}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        {[0, 1, 2].map((i) => <SkeletonCard key={i} />)}
       </div>
     )
   }
@@ -59,7 +57,7 @@ export function ProjectGrid({ projects, loading, emptyMessage, emptyAction }: Pr
       variants={staggerContainer}
       initial="initial"
       animate="animate"
-      className={cn('grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5')}
+      className={cn('grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4')}
     >
       {projects.map((project, i) => (
         <motion.div key={project.id} variants={fadeUp} custom={i}>

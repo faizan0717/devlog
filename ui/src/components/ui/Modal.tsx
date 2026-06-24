@@ -40,7 +40,7 @@ export function Modal({ open, onClose, children, title, className }: ModalProps)
             aria-modal="true"
             aria-labelledby={title ? 'modal-title' : undefined}
             className={cn(
-              'relative z-10 glass-elevated rounded-glass p-6 w-full max-w-md',
+              'relative z-10 bg-white border border-border rounded-xl p-6 w-full max-w-md shadow-card',
               className,
             )}
           >

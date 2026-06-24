@@ -3,6 +3,8 @@ import type { Database } from './database'
 export type Profile      = Database['public']['Tables']['profiles']['Row']
 export type Project      = Database['public']['Tables']['projects']['Row']
 export type Log          = Database['public']['Tables']['logs']['Row']
+export type PlanMilestone = Database['public']['Tables']['plan_milestones']['Row']
+export type PlanTodo      = Database['public']['Tables']['plan_todos']['Row']
 export type Collaborator = Database['public']['Tables']['collaborators']['Row']
 export type Comment      = Database['public']['Tables']['comments']['Row']
 export type Follow       = Database['public']['Tables']['follows']['Row']
@@ -12,6 +14,7 @@ export type Notification = Database['public']['Tables']['notifications']['Row']
 export type Visibility       = 'private' | 'public' | 'shared' | 'unlisted'
 export type LogMood          = 'building' | 'shipped' | 'stuck' | 'reflecting' | 'inspired' | 'learning'
 export type LogMedia         = { url: string; type: 'image' | 'video'; name: string }
+export type PlanStatus       = 'pending' | 'doing' | 'done'
 export type ReactionType     = 'heart' | 'fire' | 'rocket'
 export type NotificationType = 'follow' | 'comment' | 'reaction'
 
@@ -41,6 +44,10 @@ export type ProjectOwner = Pick<Profile, 'id' | 'username' | 'avatar_url'>
 export type ProjectWithDetails = Project & {
   collaborators: CollaboratorWithProfile[]
   owner: ProjectOwner
+}
+
+export type PlanMilestoneWithTodos = PlanMilestone & {
+  todos: PlanTodo[]
 }
 
 export type CommentWithProfile = Comment & {
