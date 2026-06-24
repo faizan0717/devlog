@@ -16,6 +16,10 @@ const SCOPES: { value: AgentScope; label: string; description: string }[] = [
   { value: 'create_log', label: 'Create logs', description: 'Add new timeline entries' },
   { value: 'update_log', label: 'Update logs', description: 'Edit existing timeline entries' },
   { value: 'update_project', label: 'Update projects', description: 'Edit existing project details' },
+  { value: 'read_plan', label: 'Read plan', description: 'Read milestones and todos' },
+  { value: 'create_plan', label: 'Create plan items', description: 'Create milestones and todos' },
+  { value: 'update_plan', label: 'Update plan items', description: 'Edit/delete milestones and todos' },
+  { value: 'complete_todo', label: 'Complete todos', description: 'Mark plan todos done or reopen them' },
 ]
 
 const MCP_URL = (import.meta.env.VITE_DEVLOG_MCP_URL ?? 'http://localhost:8787') + '/mcp'
@@ -36,6 +40,10 @@ function claudeMdSnippet(scopes: AgentScope[]) {
   if (scopes.includes('create_project')) lines.push('  POST /projects  {title,description,visibility,tags}      — create a project')
   if (scopes.includes('read_logs'))      lines.push('  GET  /projects/{id}/timeline                             — get project + all logs')
   if (scopes.includes('create_log'))     lines.push('  POST /logs  {project_id,title,content,mood,visibility}   — create a log entry')
+  if (scopes.includes('read_plan'))      lines.push('  GET  /projects/{id}/plan                                 — get milestones + todos')
+  if (scopes.includes('create_plan'))    lines.push('  POST /projects/{id}/milestones, POST /milestones/{id}/todos — create plan items')
+  if (scopes.includes('update_plan'))    lines.push('  PATCH /milestones/{id}, PATCH /todos/{id}                — update plan items')
+  if (scopes.includes('complete_todo'))  lines.push('  POST /todos/{id}/complete, POST /todos/{id}/reopen       — complete/reopen todos')
   lines.push('')
   lines.push('All requests need: Authorization: Bearer <token from .devlog>')
   lines.push('mood: building | shipped | stuck | reflecting | inspired | learning')
@@ -235,7 +243,7 @@ function CreateTokenModal({
   onCopy: (text: string, label?: string) => Promise<void>
 }) {
   const [name, setName] = useState('Claude Desktop')
-  const [scopes, setScopes] = useState<AgentScope[]>(['read_projects', 'read_logs', 'create_log'])
+  const [scopes, setScopes] = useState<AgentScope[]>(['read_projects', 'read_logs', 'create_log', 'read_plan', 'create_plan', 'update_plan', 'complete_todo'])
   const [restrict, setRestrict] = useState(false)
   const [selectedProjects, setSelectedProjects] = useState<string[]>([])
   const [loading, setLoading] = useState(false)

@@ -471,7 +471,11 @@ create table if not exists public.agent_tokens (
     'create_project',
     'create_log',
     'update_log',
-    'update_project'
+    'update_project',
+    'read_plan',
+    'create_plan',
+    'update_plan',
+    'complete_todo'
   ]::text[])
 );
 

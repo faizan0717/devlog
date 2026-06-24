@@ -1,6 +1,6 @@
 # devLog MCP — Agent Documentation
 
-devLog is a cinematic timeline platform for makers. You are connected as a scoped agent on behalf of the token owner. Use these tools to read their projects and post timeline log entries.
+devLog is a cinematic timeline platform for makers. You are connected as a scoped agent on behalf of the token owner. Use these tools to read projects, post timeline log entries, and manage project plans.
 
 ## Tools
 
@@ -12,90 +12,154 @@ No params, no scope required.
 ---
 
 ### devlog_list_projects
-List all projects owned by the token owner (filtered to allowed projects if the token is restricted).
-
-Returns an array of projects with: `id`, `title`, `description`, `visibility`, `tags`, `cover_image_url`, `view_count`, `created_at`, `updated_at`.
+List projects owned by the token owner (filtered to allowed projects if the token is restricted).
 
 **Requires scope:** `read_projects`
 
 ---
 
 ### devlog_get_project_timeline
-Read a single project and its full log timeline.
+Read one project and its timeline logs.
 
-**Params:**
-- `project_id` (uuid, required)
-
-Returns `{ project, logs[] }`. Logs include: `id`, `title`, `content` (markdown), `visibility`, `mood`, `media`, `created_at`, `updated_at`.
+**Params:** `project_id` uuid.
 
 **Requires scope:** `read_logs`
 
 ---
 
 ### devlog_create_project
-Create a new project owned by the token owner.
+Create a new devLog project.
 
-**Params:**
-- `title` (string, max 100 chars, required)
-- `description` (string, max 500 chars, optional)
-- `visibility` — `private` | `public` | `unlisted` (default: `private`)
-- `tags` (string array, max 10, optional)
-
-Returns the created project row.
+**Params:** `title`, optional `description`, `visibility` (`private` | `public` | `unlisted`), `tags`.
 
 **Requires scope:** `create_project`
 
 ---
 
 ### devlog_update_project
-Update an existing project owned by the token owner. All fields are optional — only the fields you pass will be changed.
+Update project fields.
 
-**Params:**
-- `project_id` (uuid, required)
-- `title` (string, max 100 chars, optional)
-- `description` (string, max 500 chars, optional)
-- `visibility` — `private` | `public` | `unlisted` (optional)
-- `tags` (string array, max 10, optional)
-
-Returns the updated project row.
+**Params:** `project_id`, optional `title`, `description`, `visibility`, `tags`.
 
 **Requires scope:** `update_project`
 
 ---
 
 ### devlog_create_log
-Create a new timeline log entry in a project.
+Create a timeline log entry.
 
-**Params:**
-- `project_id` (uuid, required)
-- `title` (string, max 160 chars, required)
-- `content` (markdown string, max 50 000 chars, optional)
-- `visibility` — `private` | `public` | `shared` | `unlisted` (default: `private`)
-- `mood` — `building` | `shipped` | `stuck` | `reflecting` | `inspired` | `learning` (optional)
-
-Returns the created log row.
+**Params:** `project_id`, `title`, optional `content`, `visibility`, `mood`.
 
 **Requires scope:** `create_log`
 
 ---
 
 ### devlog_update_log
-Update an existing timeline log entry. All fields are optional — only the fields you pass will be changed.
+Update a timeline log entry.
 
-**Params:**
-- `log_id` (uuid, required)
-- `title` (string, max 160 chars, optional)
-- `content` (markdown string, max 50 000 chars, optional)
-- `visibility` — `private` | `public` | `shared` | `unlisted` (optional)
-- `mood` — `building` | `shipped` | `stuck` | `reflecting` | `inspired` | `learning` (optional)
-
-Returns the updated log row.
+**Params:** `log_id`, optional `title`, `content`, `visibility`, `mood`.
 
 **Requires scope:** `update_log`
 
 ---
 
-## REST endpoints (alternative to MCP tools)
+### devlog_get_project_plan
+Read project plan milestones and todos.
+
+**Params:** `project_id` uuid.
+
+Returns `{ milestones, todos }`.
+
+**Requires scope:** `read_plan`
+
+---
+
+### devlog_create_plan_milestone
+Create a plan milestone.
+
+**Params:**
+- `project_id` uuid
+- `title` string
+- optional `description`
+- `status` — `pending` | `doing` | `done` default `pending`
+- `visibility` — `private` | `public` | `shared` | `unlisted` default `private`
+- optional `target_date` as `YYYY-MM-DD`
+- optional `sort_order` integer
+
+**Requires scope:** `create_plan`
+
+---
+
+### devlog_update_plan_milestone
+Update a plan milestone.
+
+**Params:** `milestone_id`, optional `title`, `description`, `status`, `visibility`, `target_date`, `sort_order`.
+
+**Requires scope:** `update_plan`
+
+---
+
+### devlog_delete_plan_milestone
+Delete a plan milestone and its todos.
+
+**Params:** `milestone_id` uuid.
+
+**Requires scope:** `update_plan`
+
+---
+
+### devlog_create_plan_todo
+Create a plan todo under a milestone.
+
+**Params:**
+- `milestone_id` uuid
+- `title` string
+- optional `description`
+- `status` — `pending` | `doing` | `done` default `pending`
+- `visibility` — `private` | `public` | `shared` | `unlisted` default `private`
+- optional `sort_order` integer
+
+**Requires scope:** `create_plan`
+
+---
+
+### devlog_update_plan_todo
+Update a plan todo.
+
+**Params:** `todo_id`, optional `title`, `description`, `status`, `visibility`, `milestone_id`, `sort_order`.
+
+**Requires scope:** `update_plan`
+
+---
+
+### devlog_delete_plan_todo
+Delete a plan todo.
+
+**Params:** `todo_id` uuid.
+
+**Requires scope:** `update_plan`
+
+---
+
+### devlog_complete_plan_todo
+Mark a todo as done and record the completing agent token.
+
+**Params:** `todo_id` uuid.
+
+**Requires scope:** `complete_todo`
+
+---
+
+### devlog_reopen_plan_todo
+Reopen a completed todo.
+
+**Params:** `todo_id` uuid, optional `status` (`pending` | `doing`, default `pending`).
+
+**Requires scope:** `complete_todo`
+
+---
+
+## REST endpoints
 
 All requests require `Authorization: Bearer <token>`.
 
@@ -103,36 +167,33 @@ All requests require `Authorization: Bearer <token>`.
 |--------|------|-------|-------------|
 | GET | `/docs` | none | This file |
 | GET | `/projects` | `read_projects` | List projects |
-| GET | `/projects/:id/timeline` | `read_logs` | Project + all logs |
 | POST | `/projects` | `create_project` | Create project |
-| PATCH | `/projects/:id` | `update_project` | Update project fields |
-| POST | `/logs` | `create_log` | Create log entry |
-| PATCH | `/logs/:id` | `update_log` | Update log fields |
+| PATCH | `/projects/:id` | `update_project` | Update project |
+| GET | `/projects/:id/timeline` | `read_logs` | Project + logs |
+| POST | `/logs` | `create_log` | Create log |
+| PATCH | `/logs/:id` | `update_log` | Update log |
+| GET | `/projects/:id/plan` | `read_plan` | Milestones + todos |
+| POST | `/projects/:id/milestones` | `create_plan` | Create milestone |
+| PATCH | `/milestones/:id` | `update_plan` | Update milestone |
+| DELETE | `/milestones/:id` | `update_plan` | Delete milestone |
+| POST | `/milestones/:id/todos` | `create_plan` | Create todo |
+| PATCH | `/todos/:id` | `update_plan` | Update todo |
+| DELETE | `/todos/:id` | `update_plan` | Delete todo |
+| POST | `/todos/:id/complete` | `complete_todo` | Complete todo |
+| POST | `/todos/:id/reopen` | `complete_todo` | Reopen todo |
 
----
+## References
 
-## Moods reference
+Moods: `building` | `shipped` | `stuck` | `reflecting` | `inspired` | `learning`
 
-| Value | When to use |
-|---|---|
-| `building` | Actively building a feature |
-| `shipped` | Something just launched or merged |
-| `stuck` | Blocked, debugging, frustrated |
-| `reflecting` | Looking back, retrospective |
-| `inspired` | New idea, motivation spike |
-| `learning` | Reading, researching, exploring |
+Visibility: `private` | `public` | `unlisted` | `shared`
 
-## Visibility reference
-
-| Value | Who sees it |
-|---|---|
-| `private` | Owner only |
-| `public` | Everyone |
-| `unlisted` | Anyone with the link |
-| `shared` | Project collaborators |
+Plan statuses: `pending` | `doing` | `done`
 
 ## Notes
 
-- Agents can only access projects owned by the token owner — not shared/collaborator projects.
-- Media (images/video) cannot be uploaded via MCP — only title, content, mood, and visibility.
-- All actions are recorded in the owner's audit log visible on the Agent Access page.
+- Agents can only access projects owned by the token owner and allowed by `allowed_project_ids`.
+- Media cannot be uploaded via MCP/REST.
+- Agent-created plan items set `created_by_agent_token_id`.
+- Agent-completed todos set `completed_by_agent_token_id`.
+- All actions are recorded in the owner's audit log.

@@ -3,7 +3,17 @@ import { hashAgentToken } from './crypto.js'
 import { getRequestAgentToken } from './requestContext.js'
 import { HttpError } from './errors.js'
 
-export type AgentScope = 'read_projects' | 'read_logs' | 'create_project' | 'create_log' | 'update_log' | 'update_project'
+export type AgentScope =
+  | 'read_projects'
+  | 'read_logs'
+  | 'create_project'
+  | 'create_log'
+  | 'update_log'
+  | 'update_project'
+  | 'read_plan'
+  | 'create_plan'
+  | 'update_plan'
+  | 'complete_todo'
 
 export interface AgentContext {
   tokenId: string
@@ -98,4 +108,40 @@ export async function assertProjectAccess(ctx: AgentContext, projectId: string):
   if (data.owner_id !== ctx.ownerId) {
     throw new HttpError(403, 'Agent can only access projects owned by its token owner')
   }
+}
+
+export async function assertMilestoneOwnership(ctx: AgentContext, milestoneId: string): Promise<{ projectId: string }> {
+  const { data, error } = await supabase
+    .from('plan_milestones')
+    .select('id, project_id, owner_id')
+    .eq('id', milestoneId)
+    .maybeSingle<{ id: string; project_id: string; owner_id: string }>()
+
+  if (error) throw new Error(`Failed to verify milestone access: ${error.message}`)
+  if (!data) throw new HttpError(404, 'Milestone not found')
+  if (data.owner_id !== ctx.ownerId) {
+    throw new HttpError(403, 'Agent can only access plan milestones owned by its token owner')
+  }
+  if (ctx.allowedProjectIds && !ctx.allowedProjectIds.includes(data.project_id)) {
+    throw new HttpError(403, 'Agent token is not allowed to access this project')
+  }
+  return { projectId: data.project_id }
+}
+
+export async function assertTodoOwnership(ctx: AgentContext, todoId: string): Promise<{ projectId: string; milestoneId: string }> {
+  const { data, error } = await supabase
+    .from('plan_todos')
+    .select('id, project_id, milestone_id, owner_id')
+    .eq('id', todoId)
+    .maybeSingle<{ id: string; project_id: string; milestone_id: string; owner_id: string }>()
+
+  if (error) throw new Error(`Failed to verify todo access: ${error.message}`)
+  if (!data) throw new HttpError(404, 'Todo not found')
+  if (data.owner_id !== ctx.ownerId) {
+    throw new HttpError(403, 'Agent can only access plan todos owned by its token owner')
+  }
+  if (ctx.allowedProjectIds && !ctx.allowedProjectIds.includes(data.project_id)) {
+    throw new HttpError(403, 'Agent token is not allowed to access this project')
+  }
+  return { projectId: data.project_id, milestoneId: data.milestone_id }
 }

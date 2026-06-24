@@ -34,13 +34,14 @@ const MOOD_DOT: Record<string, string> = {
   reflecting: 'bg-mood-reflecting',
 }
 
-const MOOD_BADGE: Record<string, string> = {
-  building:   'text-mood-building bg-orange-50 border-orange-200',
-  shipped:    'text-mood-shipped bg-green-50 border-green-200',
-  stuck:      'text-mood-stuck bg-red-50 border-red-200',
-  learning:   'text-mood-learning bg-blue-50 border-blue-200',
-  inspired:   'text-mood-inspired bg-purple-50 border-purple-200',
-  reflecting: 'text-mood-reflecting bg-slate-100 border-slate-200',
+// Brand guide: rgba tints derived from each mood color, not generic Tailwind palette
+const MOOD_BADGE_STYLE: Record<string, React.CSSProperties> = {
+  building:   { color: '#f97316', background: 'rgba(249,115,22,0.08)',   borderColor: 'rgba(249,115,22,0.2)'   },
+  shipped:    { color: '#22c55e', background: 'rgba(34,197,94,0.08)',    borderColor: 'rgba(34,197,94,0.2)'    },
+  stuck:      { color: '#ef4444', background: 'rgba(239,68,68,0.08)',    borderColor: 'rgba(239,68,68,0.2)'    },
+  learning:   { color: '#60a5fa', background: 'rgba(96,165,250,0.08)',   borderColor: 'rgba(96,165,250,0.2)'   },
+  inspired:   { color: '#c084fc', background: 'rgba(192,132,252,0.08)', borderColor: 'rgba(192,132,252,0.2)'  },
+  reflecting: { color: '#94a3b8', background: 'rgba(148,163,184,0.08)', borderColor: 'rgba(148,163,184,0.2)'  },
 }
 
 const MOOD_PULSE: Record<string, string> = {
@@ -95,13 +96,9 @@ function MoodDot({ mood, pulse }: { mood: string | null; pulse?: boolean }) {
 
 function MoodBadge({ mood }: { mood: string | null }) {
   if (!mood) return null
+  const style = MOOD_BADGE_STYLE[mood] ?? { color: '#9ca3af', background: 'rgba(156,163,175,0.08)', borderColor: 'rgba(156,163,175,0.2)' }
   return (
-    <span
-      className={cn(
-        'font-mono text-[10px] font-medium border rounded-[4px] px-2 py-[1px]',
-        MOOD_BADGE[mood] ?? 'text-ink-tertiary bg-gray-50 border-gray-200',
-      )}
-    >
+    <span className="font-mono text-[10px] font-medium border rounded-[4px] px-2 py-[1px]" style={style}>
       {mood}
     </span>
   )
@@ -230,21 +227,21 @@ const PLAN_STATUS_META = {
   pending: {
     label: 'pending',
     dotClass: 'bg-transparent border-[1.5px] border-gray-300',
-    badgeClass: 'text-ink-disabled bg-gray-50',
+    badgeStyle: { color: '#9ca3af', background: '#f3f4f6' } as React.CSSProperties,
     textClass: 'text-ink-disabled',
     opacity: 'opacity-70',
   },
   doing: {
     label: 'doing',
     dotClass: 'bg-mood-building animate-pulse-slow',
-    badgeClass: 'text-mood-building bg-orange-50',
+    badgeStyle: { color: '#f97316', background: 'rgba(249,115,22,0.1)' } as React.CSSProperties,
     textClass: 'text-mood-building',
     opacity: '',
   },
   done: {
     label: 'done',
     dotClass: 'bg-mood-shipped',
-    badgeClass: 'text-mood-shipped bg-green-50',
+    badgeStyle: { color: '#22c55e', background: 'rgba(34,197,94,0.1)' } as React.CSSProperties,
     textClass: 'text-mood-shipped',
     opacity: 'opacity-60',
   },
@@ -769,7 +766,7 @@ function PlanTab({
                       <div className={cn('text-[12px] truncate', active ? 'font-semibold text-ink-primary' : 'text-ink-secondary')}>{m.title}</div>
                       <div className="font-mono text-[10px] text-ink-disabled mt-0.5">{formatTargetDate(m.target_date)}</div>
                     </div>
-                    <span className={cn('font-mono text-[9px] px-1.5 py-[1px] rounded-[3px] flex-shrink-0', meta.badgeClass)}>{meta.label}</span>
+                    <span className="font-mono text-[9px] px-1.5 py-[1px] rounded-[3px] flex-shrink-0" style={meta.badgeStyle}>{meta.label}</span>
                   </button>
                   {canEdit && active && (
                     <div className="flex flex-col">

@@ -108,7 +108,7 @@ export default function PublicLog() {
           <div className="mb-8">
             {accentColor && (
               <div className="mb-4">
-                <span className="inline-flex items-center gap-2 rounded-pill border border-surface-700 px-3 py-1 text-caption font-mono">
+                <span className="inline-flex items-center gap-2 rounded-pill border border-border px-3 py-1 text-caption font-mono">
                   <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: accentColor }} />
                   <span style={{ color: accentColor }}>{log.mood}</span>
                 </span>
@@ -138,7 +138,7 @@ export default function PublicLog() {
 
           {/* Content */}
           {log.content && (
-            <div className="prose prose-invert max-w-none mb-8 [&_p]:text-[1.0625rem] [&_p]:leading-relaxed [&_p]:text-ink-secondary">
+            <div className="prose prose-log max-w-none mb-8">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {log.content}
               </ReactMarkdown>
@@ -154,7 +154,7 @@ export default function PublicLog() {
 
           {/* Reactions */}
           {logId && (
-            <div className="mb-10 rounded-[1.25rem] border border-surface-800 bg-surface-900/50 p-5">
+            <div className="mb-10 rounded-[1.25rem] border border-border bg-chalk p-5">
               <ReactionBar
                 logId={logId}
                 userId={user?.id}
@@ -176,7 +176,7 @@ export default function PublicLog() {
 
           {/* More from this project — mobile only */}
           {relatedLogs.length > 0 && (
-            <div className="mt-14 border-t border-surface-800 pt-10 lg:hidden">
+            <div className="mt-14 border-t border-border pt-10 lg:hidden">
               <p className="mb-6 font-mono text-caption uppercase tracking-widest text-ink-tertiary">
                 More from this project
               </p>

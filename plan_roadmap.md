@@ -321,10 +321,10 @@ Checklist:
 
 ### Phase 4 — Agent + Public Roadmap
 
-- [ ] Add MCP/REST tools for plan
-- [ ] Let agents create/update/complete milestones and todos
-- [ ] Add agent token scopes for plan access
-- [ ] Audit agent plan actions
+- [x] Add MCP/REST tools for plan
+- [x] Let agents create/update/complete milestones and todos
+- [x] Add agent token scopes for plan access
+- [x] Audit agent plan actions
 - [ ] Render public Plan view based on visibility
 - [ ] Show source labels: `added by you`, `added by Claude Code`, etc.
 

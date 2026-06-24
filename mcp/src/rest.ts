@@ -3,7 +3,14 @@ import { fileURLToPath } from 'node:url'
 import { join, dirname } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { supabase } from './supabase.js'
-import { getAgentContext, requireScope, assertProjectAccess, assertLogOwnership } from './auth.js'
+import {
+  getAgentContext,
+  requireScope,
+  assertProjectAccess,
+  assertLogOwnership,
+  assertMilestoneOwnership,
+  assertTodoOwnership,
+} from './auth.js'
 import { auditAgentAction } from './audit.js'
 import { runWithAgentToken } from './requestContext.js'
 
@@ -119,7 +126,7 @@ if ! $GLOBAL; then
 fi
 
 # ── snippet ──────────────────────────────────────────────────────────────────
-SNIPPET="\\n## devLog\\nBase URL: ${baseUrl}\\nToken: read from $TOKEN_REF (never commit this file).\\n\\nAlways call GET /docs first for the latest reference.\\n\\nQuick reference:\\n  GET   /projects                      — list my projects\\n  POST  /projects                      — create a project\\n  PATCH /projects/{id}                 — update a project\\n  GET   /projects/{id}/timeline        — get project + all logs\\n  POST  /logs {project_id,title,content,mood,visibility} — create a log entry\\n  PATCH /logs/{id}                     — update a log entry\\n\\nAll requests: Authorization: Bearer \\$(cat $TOKEN_REF)\\nmood: building | shipped | stuck | reflecting | inspired | learning\\nvisibility: private | public | unlisted | shared"
+SNIPPET="\\n## devLog\\nBase URL: ${baseUrl}\\nToken: read from $TOKEN_REF (never commit this file).\\n\\nAlways call GET /docs first for the latest reference.\\n\\nQuick reference:\\n  GET   /projects                      — list my projects\\n  POST  /projects                      — create a project\\n  PATCH /projects/{id}                 — update a project\\n  GET   /projects/{id}/timeline        — get project + all logs\\n  POST  /logs {project_id,title,content,mood,visibility} — create a log entry\\n  PATCH /logs/{id}                     — update a log entry\\n  GET   /projects/{id}/plan            — get milestones + todos\\n  POST  /projects/{id}/milestones      — create a milestone\\n  POST  /milestones/{id}/todos         — create a todo\\n  PATCH /milestones/{id}               — update a milestone\\n  PATCH /todos/{id}                    — update a todo\\n  POST  /todos/{id}/complete           — complete a todo\\n  POST  /todos/{id}/reopen             — reopen a todo\\n\\nAll requests: Authorization: Bearer \\$(cat $TOKEN_REF)\\nmood: building | shipped | stuck | reflecting | inspired | learning\\nvisibility: private | public | unlisted | shared"
 
 write_snippet() {
   local file=$1
@@ -162,6 +169,7 @@ function send(res: ServerResponse, status: number, body: unknown) {
 
 const PROJECT_VISIBILITIES = new Set(['private', 'public', 'unlisted'])
 const LOG_VISIBILITIES = new Set(['private', 'public', 'shared', 'unlisted'])
+const PLAN_STATUSES = new Set(['pending', 'doing', 'done'])
 const LOG_MOODS = new Set(['building', 'shipped', 'stuck', 'reflecting', 'inspired', 'learning'])
 
 function isString(value: unknown): value is string {
@@ -196,6 +204,18 @@ function validateTags(value: unknown): string[] {
     if (!isString(tag)) throw new Error('tags must contain only strings')
     return tag.trim()
   }).filter(Boolean)
+}
+
+function completionPatch(status: string | null): Record<string, unknown> {
+  if (status === 'done') return { completed_at: new Date().toISOString() }
+  if (status === 'pending' || status === 'doing') return { completed_at: null }
+  return {}
+}
+
+function validateDateField(value: unknown, field: string): string | null {
+  if (value === undefined || value === null || value === '') return null
+  if (!isString(value) || !/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(`${field} must be YYYY-MM-DD`)
+  return value
 }
 
 function sendValidationError(res: ServerResponse, error: unknown): true {
@@ -391,7 +411,234 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
       return
     }
 
-    send(res, 404, { error: 'Not found', endpoints: ['GET /docs', 'GET /projects', 'GET /projects/:id/timeline', 'POST /logs', 'PATCH /projects/:id', 'PATCH /logs/:id'] })
+    // GET /projects/:id/plan
+    const planMatch = /^\/projects\/([^/]+)\/plan$/.exec(pathname)
+    if (method === 'GET' && planMatch) {
+      requireScope(ctx, 'read_plan')
+      const projectId = planMatch[1]
+      await assertProjectAccess(ctx, projectId)
+      const [milestonesRes, todosRes] = await Promise.all([
+        supabase.from('plan_milestones').select('*').eq('project_id', projectId).order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
+        supabase.from('plan_todos').select('*').eq('project_id', projectId).order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
+      ])
+      if (milestonesRes.error) { send(res, 500, { error: milestonesRes.error.message }); return }
+      if (todosRes.error) { send(res, 500, { error: todosRes.error.message }); return }
+      await auditAgentAction(ctx, 'rest_get_project_plan', { projectId, metadata: { milestoneCount: milestonesRes.data?.length ?? 0, todoCount: todosRes.data?.length ?? 0 } })
+      send(res, 200, { milestones: milestonesRes.data ?? [], todos: todosRes.data ?? [] })
+      return
+    }
+
+    // POST /projects/:id/milestones
+    const createMilestoneMatch = /^\/projects\/([^/]+)\/milestones$/.exec(pathname)
+    if (method === 'POST' && createMilestoneMatch) {
+      requireScope(ctx, 'create_plan')
+      const projectId = createMilestoneMatch[1]
+      await assertProjectAccess(ctx, projectId)
+      const body = await readJsonBody(req)
+      let title: string | null
+      let description: string | null
+      let status: string | null
+      let visibility: string | null
+      let targetDate: string | null
+      try {
+        title = validateStringField(body.title, 'title', 160, true)
+        description = validateStringField(body.description, 'description', 5000)
+        status = validateEnumField(body.status, 'status', PLAN_STATUSES, 'pending')
+        visibility = validateEnumField(body.visibility, 'visibility', LOG_VISIBILITIES, 'private')
+        targetDate = validateDateField(body.target_date, 'target_date')
+        if (body.sort_order !== undefined && !Number.isInteger(body.sort_order)) throw new Error('sort_order must be an integer')
+      } catch (error) { sendValidationError(res, error); return }
+      const { data, error } = await supabase.from('plan_milestones').insert({
+        project_id: projectId,
+        owner_id: ctx.ownerId,
+        title,
+        description,
+        status,
+        visibility,
+        target_date: targetDate,
+        sort_order: typeof body.sort_order === 'number' ? body.sort_order : 0,
+        created_by_agent_token_id: ctx.tokenId,
+        ...completionPatch(status),
+      }).select('*').single()
+      if (error) { send(res, 500, { error: error.message }); return }
+      await auditAgentAction(ctx, 'rest_create_plan_milestone', { projectId, metadata: { milestoneId: data.id, title: data.title } })
+      send(res, 201, data)
+      return
+    }
+
+    // PATCH /milestones/:id
+    const milestonePatchMatch = /^\/milestones\/([^/]+)$/.exec(pathname)
+    if (method === 'PATCH' && milestonePatchMatch) {
+      requireScope(ctx, 'update_plan')
+      const milestoneId = milestonePatchMatch[1]
+      const { projectId } = await assertMilestoneOwnership(ctx, milestoneId)
+      const body = await readJsonBody(req)
+      const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
+      try {
+        if (body.title !== undefined) patch.title = validateStringField(body.title, 'title', 160, true)
+        if (body.description !== undefined) patch.description = validateStringField(body.description, 'description', 5000)
+        if (body.status !== undefined) {
+          const status = validateEnumField(body.status, 'status', PLAN_STATUSES)
+          patch.status = status
+          Object.assign(patch, completionPatch(status))
+        }
+        if (body.visibility !== undefined) patch.visibility = validateEnumField(body.visibility, 'visibility', LOG_VISIBILITIES)
+        if (body.target_date !== undefined) patch.target_date = validateDateField(body.target_date, 'target_date')
+        if (body.sort_order !== undefined) {
+          if (!Number.isInteger(body.sort_order)) throw new Error('sort_order must be an integer')
+          patch.sort_order = body.sort_order
+        }
+      } catch (error) { sendValidationError(res, error); return }
+      const { data, error } = await supabase.from('plan_milestones').update(patch).eq('id', milestoneId).select('*').single()
+      if (error) { send(res, 500, { error: error.message }); return }
+      await auditAgentAction(ctx, 'rest_update_plan_milestone', { projectId, metadata: { milestoneId, title: data.title } })
+      send(res, 200, data)
+      return
+    }
+
+    // DELETE /milestones/:id
+    const milestoneDeleteMatch = /^\/milestones\/([^/]+)$/.exec(pathname)
+    if (method === 'DELETE' && milestoneDeleteMatch) {
+      requireScope(ctx, 'update_plan')
+      const milestoneId = milestoneDeleteMatch[1]
+      const { projectId } = await assertMilestoneOwnership(ctx, milestoneId)
+      const { error } = await supabase.from('plan_milestones').delete().eq('id', milestoneId)
+      if (error) { send(res, 500, { error: error.message }); return }
+      await auditAgentAction(ctx, 'rest_delete_plan_milestone', { projectId, metadata: { milestoneId } })
+      send(res, 200, { ok: true })
+      return
+    }
+
+    // POST /milestones/:id/todos
+    const createTodoMatch = /^\/milestones\/([^/]+)\/todos$/.exec(pathname)
+    if (method === 'POST' && createTodoMatch) {
+      requireScope(ctx, 'create_plan')
+      const milestoneId = createTodoMatch[1]
+      const { projectId } = await assertMilestoneOwnership(ctx, milestoneId)
+      const body = await readJsonBody(req)
+      let title: string | null
+      let description: string | null
+      let status: string | null
+      let visibility: string | null
+      try {
+        title = validateStringField(body.title, 'title', 240, true)
+        description = validateStringField(body.description, 'description', 5000)
+        status = validateEnumField(body.status, 'status', PLAN_STATUSES, 'pending')
+        visibility = validateEnumField(body.visibility, 'visibility', LOG_VISIBILITIES, 'private')
+        if (body.sort_order !== undefined && !Number.isInteger(body.sort_order)) throw new Error('sort_order must be an integer')
+      } catch (error) { sendValidationError(res, error); return }
+      const { data, error } = await supabase.from('plan_todos').insert({
+        project_id: projectId,
+        milestone_id: milestoneId,
+        owner_id: ctx.ownerId,
+        title,
+        description,
+        status,
+        visibility,
+        sort_order: typeof body.sort_order === 'number' ? body.sort_order : 0,
+        created_by_agent_token_id: ctx.tokenId,
+        ...(status === 'done' ? { completed_at: new Date().toISOString(), completed_by_agent_token_id: ctx.tokenId } : {}),
+      }).select('*').single()
+      if (error) { send(res, 500, { error: error.message }); return }
+      await auditAgentAction(ctx, 'rest_create_plan_todo', { projectId, metadata: { milestoneId, todoId: data.id, title: data.title } })
+      send(res, 201, data)
+      return
+    }
+
+    // PATCH /todos/:id
+    const todoPatchMatch = /^\/todos\/([^/]+)$/.exec(pathname)
+    if (method === 'PATCH' && todoPatchMatch) {
+      requireScope(ctx, 'update_plan')
+      const todoId = todoPatchMatch[1]
+      const { projectId } = await assertTodoOwnership(ctx, todoId)
+      const body = await readJsonBody(req)
+      const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
+      try {
+        if (body.title !== undefined) patch.title = validateStringField(body.title, 'title', 240, true)
+        if (body.description !== undefined) patch.description = validateStringField(body.description, 'description', 5000)
+        if (body.status !== undefined) {
+          const status = validateEnumField(body.status, 'status', PLAN_STATUSES)
+          patch.status = status
+          Object.assign(patch, completionPatch(status))
+        }
+        if (body.visibility !== undefined) patch.visibility = validateEnumField(body.visibility, 'visibility', LOG_VISIBILITIES)
+        if (body.milestone_id !== undefined) {
+          const milestoneId = validateStringField(body.milestone_id, 'milestone_id', 64, true) as string
+          const target = await assertMilestoneOwnership(ctx, milestoneId)
+          if (target.projectId !== projectId) throw new Error('milestone_id belongs to a different project')
+          patch.milestone_id = milestoneId
+        }
+        if (body.sort_order !== undefined) {
+          if (!Number.isInteger(body.sort_order)) throw new Error('sort_order must be an integer')
+          patch.sort_order = body.sort_order
+        }
+      } catch (error) { sendValidationError(res, error); return }
+      const { data, error } = await supabase.from('plan_todos').update(patch).eq('id', todoId).select('*').single()
+      if (error) { send(res, 500, { error: error.message }); return }
+      await auditAgentAction(ctx, 'rest_update_plan_todo', { projectId, metadata: { todoId, milestoneId: data.milestone_id, title: data.title } })
+      send(res, 200, data)
+      return
+    }
+
+    // DELETE /todos/:id
+    const todoDeleteMatch = /^\/todos\/([^/]+)$/.exec(pathname)
+    if (method === 'DELETE' && todoDeleteMatch) {
+      requireScope(ctx, 'update_plan')
+      const todoId = todoDeleteMatch[1]
+      const { projectId } = await assertTodoOwnership(ctx, todoId)
+      const { error } = await supabase.from('plan_todos').delete().eq('id', todoId)
+      if (error) { send(res, 500, { error: error.message }); return }
+      await auditAgentAction(ctx, 'rest_delete_plan_todo', { projectId, metadata: { todoId } })
+      send(res, 200, { ok: true })
+      return
+    }
+
+    // POST /todos/:id/complete
+    const todoCompleteMatch = /^\/todos\/([^/]+)\/complete$/.exec(pathname)
+    if (method === 'POST' && todoCompleteMatch) {
+      requireScope(ctx, 'complete_todo')
+      const todoId = todoCompleteMatch[1]
+      const { projectId } = await assertTodoOwnership(ctx, todoId)
+      const { data, error } = await supabase.from('plan_todos').update({
+        status: 'done',
+        completed_at: new Date().toISOString(),
+        completed_by: null,
+        completed_by_agent_token_id: ctx.tokenId,
+        updated_at: new Date().toISOString(),
+      }).eq('id', todoId).select('*').single()
+      if (error) { send(res, 500, { error: error.message }); return }
+      await auditAgentAction(ctx, 'rest_complete_plan_todo', { projectId, metadata: { todoId, title: data.title } })
+      send(res, 200, data)
+      return
+    }
+
+    // POST /todos/:id/reopen
+    const todoReopenMatch = /^\/todos\/([^/]+)\/reopen$/.exec(pathname)
+    if (method === 'POST' && todoReopenMatch) {
+      requireScope(ctx, 'complete_todo')
+      const todoId = todoReopenMatch[1]
+      const { projectId } = await assertTodoOwnership(ctx, todoId)
+      const body = await readJsonBody(req)
+      let status: string | null = 'pending'
+      try {
+        if (body.status !== undefined) {
+          status = validateEnumField(body.status, 'status', new Set(['pending', 'doing']), 'pending')
+        }
+      } catch (error) { sendValidationError(res, error); return }
+      const { data, error } = await supabase.from('plan_todos').update({
+        status,
+        completed_at: null,
+        completed_by: null,
+        completed_by_agent_token_id: null,
+        updated_at: new Date().toISOString(),
+      }).eq('id', todoId).select('*').single()
+      if (error) { send(res, 500, { error: error.message }); return }
+      await auditAgentAction(ctx, 'rest_reopen_plan_todo', { projectId, metadata: { todoId, title: data.title, status } })
+      send(res, 200, data)
+      return
+    }
+
+    send(res, 404, { error: 'Not found', endpoints: ['GET /docs', 'GET /projects', 'GET /projects/:id/timeline', 'GET /projects/:id/plan', 'POST /projects', 'PATCH /projects/:id', 'POST /logs', 'PATCH /logs/:id', 'POST /projects/:id/milestones', 'PATCH /milestones/:id', 'DELETE /milestones/:id', 'POST /milestones/:id/todos', 'PATCH /todos/:id', 'DELETE /todos/:id', 'POST /todos/:id/complete', 'POST /todos/:id/reopen'] })
   })
 
   return true

@@ -38,7 +38,7 @@ const ownerId = required(args, 'owner-id')
 const name = typeof args.name === 'string' ? args.name : 'Local MCP agent'
 const scopes = typeof args.scopes === 'string'
   ? args.scopes.split(',').map((s) => s.trim()).filter(Boolean)
-  : ['read_projects', 'read_logs', 'create_log']
+  : ['read_projects', 'read_logs', 'create_log', 'read_plan', 'create_plan', 'update_plan', 'complete_todo']
 const allowedProjectIds = typeof args.projects === 'string'
   ? args.projects.split(',').map((s) => s.trim()).filter(Boolean)
   : null

@@ -1,6 +1,16 @@
 import { supabase } from '@/lib/supabase'
 
-export type AgentScope = 'read_projects' | 'read_logs' | 'create_project' | 'create_log' | 'update_log' | 'update_project'
+export type AgentScope =
+  | 'read_projects'
+  | 'read_logs'
+  | 'create_project'
+  | 'create_log'
+  | 'update_log'
+  | 'update_project'
+  | 'read_plan'
+  | 'create_plan'
+  | 'update_plan'
+  | 'complete_todo'
 
 export type AgentToken = {
   id: string

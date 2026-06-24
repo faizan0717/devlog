@@ -121,7 +121,7 @@ export default function LogPreview() {
 
           {/* Content */}
           {log.content ? (
-            <div className="prose prose-invert max-w-none mb-8 [&_p]:text-[1.0625rem] [&_p]:leading-relaxed [&_p]:text-ink-secondary">
+            <div className="prose prose-log max-w-none mb-8">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{log.content}</ReactMarkdown>
             </div>
           ) : (

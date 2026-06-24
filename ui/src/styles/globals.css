@@ -70,6 +70,109 @@
   .focus-ring {
     @apply outline-none ring-2 ring-accent/40 ring-offset-2 ring-offset-surface-950;
   }
+
+  /* Log content prose — light-background, brand guide color system */
+  .prose-log {
+    --tw-prose-body:          #374151;
+    --tw-prose-headings:      #111827;
+    --tw-prose-lead:          #4b5563;
+    --tw-prose-links:         #2563eb;
+    --tw-prose-bold:          #111827;
+    --tw-prose-counters:      #6b7280;
+    --tw-prose-bullets:       #9ca3af;
+    --tw-prose-hr:            #e5e7eb;
+    --tw-prose-quotes:        #6b7280;
+    --tw-prose-quote-borders: #2563eb;
+    --tw-prose-captions:      #9ca3af;
+    --tw-prose-code:          #374151;
+    --tw-prose-pre-code:      #e2e8f0;
+    --tw-prose-pre-bg:        #111827;
+    --tw-prose-th-borders:    #e5e7eb;
+    --tw-prose-td-borders:    #f3f4f6;
+  }
+
+  .prose-log p {
+    font-size: 1.0625rem;
+    line-height: 1.78;
+  }
+
+  .prose-log h2 {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    margin-top: 2.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .prose-log h3 {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-top: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .prose-log :not(pre) > code {
+    background-color: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 5px;
+    padding: 0.15em 0.45em;
+    font-size: 0.85em;
+    color: #374151;
+  }
+
+  .prose-log pre {
+    background-color: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+  }
+
+  .prose-log pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 0.875rem;
+    color: #e2e8f0;
+  }
+
+  .prose-log blockquote {
+    border-left-color: #2563eb;
+    border-left-width: 2px;
+    font-style: italic;
+    padding-left: 1.25rem;
+    color: #6b7280;
+  }
+
+  .prose-log blockquote p {
+    color: inherit;
+  }
+
+  .prose-log hr {
+    border-color: #e5e7eb;
+    margin-top: 2.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .prose-log img {
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+  }
+
+  .prose-log table {
+    font-size: 0.9rem;
+  }
+
+  .prose-log thead th {
+    color: #111827;
+    font-weight: 600;
+    border-bottom-color: #e5e7eb;
+  }
+
+  .prose-log td {
+    border-color: #f3f4f6;
+    color: #374151;
+  }
 }
 
 @layer utilities {
