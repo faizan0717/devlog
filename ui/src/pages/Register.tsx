@@ -54,7 +54,8 @@ export default function Register() {
   async function handleGoogleSignIn() {
     setLoading(true)
     try {
-      await authService.signInWithGoogle(`${window.location.origin}${ROUTES.EXPLORE}`)
+      const appUrl = import.meta.env.PROD ? import.meta.env.VITE_APP_URL : window.location.origin
+      await authService.signInWithGoogle(`${appUrl}${ROUTES.EXPLORE}`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Google sign-in failed.')
       setLoading(false)
