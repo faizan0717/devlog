@@ -21,7 +21,7 @@ export function PublicLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-surface-950 flex flex-col">
+    <div className="min-h-screen bg-chalk flex flex-col">
       <PublicNav />
       <main className="flex-1">
         <Suspense fallback={<LayoutLoader />}>

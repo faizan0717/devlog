@@ -9,16 +9,17 @@ interface UseLogEditorOptions {
   projectId: string
   userId: string
   initialLog?: Log | null
+  projectVisibility?: Visibility
 }
 
-export function useLogEditor({ logId, projectId, userId, initialLog }: UseLogEditorOptions) {
+export function useLogEditor({ logId, projectId, userId, initialLog, projectVisibility }: UseLogEditorOptions) {
   const navigate = useNavigate()
 
   const [title, setTitle] = useState(initialLog?.title ?? '')
   const [content, setContent] = useState(initialLog?.content ?? '')
   const [mood, setMood] = useState<LogMood | null>(initialLog?.mood ?? null)
   const [media, setMedia] = useState<LogMedia[]>(initialLog?.media ?? [])
-  const [visibility, setVisibility] = useState<Visibility>(initialLog?.visibility ?? 'private')
+  const [visibility, setVisibility] = useState<Visibility>(initialLog?.visibility ?? projectVisibility ?? 'private')
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [savedAt, setSavedAt] = useState<Date | null>(null)
@@ -39,6 +40,13 @@ export function useLogEditor({ logId, projectId, userId, initialLog }: UseLogEdi
       currentLogId.current = initialLog.id
     }
   }, [initialLog])
+
+  // For new logs, apply project visibility once it resolves
+  useEffect(() => {
+    if (isNew && !initialLog && projectVisibility) {
+      setVisibility(projectVisibility)
+    }
+  }, [isNew, initialLog, projectVisibility])
 
   const save = useCallback(
     async (patch: Partial<Pick<Log, 'title' | 'content' | 'mood' | 'media' | 'visibility'>>) => {

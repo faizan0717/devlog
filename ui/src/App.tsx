@@ -1,5 +1,5 @@
-import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
+import { lazy, Suspense, useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
 import { RootLayout } from '@/components/layout/RootLayout'
@@ -28,6 +28,15 @@ const PublicProfile = lazy(() => import('@/pages/PublicProfile'))
 const PublicProject = lazy(() => import('@/pages/PublicProject'))
 const PublicLog = lazy(() => import('@/pages/PublicLog'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
+const Docs = lazy(() => import('@/pages/Docs'))
+const Pricing = lazy(() => import('@/pages/Pricing'))
+const Privacy = lazy(() => import('@/pages/Privacy'))
+
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
+  return null
+}
 
 function ProjectPreviewRedirect() {
   const { id } = useParams<{ id: string }>()
@@ -204,6 +213,10 @@ function AnimatedRoutes() {
           />
         </Route>
 
+        <Route path="/docs"    element={<Suspense fallback={<PageLoader />}><Docs /></Suspense>} />
+        <Route path="/pricing" element={<Suspense fallback={<PageLoader />}><Pricing /></Suspense>} />
+        <Route path="/privacy" element={<Suspense fallback={<PageLoader />}><Privacy /></Suspense>} />
+
         <Route
           path={ROUTES.NOT_FOUND}
           element={
@@ -220,6 +233,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <ScrollToTop />
         <AnimatedRoutes />
         <Toaster
           position="bottom-right"

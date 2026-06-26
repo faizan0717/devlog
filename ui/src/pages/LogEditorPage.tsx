@@ -3,8 +3,9 @@ import { useParams, Navigate } from 'react-router-dom'
 import { Spinner } from '@/components/ui'
 import { LogEditor } from '@/features/logs/components/LogEditor'
 import { logsService } from '@/services/logs.service'
+import { projectsService } from '@/services/projects.service'
 import { useAuthStore } from '@/stores/authStore'
-import type { Log } from '@/types'
+import type { Log, Visibility } from '@/types'
 
 export default function LogEditorPage() {
   const { id: projectId, logId } = useParams<{ id: string; logId: string }>()
@@ -12,11 +13,22 @@ export default function LogEditorPage() {
 
   const isNew = !logId
   const [log, setLog] = useState<Log | null>(null)
-  const [loading, setLoading] = useState(!isNew)
+  const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [projectVisibility, setProjectVisibility] = useState<Visibility | undefined>(undefined)
 
   useEffect(() => {
-    if (isNew || !logId) return
+    if (!projectId) return
+    projectsService.getById(projectId)
+      .then((p) => setProjectVisibility(p?.visibility))
+      .catch(() => {})
+  }, [projectId])
+
+  useEffect(() => {
+    if (isNew || !logId) {
+      setLoading(false)
+      return
+    }
     setLoading(true)
     logsService
       .getById(logId)
@@ -46,6 +58,7 @@ export default function LogEditorPage() {
         userId={user.id}
         logId={isNew ? null : (logId ?? null)}
         initialLog={log}
+        projectVisibility={projectVisibility}
       />
     </div>
   )

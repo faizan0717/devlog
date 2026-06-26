@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
-import { Search, X, Plus } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { Spinner } from '@/components/ui'
 import { NotificationBell } from '@/features/social/components/NotificationBell'
 import { SearchResultsPanel } from '@/features/explore/components/SearchResultsPanel'
@@ -82,14 +82,6 @@ export function Navbar() {
 
       {/* Right actions */}
       {user && <NotificationBell />}
-
-      <Link
-        to={ROUTES.PROJECTS}
-        className="flex shrink-0 items-center gap-1.5 rounded-[7px] bg-accent px-4 py-[7px] text-[13px] font-semibold text-white hover:bg-accent-dark transition-colors"
-      >
-        <Plus size={12} strokeWidth={2.5} />
-        New entry
-      </Link>
 
       {profileTo ? (
         <Link

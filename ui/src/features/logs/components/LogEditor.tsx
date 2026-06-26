@@ -9,21 +9,22 @@ import { MoodSelector } from './MoodSelector'
 import { MediaUpload } from './MediaUpload'
 import { MediaGallery } from './MediaGallery'
 import { useLogEditor } from '../hooks/useLogEditor'
-import type { Log } from '@/types'
+import type { Log, Visibility } from '@/types'
 
 interface LogEditorProps {
   projectId: string
   userId: string
   logId: string | null
   initialLog?: Log | null
+  projectVisibility?: Visibility
 }
 
-export function LogEditor({ projectId, userId, logId, initialLog }: LogEditorProps) {
+export function LogEditor({ projectId, userId, logId, initialLog, projectVisibility }: LogEditorProps) {
   const navigate = useNavigate()
   const [preview, setPreview] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
 
-  const editor = useLogEditor({ logId, projectId, userId, initialLog })
+  const editor = useLogEditor({ logId, projectId, userId, initialLog, projectVisibility })
 
   function handleDelete() {
     if (!deleteConfirm) {

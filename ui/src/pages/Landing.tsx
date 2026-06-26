@@ -97,7 +97,7 @@ export default function Landing() {
               to={ROUTES.EXPLORE}
               className="text-ink-tertiary px-7 py-3.5 rounded-[8px] text-[15px] border border-ink-primary/[0.12] hover:border-ink-primary/25 hover:text-ink-secondary transition-colors font-sans"
             >
-              View a demo log →
+              View public logs →
             </Link>
           </div>
         </motion.div>
@@ -439,7 +439,7 @@ export default function Landing() {
                 Start logging free →
               </Link>
               <Link
-                to={ROUTES.EXPLORE}
+                to="/docs"
                 className="text-ink-disabled px-6 py-4 text-[15px] hover:text-ink-secondary transition-colors font-sans"
               >
                 Read the docs
@@ -457,10 +457,14 @@ export default function Landing() {
         </div>
         <div className="font-mono text-[11px] text-[#cbd5e1]">The build journal that writes itself. © 2026</div>
         <div className="flex gap-6">
-          {['Docs', 'Pricing', 'GitHub', 'Privacy'].map((link) => (
-            <a key={link} href="#" className="text-[13px] text-ink-disabled hover:text-ink-secondary transition-colors font-sans">
-              {link}
-            </a>
+          {([
+            { label: 'Docs',    to: '/docs'    },
+            { label: 'Pricing', to: '/pricing' },
+            { label: 'Privacy', to: '/privacy' },
+          ] as const).map(({ label, to }) => (
+            <Link key={label} to={to} className="text-[13px] text-ink-disabled hover:text-ink-secondary transition-colors font-sans">
+              {label}
+            </Link>
           ))}
         </div>
       </footer>

@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import {
   Globe, Link2, Lock, Users, UserPlus, BookOpen, Plus, Check, Upload,
   Pencil, Trash2, ChevronUp, ChevronDown,
@@ -22,6 +24,89 @@ import { planService } from '@/services/plan.service'
 import type { Log, PlanMilestone, PlanMilestoneWithTodos, PlanStatus, PlanTodo, PlanTodoWithSources, Visibility } from '@/types'
 import { cn, formatDate } from '@/utils'
 import { COVER_GRADIENTS, getCoverGradient } from '@/utils/coverGradient'
+
+// ── Share modal ───────────────────────────────────────────────────────────────
+
+function ShareModal({ open, onClose, projectTitle, projectId }: {
+  open: boolean
+  onClose: () => void
+  projectTitle: string
+  projectId: string
+}) {
+  const shareUrl = `${window.location.origin}/p/${projectId}`
+  const text = encodeURIComponent(`Check out "${projectTitle}" on devLog — a public build journal where makers log their progress. ${shareUrl}`)
+  const linkedinText = encodeURIComponent(`Check out "${projectTitle}" on devLog`)
+
+  function copyLink() {
+    navigator.clipboard.writeText(shareUrl).then(() => toast.success('Link copied'))
+  }
+
+  const links = [
+    {
+      label: 'WhatsApp',
+      color: '#25D366',
+      href: `https://wa.me/?text=${text}`,
+      icon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+          <path d="M12 0C5.374 0 0 5.373 0 12c0 2.117.549 4.099 1.505 5.823L.057 23.945a.75.75 0 0 0 .918.919l6.183-1.43A11.94 11.94 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.71 9.71 0 0 1-4.947-1.351l-.355-.21-3.67.849.872-3.596-.229-.368A9.71 9.71 0 0 1 2.25 12c0-5.385 4.365-9.75 9.75-9.75S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/>
+        </svg>
+      ),
+    },
+    {
+      label: 'X / Twitter',
+      color: '#000',
+      href: `https://twitter.com/intent/tweet?text=${text}`,
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+        </svg>
+      ),
+    },
+    {
+      label: 'LinkedIn',
+      color: '#0A66C2',
+      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&summary=${linkedinText}`,
+      icon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+        </svg>
+      ),
+    },
+  ]
+
+  return (
+    <Modal open={open} onClose={onClose} title="Share project" className="max-w-sm">
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-gray-50 px-3 py-2.5">
+          <span className="flex-1 text-[13px] text-ink-secondary truncate font-mono">{shareUrl}</span>
+          <button
+            type="button"
+            onClick={copyLink}
+            className="text-[12px] font-semibold text-accent hover:text-accent-dark transition-colors shrink-0"
+          >
+            Copy
+          </button>
+        </div>
+        <div className="flex flex-col gap-2">
+          {links.map((l) => (
+            <a
+              key={l.label}
+              href={l.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-lg border border-border px-4 py-3 text-[13px] font-medium text-ink-secondary hover:bg-gray-50 transition-colors"
+              style={{ color: l.color }}
+            >
+              {l.icon}
+              <span className="text-ink-secondary">{l.label}</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </Modal>
+  )
+}
 
 // ── Mood helpers ──────────────────────────────────────────────────────────────
 
@@ -319,14 +404,79 @@ function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
 }
 
 function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+  const resize = useCallback(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [])
+  useEffect(() => { resize() }, [props.value, resize])
   return (
     <textarea
+      ref={ref}
       {...props}
+      onInput={(e) => { resize(); props.onInput?.(e) }}
       className={cn(
-        'w-full rounded-lg border border-border bg-gray-50 text-ink-primary text-[14px] px-3.5 py-2.5 outline-none focus:border-accent/60 focus:bg-white transition-colors resize-none disabled:opacity-60 placeholder:text-ink-disabled',
+        'w-full rounded-lg border border-border bg-gray-50 text-ink-primary text-[14px] px-3.5 py-2.5 outline-none focus:border-accent/60 focus:bg-white transition-colors resize-none disabled:opacity-60 placeholder:text-ink-disabled max-h-64 overflow-y-auto',
         props.className,
       )}
     />
+  )
+}
+
+function DescriptionEditor({
+  value,
+  onChange,
+  disabled,
+  placeholder = 'Add a description… markdown is supported.',
+}: {
+  value: string
+  onChange: (v: string) => void
+  disabled?: boolean
+  placeholder?: string
+}) {
+  const [mode, setMode] = useState<'write' | 'preview'>('write')
+  return (
+    <div className="flex flex-col rounded-lg border border-border overflow-hidden focus-within:border-accent/60 transition-colors">
+      <div className="flex items-center gap-0 border-b border-border bg-gray-50 px-1 py-1">
+        {(['write', 'preview'] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMode(m)}
+            className={cn(
+              'px-3 py-1 rounded text-[12px] font-medium capitalize transition-colors',
+              mode === m
+                ? 'bg-white text-ink-primary shadow-sm border border-border'
+                : 'text-ink-disabled hover:text-ink-secondary',
+            )}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+      {mode === 'write' ? (
+        <TextArea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          disabled={disabled}
+          rows={5}
+          className="rounded-none border-0 bg-white focus:bg-white min-h-[120px]"
+        />
+      ) : (
+        <div className="min-h-[120px] max-h-64 overflow-y-auto px-3.5 py-2.5 bg-white">
+          {value.trim() ? (
+            <div className="prose prose-sm max-w-none prose-p:text-ink-secondary prose-headings:text-ink-primary prose-a:text-accent prose-code:text-accent-dark prose-pre:bg-gray-50 prose-pre:border prose-pre:border-border prose-blockquote:border-l-accent prose-blockquote:text-ink-secondary">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown>
+            </div>
+          ) : (
+            <p className="text-[14px] text-ink-disabled italic">Nothing to preview yet.</p>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -349,6 +499,7 @@ function MilestoneEditorModal({
   ownerId,
   userId,
   sortOrder,
+  projectVisibility,
   onClose,
   onSaved,
 }: {
@@ -358,13 +509,14 @@ function MilestoneEditorModal({
   ownerId: string
   userId: string | undefined
   sortOrder: number
+  projectVisibility: Visibility
   onClose: () => void
   onSaved: (id?: string) => void
 }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [status, setStatus] = useState<PlanStatus>('pending')
-  const [visibility, setVisibility] = useState<Visibility>('private')
+  const [visibility, setVisibility] = useState<Visibility>(projectVisibility)
   const [targetDate, setTargetDate] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -373,9 +525,9 @@ function MilestoneEditorModal({
     setTitle(milestone?.title ?? '')
     setDescription(milestone?.description ?? '')
     setStatus(milestone?.status ?? 'pending')
-    setVisibility(milestone?.visibility ?? 'private')
+    setVisibility(milestone?.visibility ?? projectVisibility)
     setTargetDate(milestone?.target_date ?? '')
-  }, [open, milestone])
+  }, [open, milestone, projectVisibility])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -417,15 +569,15 @@ function MilestoneEditorModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={milestone ? 'Edit milestone' : 'Add milestone'}>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <Modal open={open} onClose={onClose} title={milestone ? 'Edit milestone' : 'Add milestone'} className="max-w-2xl">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="flex flex-col gap-1.5">
           <FieldLabel>Title</FieldLabel>
           <TextInput value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus disabled={saving} />
         </div>
         <div className="flex flex-col gap-1.5">
           <FieldLabel>Description</FieldLabel>
-          <TextArea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} disabled={saving} />
+          <DescriptionEditor value={description} onChange={setDescription} disabled={saving} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
@@ -445,9 +597,9 @@ function MilestoneEditorModal({
           <FieldLabel>Visibility</FieldLabel>
           <VisibilitySelector value={visibility} onChange={setVisibility} disabled={saving} />
         </div>
-        <div className="flex justify-end gap-2 pt-1">
+        <div className="flex justify-end gap-2 pt-2 border-t border-border">
           <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button type="submit" loading={saving}>{milestone ? 'Save' : 'Add milestone'}</Button>
+          <Button type="submit" loading={saving}>{milestone ? 'Save changes' : 'Add milestone'}</Button>
         </div>
       </form>
     </Modal>
@@ -462,6 +614,7 @@ function TodoEditorModal({
   ownerId,
   userId,
   sortOrder,
+  projectVisibility,
   onClose,
   onSaved,
 }: {
@@ -472,13 +625,14 @@ function TodoEditorModal({
   ownerId: string
   userId: string | undefined
   sortOrder: number
+  projectVisibility: Visibility
   onClose: () => void
   onSaved: () => void
 }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [status, setStatus] = useState<PlanStatus>('pending')
-  const [visibility, setVisibility] = useState<Visibility>('private')
+  const [visibility, setVisibility] = useState<Visibility>(projectVisibility)
   const [milestoneId, setMilestoneId] = useState(selectedMilestone.id)
   const [saving, setSaving] = useState(false)
 
@@ -487,9 +641,9 @@ function TodoEditorModal({
     setTitle(todo?.title ?? '')
     setDescription(todo?.description ?? '')
     setStatus(todo?.status ?? 'pending')
-    setVisibility(todo?.visibility ?? 'private')
+    setVisibility(todo?.visibility ?? projectVisibility)
     setMilestoneId(todo?.milestone_id ?? selectedMilestone.id)
-  }, [open, todo, selectedMilestone.id])
+  }, [open, todo, selectedMilestone.id, projectVisibility])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -531,15 +685,15 @@ function TodoEditorModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={todo ? 'Edit todo' : 'Add todo'}>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <Modal open={open} onClose={onClose} title={todo ? 'Edit todo' : 'Add todo'} className="max-w-2xl">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="flex flex-col gap-1.5">
           <FieldLabel>Title</FieldLabel>
           <TextInput value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus disabled={saving} />
         </div>
         <div className="flex flex-col gap-1.5">
           <FieldLabel>Description</FieldLabel>
-          <TextArea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} disabled={saving} />
+          <DescriptionEditor value={description} onChange={setDescription} disabled={saving} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
@@ -561,9 +715,9 @@ function TodoEditorModal({
           <FieldLabel>Visibility</FieldLabel>
           <VisibilitySelector value={visibility} onChange={setVisibility} disabled={saving} />
         </div>
-        <div className="flex justify-end gap-2 pt-1">
+        <div className="flex justify-end gap-2 pt-2 border-t border-border">
           <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button type="submit" loading={saving}>{todo ? 'Save' : 'Add todo'}</Button>
+          <Button type="submit" loading={saving}>{todo ? 'Save changes' : 'Add todo'}</Button>
         </div>
       </form>
     </Modal>
@@ -579,6 +733,7 @@ function PlanTab({
   ownerId,
   userId,
   canEdit,
+  projectVisibility,
   onSelect,
   onRefresh,
 }: {
@@ -590,6 +745,7 @@ function PlanTab({
   ownerId: string
   userId: string | undefined
   canEdit: boolean
+  projectVisibility: Visibility
   onSelect: (id: string) => void
   onRefresh: () => void
 }) {
@@ -598,6 +754,30 @@ function PlanTab({
   const [todoModalOpen, setTodoModalOpen] = useState(false)
   const [editingTodo, setEditingTodo] = useState<PlanTodo | null>(null)
   const [mutatingId, setMutatingId] = useState<string | null>(null)
+  const [sidebarWidth, setSidebarWidth] = useState(236)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const isResizing = useRef(false)
+
+  function startResize(e: ReactMouseEvent) {
+    e.preventDefault()
+    isResizing.current = true
+
+    function onMouseMove(ev: MouseEvent) {
+      if (!isResizing.current || !containerRef.current) return
+      const rect = containerRef.current.getBoundingClientRect()
+      const newWidth = Math.min(Math.max(ev.clientX - rect.left, 160), 420)
+      setSidebarWidth(newWidth)
+    }
+
+    function onMouseUp() {
+      isResizing.current = false
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+  }
 
   if (loading) {
     return (
@@ -733,6 +913,7 @@ function PlanTab({
           ownerId={ownerId}
           userId={userId}
           sortOrder={0}
+          projectVisibility={projectVisibility}
           onClose={() => setMilestoneModalOpen(false)}
           onSaved={(id) => { if (id) onSelect(id); onRefresh() }}
         />
@@ -753,8 +934,8 @@ function PlanTab({
 
   return (
     <>
-      <div className="-mx-10 grid grid-cols-1 lg:grid-cols-[236px_1fr] min-h-[520px]">
-        <div className="border-r border-border bg-chalk px-3 py-5 flex flex-col">
+      <div ref={containerRef} className="-mx-10 flex min-h-[520px]" style={{ userSelect: isResizing.current ? 'none' : undefined }}>
+        <div className="bg-chalk px-3 py-5 flex flex-col shrink-0 overflow-y-auto" style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
           <div className="flex items-center justify-between px-1.5 mb-3.5">
             <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-disabled">Milestones</span>
             {canEdit && (
@@ -776,7 +957,7 @@ function PlanTab({
               const active = selected.id === m.id
               const meta = PLAN_STATUS_META[m.status]
               return (
-                <div key={m.id} className="group flex items-center gap-1">
+                <div key={m.id} className="group flex items-center gap-0.5">
                   <button
                     type="button"
                     onClick={() => onSelect(m.id)}
@@ -793,10 +974,22 @@ function PlanTab({
                     </div>
                     <span className="font-mono text-[9px] px-1.5 py-[1px] rounded-[3px] flex-shrink-0" style={meta.badgeStyle}>{meta.label}</span>
                   </button>
-                  {canEdit && active && (
-                    <div className="flex flex-col">
-                      <button type="button" disabled={index === 0 || mutatingId === m.id} onClick={() => updateMilestoneOrder(index, -1)} className="text-ink-disabled hover:text-ink-secondary disabled:opacity-20"><ChevronUp size={13} /></button>
-                      <button type="button" disabled={index === milestones.length - 1 || mutatingId === m.id} onClick={() => updateMilestoneOrder(index, 1)} className="text-ink-disabled hover:text-ink-secondary disabled:opacity-20"><ChevronDown size={13} /></button>
+                  {canEdit && (
+                    <div className="flex flex-col shrink-0">
+                      {active ? (
+                        <>
+                          <button type="button" disabled={index === 0 || mutatingId === m.id} onClick={() => updateMilestoneOrder(index, -1)} className="p-0.5 text-ink-disabled hover:text-ink-secondary disabled:opacity-20"><ChevronUp size={13} /></button>
+                          <button type="button" disabled={index === milestones.length - 1 || mutatingId === m.id} onClick={() => updateMilestoneOrder(index, 1)} className="p-0.5 text-ink-disabled hover:text-ink-secondary disabled:opacity-20"><ChevronDown size={13} /></button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); openEditMilestone(m) }}
+                          className="p-1 text-ink-disabled hover:text-accent transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -805,7 +998,15 @@ function PlanTab({
           </div>
         </div>
 
-        <div className="bg-paper px-8 py-7 overflow-y-auto">
+        {/* Drag handle */}
+        <div
+          onMouseDown={startResize}
+          className="w-[5px] shrink-0 cursor-col-resize relative group"
+        >
+          <div className="absolute inset-y-0 left-[2px] w-px bg-border group-hover:bg-accent/40 transition-colors duration-150" />
+        </div>
+
+        <div className="flex-1 min-w-0 bg-paper px-8 py-7 overflow-y-auto">
           <div className="flex items-start justify-between gap-3 mb-3.5">
             <div>
               <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -889,6 +1090,7 @@ function PlanTab({
         ownerId={ownerId}
         userId={userId}
         sortOrder={milestones.length}
+        projectVisibility={projectVisibility}
         onClose={() => setMilestoneModalOpen(false)}
         onSaved={(id) => { if (id) onSelect(id); onRefresh() }}
       />
@@ -900,6 +1102,7 @@ function PlanTab({
         ownerId={ownerId}
         userId={userId}
         sortOrder={todos.length}
+        projectVisibility={projectVisibility}
         onClose={() => setTodoModalOpen(false)}
         onSaved={onRefresh}
       />
@@ -929,6 +1132,7 @@ export default function ProjectDetail() {
   // Modals
   const [inviteOpen, setInviteOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
 
   // Settings form
   const [editTitle, setEditTitle] = useState('')
@@ -1021,8 +1225,7 @@ export default function ProjectDetail() {
   }
 
   function handleShare() {
-    const url = `${window.location.origin}/p/${project?.id}`
-    navigator.clipboard.writeText(url).then(() => toast.success('Link copied'))
+    setShareOpen(true)
   }
 
   if (loading) {
@@ -1212,6 +1415,7 @@ export default function ProjectDetail() {
               ownerId={project.owner_id}
               userId={user?.id}
               canEdit={!!isEditor}
+              projectVisibility={project.visibility}
               onSelect={setPlanMilestoneId}
               onRefresh={refreshPlan}
             />
@@ -1354,6 +1558,13 @@ export default function ProjectDetail() {
       </AnimatePresence>
 
       {/* ── Modals ── */}
+      <ShareModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        projectTitle={project.title}
+        projectId={project.id}
+      />
+
       {isOwner && (
         <>
           <CollaboratorInviteModal
