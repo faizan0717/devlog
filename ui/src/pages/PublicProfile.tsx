@@ -17,7 +17,7 @@ import { profilesService } from '@/services/profiles.service'
 import { exploreService } from '@/services/explore.service'
 import { useAuthStore } from '@/stores/authStore'
 import { formatDate } from '@/utils'
-import type { Profile, PublicProject, PublicLog, LogMood } from '@/types'
+import type { Profile, PublicProject, PublicLog } from '@/types'
 
 // ── brand guide mood tokens ──────────────────────────────────────────────────
 

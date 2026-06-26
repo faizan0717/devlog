@@ -25,7 +25,7 @@ import type { Profile } from '@/types'
 const SECTION = 'mb-9 pb-9 border-b border-gray-100'
 const H2 = 'text-[14px] font-semibold text-ink-primary mb-4'
 const LABEL = 'block text-[13px] font-medium text-ink-secondary mb-1.5'
-const INPUT_BASE = 'h-10 w-full border border-border rounded-lg px-3.5 text-[14px] text-ink-primary bg-gray-50 outline-none focus:border-accent focus:ring-2 focus:ring-accent/10 transition-colors placeholder:text-ink-disabled disabled:opacity-60'
+// INPUT_BASE removed — unused
 const HINT = 'font-mono text-[10px] text-ink-disabled mt-1.5 block'
 
 export default function Profile() {

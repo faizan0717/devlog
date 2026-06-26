@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Copy, KeyRound, Plus, ShieldCheck, Terminal, Trash2 } from 'lucide-react'
+import { Copy, Plus, ShieldCheck, Terminal, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { AnimatedPage } from '@/components/shared/AnimatedPage'
 import { Button, Input, Modal, Spinner } from '@/components/ui'
