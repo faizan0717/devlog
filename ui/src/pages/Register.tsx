@@ -51,6 +51,16 @@ export default function Register() {
     }
   }
 
+  async function handleGoogleSignIn() {
+    setLoading(true)
+    try {
+      await authService.signInWithGoogle(`${window.location.origin}${ROUTES.EXPLORE}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Google sign-in failed.')
+      setLoading(false)
+    }
+  }
+
   return (
     <AuthSplitLayout>
       <AnimatedPage className="w-full p-0">
@@ -117,8 +127,9 @@ export default function Register() {
         {/* Google */}
         <button
           type="button"
-          onClick={() => toast.info('Google sign-in coming soon.')}
-          className="w-full flex items-center justify-center gap-2.5 bg-paper text-ink-primary border border-border py-3 rounded-[8px] text-[14px] font-medium font-sans cursor-pointer hover:bg-chalk transition-colors"
+          onClick={handleGoogleSignIn}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-2.5 bg-paper text-ink-primary border border-border py-3 rounded-[8px] text-[14px] font-medium font-sans cursor-pointer hover:bg-chalk transition-colors disabled:opacity-60"
         >
           <GoogleIcon />
           Continue with Google
