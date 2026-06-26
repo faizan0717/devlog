@@ -5,7 +5,7 @@ BASE_URL="__BASE_URL__"
 CMD="${1:-}"
 TOKEN=""
 SCOPE=""
-AGENTS="claude"
+AGENTS=""
 YES="false"
 MCP="false"
 
@@ -177,6 +177,36 @@ PY
 local_files() { printf "%s\n" "CLAUDE.md" ".cursor/rules/devlog.mdc" ".windsurfrules" ".github/copilot-instructions.md"; }
 global_files() { printf "%s\n" "$HOME/.claude/CLAUDE.md"; }
 
+choose_agents_if_needed() {
+  [ -n "$AGENTS" ] && return
+  if have_tty; then
+    local answer=""
+    ask "Which agents for this repo? [all/claude,cursor,windsurf,copilot]:" answer
+    answer="$(printf "%s" "$answer" | tr '[:upper:]' '[:lower:]' | xargs)"
+    AGENTS="${answer:-all}"
+  else
+    AGENTS="all"
+  fi
+}
+
+write_local_agent_blocks() {
+  local token_ref="$1" token="$2"
+  choose_agents_if_needed
+  IFS=',' read -ra selected <<< "$AGENTS"
+  for agent in "${selected[@]}"; do
+    agent="$(printf "%s" "$agent" | tr '[:upper:]' '[:lower:]' | xargs)"
+    case "$agent" in
+      claude|claude-code) write_managed_block "CLAUDE.md" "$token_ref"; [ "$MCP" = "true" ] && configure_mcp_for_agent "claude" "local" "$token" ;;
+      cursor) write_managed_block ".cursor/rules/devlog.mdc" "$token_ref"; [ "$MCP" = "true" ] && configure_mcp_for_agent "cursor" "local" "$token" ;;
+      windsurf) write_managed_block ".windsurfrules" "$token_ref"; [ "$MCP" = "true" ] && configure_mcp_for_agent "windsurf" "local" "$token" ;;
+      copilot|github-copilot) write_managed_block ".github/copilot-instructions.md" "$token_ref"; [ "$MCP" = "true" ] && configure_mcp_for_agent "copilot" "local" "$token" ;;
+      all) write_managed_block "CLAUDE.md" "$token_ref"; write_managed_block ".cursor/rules/devlog.mdc" "$token_ref"; write_managed_block ".windsurfrules" "$token_ref"; write_managed_block ".github/copilot-instructions.md" "$token_ref"; if [ "$MCP" = "true" ]; then configure_mcp_for_agent "claude" "local" "$token"; configure_mcp_for_agent "cursor" "local" "$token"; configure_mcp_for_agent "windsurf" "local" "$token"; configure_mcp_for_agent "copilot" "local" "$token"; fi ;;
+      "") ;;
+      *) warn "Unknown agent '$agent' skipped" ;;
+    esac
+  done
+}
+
 write_mcp_json() {
   local file="$1" token="$2" client="$3" dir tmp
   dir="$(dirname "$file")"
@@ -258,25 +288,18 @@ install_scope() {
   if [ "$scope" = "local" ]; then
     touch .gitignore
     if grep -qxF ".devlog" .gitignore; then info ".devlog already in .gitignore"; else printf "\n.devlog\n" >> .gitignore; ok "Added .devlog to .gitignore"; fi
-    IFS=',' read -ra selected <<< "$AGENTS"
-    for agent in "${selected[@]}"; do
-      agent="$(printf "%s" "$agent" | tr '[:upper:]' '[:lower:]' | xargs)"
-      case "$agent" in
-        claude|claude-code) write_managed_block "CLAUDE.md" ".devlog"; [ "$MCP" = "true" ] && configure_mcp_for_agent "claude" "local" "$token" ;;
-        cursor) write_managed_block ".cursor/rules/devlog.mdc" ".devlog"; [ "$MCP" = "true" ] && configure_mcp_for_agent "cursor" "local" "$token" ;;
-        windsurf) write_managed_block ".windsurfrules" ".devlog"; [ "$MCP" = "true" ] && configure_mcp_for_agent "windsurf" "local" "$token" ;;
-        copilot|github-copilot) write_managed_block ".github/copilot-instructions.md" ".devlog"; [ "$MCP" = "true" ] && configure_mcp_for_agent "copilot" "local" "$token" ;;
-        all) write_managed_block "CLAUDE.md" ".devlog"; write_managed_block ".cursor/rules/devlog.mdc" ".devlog"; write_managed_block ".windsurfrules" ".devlog"; write_managed_block ".github/copilot-instructions.md" ".devlog"; if [ "$MCP" = "true" ]; then configure_mcp_for_agent "claude" "local" "$token"; configure_mcp_for_agent "cursor" "local" "$token"; configure_mcp_for_agent "windsurf" "local" "$token"; configure_mcp_for_agent "copilot" "local" "$token"; fi ;;
-        "") ;;
-        *) warn "Unknown agent '$agent' skipped" ;;
-      esac
-    done
+    write_local_agent_blocks ".devlog" "$token"
   else
     mkdir -p "$HOME/.claude"
     write_managed_block "$HOME/.claude/CLAUDE.md" "~/.devlog"
     if [ "$MCP" = "true" ]; then
       configure_mcp_for_agent "claude" "global" "$token"
       info "REST instructions remain the global fallback for all agents."
+    fi
+    if have_tty; then
+      local answer=""
+      ask "Also configure this repo for Claude/Cursor/Windsurf/Copilot using ~/.devlog? [Y/n]:" answer
+      case "$(printf "%s" "$answer" | tr '[:upper:]' '[:lower:]')" in n|no) ;; *) write_local_agent_blocks "~/.devlog" "$token" ;; esac
     fi
   fi
 }
