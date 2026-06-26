@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { supabase } from '../supabase.js'
-import { assertLogOwnership, assertProjectAccess, getAgentContext, requireScope } from '../auth.js'
+import { assertLogOwnership, assertProjectWriteAccess, getAgentContext, requireScope } from '../auth.js'
 import { auditAgentAction } from '../audit.js'
 
 const visibilitySchema = z.enum(['private', 'public', 'shared', 'unlisted']).default('private')
@@ -14,7 +14,7 @@ function jsonText(value: unknown) {
 export function registerLogTools(server: McpServer): void {
   server.tool(
     'devlog_create_log',
-    'Create a timeline log in an owner project. Requires create_log scope.',
+    'Create a timeline log in a project where the token owner can write.',
     {
       project_id: z.string().uuid(),
       title: z.string().min(1).max(160),
@@ -25,7 +25,7 @@ export function registerLogTools(server: McpServer): void {
     async ({ project_id, title, content, visibility, mood }) => {
       const ctx = await getAgentContext()
       requireScope(ctx, 'create_log')
-      await assertProjectAccess(ctx, project_id)
+      await assertProjectWriteAccess(ctx, project_id)
 
       const { data, error } = await supabase
         .from('logs')
@@ -54,7 +54,7 @@ export function registerLogTools(server: McpServer): void {
 
   server.tool(
     'devlog_update_log',
-    'Update an existing timeline log entry. Requires update_log scope.',
+    'Update an existing timeline log entry where the token owner can write.',
     {
       log_id: z.string().uuid(),
       title: z.string().min(1).max(160).optional(),

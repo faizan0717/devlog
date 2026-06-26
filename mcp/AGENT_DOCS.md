@@ -1,6 +1,11 @@
 # devLog MCP — Agent Documentation
 
-devLog is a cinematic timeline platform for makers. You are connected as a scoped agent on behalf of the token owner. Use these tools to read projects, post timeline log entries, and manage project plans.
+devLog is a cinematic timeline platform for makers. You are connected through a delegated agent token for the token owner. The token lets you use devLog as that user, limited by their project access and any selected-project restriction on the token.
+
+Connection modes:
+- REST is the universal fallback at `https://api.devlog.one`.
+- Hosted MCP is available at `https://api.devlog.one/mcp` for clients that support HTTP MCP with Authorization headers.
+- setup.sh writes REST instructions for all supported agents and can write MCP config for known local project clients with `--mcp`.
 
 ## Tools
 
@@ -12,9 +17,9 @@ No params, no scope required.
 ---
 
 ### devlog_list_projects
-List projects owned by the token owner (filtered to allowed projects if the token is restricted).
+List projects the token owner can access (filtered to allowed projects if the token is restricted).
 
-**Requires scope:** `read_projects`
+**Requires:** delegated project access.
 
 ---
 
@@ -23,7 +28,7 @@ Read one project and its timeline logs.
 
 **Params:** `project_id` uuid.
 
-**Requires scope:** `read_logs`
+**Requires:** delegated project access.
 
 ---
 
@@ -32,7 +37,7 @@ Create a new devLog project.
 
 **Params:** `title`, optional `description`, `visibility` (`private` | `public` | `unlisted`), `tags`.
 
-**Requires scope:** `create_project`
+**Requires:** delegated user access.
 
 ---
 
@@ -41,7 +46,7 @@ Update project fields.
 
 **Params:** `project_id`, optional `title`, `description`, `visibility`, `tags`.
 
-**Requires scope:** `update_project`
+**Requires:** project owner access.
 
 ---
 
@@ -50,7 +55,7 @@ Create a timeline log entry.
 
 **Params:** `project_id`, `title`, optional `content`, `visibility`, `mood`.
 
-**Requires scope:** `create_log`
+**Requires:** write access to the project.
 
 ---
 
@@ -59,7 +64,7 @@ Update a timeline log entry.
 
 **Params:** `log_id`, optional `title`, `content`, `visibility`, `mood`.
 
-**Requires scope:** `update_log`
+**Requires:** write access to the log project.
 
 ---
 
@@ -70,7 +75,7 @@ Read project plan milestones and todos.
 
 Returns `{ milestones, todos }`. Each returned milestone has `plan_ref` like `1.1`; each todo has `plan_ref` like `1.1.3`.
 
-**Requires scope:** `read_plan`
+**Requires:** delegated project access.
 
 ---
 
@@ -86,7 +91,7 @@ Create a plan milestone.
 - optional `target_date` as `YYYY-MM-DD`
 - optional `sort_order` integer
 
-**Requires scope:** `create_plan`
+**Requires:** write access to the project.
 
 ---
 
@@ -95,7 +100,7 @@ Update a plan milestone.
 
 **Params:** `milestone_id`, optional `title`, `description`, `status`, `visibility`, `target_date`, `sort_order`.
 
-**Requires scope:** `update_plan`
+**Requires:** write access to the project.
 
 ---
 
@@ -104,7 +109,7 @@ Delete a plan milestone and its todos.
 
 **Params:** `milestone_id` uuid.
 
-**Requires scope:** `update_plan`
+**Requires:** write access to the project.
 
 ---
 
@@ -119,7 +124,7 @@ Create a plan todo under a milestone.
 - `visibility` — `private` | `public` | `shared` | `unlisted` default `private`
 - optional `sort_order` integer
 
-**Requires scope:** `create_plan`
+**Requires:** write access to the project.
 
 ---
 
@@ -128,7 +133,7 @@ Update a plan todo.
 
 **Params:** `todo_id`, optional `title`, `description`, `status`, `visibility`, `milestone_id`, `sort_order`.
 
-**Requires scope:** `update_plan`
+**Requires:** write access to the project.
 
 ---
 
@@ -137,7 +142,7 @@ Delete a plan todo.
 
 **Params:** `todo_id` uuid.
 
-**Requires scope:** `update_plan`
+**Requires:** write access to the project.
 
 ---
 
@@ -146,7 +151,7 @@ Mark todo(s) as done and record the completing agent token.
 
 **Params:** either `todo_id` uuid, or `project_id` uuid + `todo_ref` (`1.1.3` for one todo, `1.1.*` for all todos in a milestone).
 
-**Requires scope:** `complete_todo`
+**Requires:** write access to the project.
 
 ---
 
@@ -155,7 +160,7 @@ Reopen completed todo(s).
 
 **Params:** either `todo_id` uuid, or `project_id` uuid + `todo_ref` (`1.1.3` or `1.1.*`), optional `status` (`pending` | `doing`, default `pending`).
 
-**Requires scope:** `complete_todo`
+**Requires:** write access to the project.
 
 ---
 
@@ -196,7 +201,7 @@ Plan refs: `1.<milestone>.<todo>` are generated from sorted plan order, e.g. `1.
 
 ## Notes
 
-- Agents can only access projects owned by the token owner and allowed by `allowed_project_ids`.
+- Agents can access projects available to the token owner, further limited by `allowed_project_ids` when present.
 - Media cannot be uploaded via MCP/REST.
 - Agent-created plan items set `created_by_agent_token_id`.
 - Agent-completed todos set `completed_by_agent_token_id`.

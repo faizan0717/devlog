@@ -11,17 +11,17 @@ import type { Project } from '@/types'
 
 // ── constants ────────────────────────────────────────────────────────────────
 
-const SCOPES: { value: AgentScope; label: string; description: string }[] = [
-  { value: 'read_projects',  label: 'Read projects',      description: 'List your projects' },
-  { value: 'read_logs',      label: 'Read timelines',     description: 'Read logs in allowed projects' },
-  { value: 'create_project', label: 'Create projects',    description: 'Create new projects' },
-  { value: 'create_log',     label: 'Create logs',        description: 'Add new timeline entries' },
-  { value: 'update_log',     label: 'Update logs',        description: 'Edit existing timeline entries' },
-  { value: 'update_project', label: 'Update projects',    description: 'Edit existing project details' },
-  { value: 'read_plan',      label: 'Read plan',          description: 'Read milestones and todos' },
-  { value: 'create_plan',    label: 'Create plan items',  description: 'Create milestones and todos' },
-  { value: 'update_plan',    label: 'Update plan items',  description: 'Edit/delete milestones and todos' },
-  { value: 'complete_todo',  label: 'Complete todos',     description: 'Mark plan todos done or reopen them' },
+const DELEGATED_AGENT_SCOPES: AgentScope[] = [
+  'read_projects',
+  'read_logs',
+  'create_project',
+  'create_log',
+  'update_log',
+  'update_project',
+  'read_plan',
+  'create_plan',
+  'update_plan',
+  'complete_todo',
 ]
 
 const MCP_URL = (import.meta.env.VITE_DEVLOG_MCP_URL ?? 'http://localhost:8787') + '/mcp'
@@ -55,6 +55,11 @@ function claudeMdSnippet(scopes: AgentScope[]) {
 function setupCommand(token: string) {
   const base = MCP_URL.replace('/mcp', '')
   return `curl -fsSL ${base}/setup.sh | bash -s -- ${token}`
+}
+
+function mcpSetupCommand(token: string) {
+  const base = MCP_URL.replace('/mcp', '')
+  return `curl -fsSL ${base}/setup.sh | bash -s -- install ${token} --local --agents claude,cursor --mcp`
 }
 
 // ── shared card shell ────────────────────────────────────────────────────────
@@ -130,7 +135,10 @@ export default function AgentAccess() {
           </h1>
           <span className="font-mono text-[11px] text-ink-disabled">{MCP_URL}</span>
           <p className="mt-3 max-w-xl text-[14px] text-ink-tertiary leading-relaxed">
-            Create scoped tokens so Claude, Cursor, or local agents can add logs to your projects without using your account password.
+            Create scoped tokens that let Claude, Cursor, Windsurf, or local agents connect to devLog without using your account password.
+          </p>
+          <p className="mt-2 max-w-xl text-[13px] text-ink-disabled leading-relaxed">
+            devLog’s API and MCP endpoint are hosted at <span className="font-mono text-ink-tertiary">{MCP_URL.replace('/mcp', '')}</span>. Setup only saves your token and configures your agent.
           </p>
         </div>
         <Button onClick={() => { setCreatedToken(null); setCreateOpen(true) }}>
@@ -184,16 +192,17 @@ export default function AgentAccess() {
                       {token.last_used_at && <> · Last used {formatDate(token.last_used_at, 'relative')}</>}
                     </p>
                     <div className="mt-3 flex flex-wrap gap-1.5">
-                      {token.scopes.map((scope) => (
-                        <span key={scope} className="font-mono text-[10px] text-ink-tertiary bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-md">
-                          {scope}
-                        </span>
-                      ))}
+                      <span className="font-mono text-[10px] text-ink-tertiary bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-md">
+                        Delegated user access
+                      </span>
+                      <span className="font-mono text-[10px] text-ink-tertiary bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-md">
+                        {token.allowed_project_ids
+                          ? `${token.allowed_project_ids.length} selected project(s)`
+                          : 'All projects'}
+                      </span>
                     </div>
-                    <p className="mt-2 font-mono text-[11px] text-ink-disabled">
-                      {token.allowed_project_ids
-                        ? `Restricted to ${token.allowed_project_ids.length} project(s)`
-                        : 'Allowed on all projects'}
+                    <p className="mt-2 text-[12px] text-ink-disabled leading-relaxed">
+                      This token lets your local agent use devLog as you, limited by the projects you choose and your account access.
                     </p>
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
@@ -222,9 +231,9 @@ export default function AgentAccess() {
               </div>
               <ol className="space-y-3">
                 {[
-                  'Create a token and copy the setup command.',
-                  'Run it in your terminal — it installs the MCP server.',
-                  'Your agent can now log entries and manage your plan.',
+                  'Create a scoped token and copy the setup command.',
+                  'Run it in your terminal — it saves your token and configures your agent.',
+                  'Your agent can use devLog through REST or MCP, depending on client support.',
                 ].map((step, i) => (
                   <li key={i} className="flex gap-3">
                     <span className="font-mono text-[11px] text-accent font-semibold w-4 flex-shrink-0 mt-0.5">{i + 1}.</span>
@@ -232,6 +241,23 @@ export default function AgentAccess() {
                   </li>
                 ))}
               </ol>
+            </Panel>
+
+            {/* Local/global setup notes */}
+            <Panel>
+              <h2 className="text-[13px] font-semibold text-ink-primary mb-3">Local vs global setup</h2>
+              <div className="space-y-2 text-[13px] text-ink-tertiary leading-relaxed">
+                <p><span className="font-medium text-ink-secondary">Local</span> works only in the current repo or project.</p>
+                <p><span className="font-medium text-ink-secondary">Global</span> is available from any workspace on this machine.</p>
+                <p className="text-ink-disabled">When both exist, the local token should override the global token.</p>
+              </div>
+            </Panel>
+
+            <Panel>
+              <h2 className="text-[13px] font-semibold text-ink-primary mb-3">What this page knows</h2>
+              <p className="text-[13px] text-ink-tertiary leading-relaxed">
+                devLog can show token status, project access, audit events, and last API use. It cannot see whether setup files exist on your machine; check that from your terminal.
+              </p>
             </Panel>
 
             {/* Recent audit log */}
@@ -283,15 +309,10 @@ function CreateTokenModal({
   onCreated: (token: AgentToken) => void
   onCopy: (text: string, label?: string) => Promise<void>
 }) {
-  const [name, setName]                   = useState('Claude Desktop')
-  const [scopes, setScopes]               = useState<AgentScope[]>(['read_projects', 'read_logs', 'create_log', 'read_plan', 'create_plan', 'update_plan', 'complete_todo'])
+  const [name, setName]                   = useState('This machine')
   const [restrict, setRestrict]           = useState(false)
   const [selectedProjects, setSelectedProjects] = useState<string[]>([])
   const [loading, setLoading]             = useState(false)
-
-  function toggleScope(scope: AgentScope) {
-    setScopes((cur) => cur.includes(scope) ? cur.filter((s) => s !== scope) : [...cur, scope])
-  }
 
   function toggleProject(id: string) {
     setSelectedProjects((cur) => cur.includes(id) ? cur.filter((p) => p !== id) : [...cur, id])
@@ -299,13 +320,12 @@ function CreateTokenModal({
 
   async function createToken(e: React.FormEvent) {
     e.preventDefault()
-    if (scopes.length === 0) { toast.error('Choose at least one scope'); return }
     setLoading(true)
     try {
       const result = await agentTokensService.create({
         ownerId,
-        name: name.trim() || 'MCP agent',
-        scopes,
+        name: name.trim() || 'This machine',
+        scopes: DELEGATED_AGENT_SCOPES,
         allowedProjectIds: restrict ? selectedProjects : null,
         expiresAt: null,
       })
@@ -323,44 +343,37 @@ function CreateTokenModal({
     <Modal open={open} onClose={onClose} title={createdToken ? 'Copy your token' : 'Create agent token'} className="max-w-2xl">
       {createdToken ? (
         <div className="space-y-4">
-          <p className="text-[14px] text-ink-secondary">Run this in your terminal — it guides you through the rest:</p>
+          <p className="text-[14px] text-ink-secondary">Run this in your terminal to connect this machine to devLog:</p>
           <pre className="overflow-auto rounded-lg bg-gray-50 border border-border p-4 font-mono text-[12px] text-ink-primary break-all whitespace-pre-wrap">
             {setupCommand(createdToken)}
           </pre>
-          <p className="text-[12px] text-ink-disabled">Asks whether to install globally or per-project, which agents you use, and handles uninstall too.</p>
-          <div className="flex gap-2">
+          <div className="rounded-lg border border-border bg-chalk p-3">
+            <p className="text-[12px] font-medium text-ink-primary">Optional: local MCP for Claude Code / Cursor</p>
+            <p className="mt-1 text-[12px] text-ink-disabled">Run inside a repo when you want hosted MCP configured for supported clients, with REST instructions as fallback.</p>
+            <pre className="mt-2 overflow-auto rounded-md bg-gray-50 border border-border p-3 font-mono text-[11px] text-ink-primary break-all whitespace-pre-wrap">
+              {mcpSetupCommand(createdToken)}
+            </pre>
+          </div>
+          <p className="text-[12px] text-ink-disabled">The setup command saves this token and adds agent instructions/config where supported. Local setup is current-repo only; global setup works across workspaces. The web app shows token usage, not local filesystem state.</p>
+          <div className="flex flex-wrap gap-2">
             <Button onClick={() => onCopy(setupCommand(createdToken), 'Command copied')}>
-              <Copy size={14} /> Copy command
+              <Copy size={14} /> Copy global command
+            </Button>
+            <Button variant="secondary" onClick={() => onCopy(mcpSetupCommand(createdToken), 'MCP command copied')}>
+              <Copy size={14} /> Copy local MCP command
             </Button>
             <Button variant="ghost" onClick={onClose}>Done</Button>
           </div>
         </div>
       ) : (
         <form onSubmit={createToken} className="space-y-5">
-          <Input label="Token name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Claude Desktop" />
+          <Input label="Token name" value={name} onChange={(e) => setName(e.target.value)} placeholder="This machine" />
 
-          {/* Scopes */}
-          <div>
-            <p className="text-[12px] font-medium text-ink-secondary uppercase tracking-wider mb-3">Permissions</p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {SCOPES.map((scope) => (
-                <label
-                  key={scope.value}
-                  className="flex cursor-pointer gap-3 rounded-lg border border-border bg-chalk hover:bg-gray-50 p-3 transition-colors"
-                >
-                  <input
-                    type="checkbox"
-                    checked={scopes.includes(scope.value)}
-                    onChange={() => toggleScope(scope.value)}
-                    className="mt-0.5 accent-accent flex-shrink-0"
-                  />
-                  <span>
-                    <span className="block text-[13px] font-medium text-ink-primary">{scope.label}</span>
-                    <span className="text-[12px] text-ink-disabled">{scope.description}</span>
-                  </span>
-                </label>
-              ))}
-            </div>
+          <div className="rounded-lg border border-border bg-chalk p-4">
+            <p className="text-[13px] font-medium text-ink-primary">Delegated access</p>
+            <p className="mt-1 text-[12px] text-ink-disabled leading-relaxed">
+              This token lets your local agent use devLog as you. For a simple setup, create one global token per computer and revoke it anytime from Agent Access.
+            </p>
           </div>
 
           {/* Project restriction */}

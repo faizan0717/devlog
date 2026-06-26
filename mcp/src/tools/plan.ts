@@ -4,6 +4,9 @@ import { supabase } from '../supabase.js'
 import {
   assertMilestoneOwnership,
   assertProjectAccess,
+  assertProjectWriteAccess,
+  getProjectOwnerId,
+  getProjectRole,
   assertTodoOwnership,
   getAgentContext,
   requireScope,
@@ -49,7 +52,7 @@ function withPlanRefs(milestones: PlanRow[], todos: PlanRow[]): { milestones: Pl
   }
 }
 
-async function readProjectPlan(projectId: string) {
+async function readProjectPlan(projectId: string, ctx?: AgentContext) {
   const [milestonesRes, todosRes] = await Promise.all([
     supabase
       .from('plan_milestones')
@@ -68,12 +71,23 @@ async function readProjectPlan(projectId: string) {
   if (milestonesRes.error) throw new Error(`Failed to read milestones: ${milestonesRes.error.message}`)
   if (todosRes.error) throw new Error(`Failed to read todos: ${todosRes.error.message}`)
 
-  return withPlanRefs((milestonesRes.data ?? []) as PlanRow[], (todosRes.data ?? []) as PlanRow[])
+  let milestones = (milestonesRes.data ?? []) as PlanRow[]
+  let todos = (todosRes.data ?? []) as PlanRow[]
+  if (ctx) {
+    const role = await getProjectRole(ctx, projectId)
+    if (role === 'viewer') {
+      const visible = new Set(['shared', 'unlisted', 'public'])
+      milestones = milestones.filter((item) => visible.has(String(item.visibility)))
+      todos = todos.filter((item) => visible.has(String(item.visibility)))
+    }
+  }
+
+  return withPlanRefs(milestones, todos)
 }
 
 async function resolveTodoRefs(ctx: AgentContext, projectId: string, todoRef: string): Promise<PlanRow[]> {
-  await assertProjectAccess(ctx, projectId)
-  const { milestones, todos } = await readProjectPlan(projectId)
+  await assertProjectWriteAccess(ctx, projectId)
+  const { milestones, todos } = await readProjectPlan(projectId, ctx)
   const parts = todoRef.split('.')
   if (parts.length !== 3 || parts[2] === '0') throw new Error('todo_ref must look like 1.1.3 or 1.1.*')
 
@@ -92,14 +106,14 @@ async function resolveTodoRefs(ctx: AgentContext, projectId: string, todoRef: st
 export function registerPlanTools(server: McpServer): void {
   server.tool(
     'devlog_get_project_plan',
-    'Read project plan milestones and todos. Requires read_plan scope.',
+    'Read project plan milestones and todos where the token owner has project access.',
     { project_id: z.string().uuid() },
     async ({ project_id }) => {
       const ctx = await getAgentContext()
       requireScope(ctx, 'read_plan')
       await assertProjectAccess(ctx, project_id)
 
-      const plan = await readProjectPlan(project_id)
+      const plan = await readProjectPlan(project_id, ctx)
 
       await auditAgentAction(ctx, 'devlog_get_project_plan', {
         projectId: project_id,
@@ -112,7 +126,7 @@ export function registerPlanTools(server: McpServer): void {
 
   server.tool(
     'devlog_create_plan_milestone',
-    'Create a plan milestone. Requires create_plan scope.',
+    'Create a plan milestone where the token owner can write.',
     {
       project_id: z.string().uuid(),
       title: z.string().min(1).max(160),
@@ -125,13 +139,13 @@ export function registerPlanTools(server: McpServer): void {
     async ({ project_id, title, description, status, visibility, target_date, sort_order }) => {
       const ctx = await getAgentContext()
       requireScope(ctx, 'create_plan')
-      await assertProjectAccess(ctx, project_id)
+      await assertProjectWriteAccess(ctx, project_id)
 
       const { data, error } = await supabase
         .from('plan_milestones')
         .insert({
           project_id,
-          owner_id: ctx.ownerId,
+          owner_id: await getProjectOwnerId(project_id),
           title: title.trim(),
           description: description?.trim() || null,
           status,
@@ -224,7 +238,7 @@ export function registerPlanTools(server: McpServer): void {
         .insert({
           project_id: projectId,
           milestone_id,
-          owner_id: ctx.ownerId,
+          owner_id: await getProjectOwnerId(projectId),
           title: title.trim(),
           description: description?.trim() || null,
           status,

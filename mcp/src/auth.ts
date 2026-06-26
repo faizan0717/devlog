@@ -22,6 +22,8 @@ export interface AgentContext {
   allowedProjectIds: string[] | null
 }
 
+type ProjectRole = 'owner' | 'admin' | 'editor' | 'viewer'
+
 type AgentTokenRow = {
   id: string
   owner_id: string
@@ -68,10 +70,58 @@ export async function getAgentContext(): Promise<AgentContext> {
   return ctx
 }
 
-export function requireScope(ctx: AgentContext, scope: AgentScope): void {
-  if (!ctx.scopes.includes(scope)) {
-    throw new HttpError(403, `Agent token is missing required scope: ${scope}`)
-  }
+export function requireScope(_ctx: AgentContext, _scope: AgentScope): void {
+  // Deprecated compatibility shim.
+  // Agent tokens now represent delegated user/project access. UI-created tokens
+  // receive full internal scopes, and authorization is enforced through owner /
+  // collaborator roles plus allowed_project_ids restrictions below.
+}
+
+export async function getProjectRole(ctx: AgentContext, projectId: string): Promise<ProjectRole | null> {
+  if (ctx.allowedProjectIds && !ctx.allowedProjectIds.includes(projectId)) return null
+
+  const { data: project, error: projectError } = await supabase
+    .from('projects')
+    .select('id, owner_id')
+    .eq('id', projectId)
+    .maybeSingle<{ id: string; owner_id: string }>()
+  if (projectError) throw new Error(`Failed to verify project access: ${projectError.message}`)
+  if (!project) throw new HttpError(404, 'Project not found')
+  if (project.owner_id === ctx.ownerId) return 'owner'
+
+  const { data: collaborator, error: collaboratorError } = await supabase
+    .from('collaborators')
+    .select('role')
+    .eq('project_id', projectId)
+    .eq('user_id', ctx.ownerId)
+    .maybeSingle<{ role: 'viewer' | 'editor' | 'admin' }>()
+  if (collaboratorError) throw new Error(`Failed to verify collaborator access: ${collaboratorError.message}`)
+  return collaborator?.role ?? null
+}
+
+function assertRole(role: ProjectRole | null, allowed: ProjectRole[], message: string): void {
+  if (!role || !allowed.includes(role)) throw new HttpError(403, message)
+}
+
+export async function getProjectOwnerId(projectId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('owner_id')
+    .eq('id', projectId)
+    .maybeSingle<{ owner_id: string }>()
+  if (error) throw new Error(`Failed to read project owner: ${error.message}`)
+  if (!data) throw new HttpError(404, 'Project not found')
+  return data.owner_id
+}
+
+export async function assertProjectWriteAccess(ctx: AgentContext, projectId: string): Promise<void> {
+  const role = await getProjectRole(ctx, projectId)
+  assertRole(role, ['owner', 'admin', 'editor'], 'Agent does not have write access to this project')
+}
+
+export async function assertProjectOwnerAccess(ctx: AgentContext, projectId: string): Promise<void> {
+  const role = await getProjectRole(ctx, projectId)
+  assertRole(role, ['owner'], 'Agent can only update projects owned by its token owner')
 }
 
 export async function assertLogOwnership(ctx: AgentContext, logId: string): Promise<{ projectId: string }> {
@@ -83,31 +133,13 @@ export async function assertLogOwnership(ctx: AgentContext, logId: string): Prom
 
   if (error) throw new Error(`Failed to verify log access: ${error.message}`)
   if (!data) throw new HttpError(404, 'Log not found')
-  if ((data.projects as { owner_id: string }).owner_id !== ctx.ownerId) {
-    throw new HttpError(403, 'Agent can only access logs owned by its token owner')
-  }
-  if (ctx.allowedProjectIds && !ctx.allowedProjectIds.includes(data.project_id)) {
-    throw new HttpError(403, 'Agent token is not allowed to access this project')
-  }
+  await assertProjectWriteAccess(ctx, data.project_id)
   return { projectId: data.project_id }
 }
 
 export async function assertProjectAccess(ctx: AgentContext, projectId: string): Promise<void> {
-  if (ctx.allowedProjectIds && !ctx.allowedProjectIds.includes(projectId)) {
-    throw new HttpError(403, 'Agent token is not allowed to access this project')
-  }
-
-  const { data, error } = await supabase
-    .from('projects')
-    .select('id, owner_id')
-    .eq('id', projectId)
-    .maybeSingle<{ id: string; owner_id: string }>()
-
-  if (error) throw new Error(`Failed to verify project access: ${error.message}`)
-  if (!data) throw new HttpError(404, 'Project not found')
-  if (data.owner_id !== ctx.ownerId) {
-    throw new HttpError(403, 'Agent can only access projects owned by its token owner')
-  }
+  const role = await getProjectRole(ctx, projectId)
+  assertRole(role, ['owner', 'admin', 'editor', 'viewer'], 'Agent does not have access to this project')
 }
 
 export async function assertMilestoneOwnership(ctx: AgentContext, milestoneId: string): Promise<{ projectId: string }> {
@@ -119,12 +151,7 @@ export async function assertMilestoneOwnership(ctx: AgentContext, milestoneId: s
 
   if (error) throw new Error(`Failed to verify milestone access: ${error.message}`)
   if (!data) throw new HttpError(404, 'Milestone not found')
-  if (data.owner_id !== ctx.ownerId) {
-    throw new HttpError(403, 'Agent can only access plan milestones owned by its token owner')
-  }
-  if (ctx.allowedProjectIds && !ctx.allowedProjectIds.includes(data.project_id)) {
-    throw new HttpError(403, 'Agent token is not allowed to access this project')
-  }
+  await assertProjectWriteAccess(ctx, data.project_id)
   return { projectId: data.project_id }
 }
 
@@ -137,11 +164,6 @@ export async function assertTodoOwnership(ctx: AgentContext, todoId: string): Pr
 
   if (error) throw new Error(`Failed to verify todo access: ${error.message}`)
   if (!data) throw new HttpError(404, 'Todo not found')
-  if (data.owner_id !== ctx.ownerId) {
-    throw new HttpError(403, 'Agent can only access plan todos owned by its token owner')
-  }
-  if (ctx.allowedProjectIds && !ctx.allowedProjectIds.includes(data.project_id)) {
-    throw new HttpError(403, 'Agent token is not allowed to access this project')
-  }
+  await assertProjectWriteAccess(ctx, data.project_id)
   return { projectId: data.project_id, milestoneId: data.milestone_id }
 }

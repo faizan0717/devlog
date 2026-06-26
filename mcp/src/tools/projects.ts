@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { supabase } from '../supabase.js'
-import { assertProjectAccess, getAgentContext, requireScope } from '../auth.js'
+import { assertProjectAccess, assertProjectOwnerAccess, getAgentContext, requireScope } from '../auth.js'
 import { auditAgentAction } from '../audit.js'
 
 function jsonText(value: unknown) {
@@ -47,16 +47,23 @@ export function registerProjectTools(server: McpServer): void {
 
   server.tool(
     'devlog_list_projects',
-    'List projects owned by the authenticated devLog agent token owner.',
+    'List projects the token owner can access.',
     {},
     async () => {
       const ctx = await getAgentContext()
       requireScope(ctx, 'read_projects')
 
+      const { data: collabs, error: collabError } = await supabase
+        .from('collaborators')
+        .select('project_id')
+        .eq('user_id', ctx.ownerId)
+      if (collabError) throw new Error(`Failed to list collaborator projects: ${collabError.message}`)
+      const projectIds = [...new Set((collabs ?? []).map((c) => c.project_id as string))]
+
       let query = supabase
         .from('projects')
         .select('id, title, description, visibility, tags, cover_image_url, view_count, created_at, updated_at')
-        .eq('owner_id', ctx.ownerId)
+        .or(projectIds.length > 0 ? `owner_id.eq.${ctx.ownerId},id.in.(${projectIds.join(',')})` : `owner_id.eq.${ctx.ownerId}`)
         .order('updated_at', { ascending: false })
 
       if (ctx.allowedProjectIds) query = query.in('id', ctx.allowedProjectIds)
@@ -71,7 +78,7 @@ export function registerProjectTools(server: McpServer): void {
 
   server.tool(
     'devlog_get_project_timeline',
-    'Read one owner project and its timeline logs.',
+    'Read one project the token owner can access and its timeline logs.',
     {
       project_id: z.string().uuid(),
     },
@@ -79,7 +86,6 @@ export function registerProjectTools(server: McpServer): void {
       const ctx = await getAgentContext()
       requireScope(ctx, 'read_logs')
 
-      const { assertProjectAccess } = await import('../auth.js')
       await assertProjectAccess(ctx, project_id)
 
       const [projectRes, logsRes] = await Promise.all([
@@ -109,7 +115,7 @@ export function registerProjectTools(server: McpServer): void {
 
   server.tool(
     'devlog_update_project',
-    'Update an existing devLog project. Requires update_project scope.',
+    'Update an existing devLog project owned by the token owner.',
     {
       project_id: z.string().uuid(),
       title: z.string().min(1).max(100).optional(),
@@ -120,7 +126,7 @@ export function registerProjectTools(server: McpServer): void {
     async ({ project_id, title, description, visibility, tags }) => {
       const ctx = await getAgentContext()
       requireScope(ctx, 'update_project')
-      await assertProjectAccess(ctx, project_id)
+      await assertProjectOwnerAccess(ctx, project_id)
 
       const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
       if (title !== undefined) patch.title = title.trim()

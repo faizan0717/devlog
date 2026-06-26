@@ -29,5 +29,5 @@ const updated = {
 }
 
 writeFileSync(mcpJsonPath, JSON.stringify(updated, null, 2) + '\n')
-console.log(`✓ devLog MCP server added to ${mcpJsonPath}`)
+console.log(`✓ devLog MCP connection configured in ${mcpJsonPath}`)
 console.log('  Run /mcp in Claude Code to reload, then call devlog_get_docs.')

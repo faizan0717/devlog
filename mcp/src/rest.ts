@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join, dirname } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
@@ -7,6 +7,10 @@ import {
   getAgentContext,
   requireScope,
   assertProjectAccess,
+  assertProjectOwnerAccess,
+  assertProjectWriteAccess,
+  getProjectOwnerId,
+  getProjectRole,
   assertLogOwnership,
   assertMilestoneOwnership,
   assertTodoOwnership,
@@ -16,145 +20,15 @@ import { auditAgentAction } from './audit.js'
 import { runWithAgentToken } from './requestContext.js'
 
 const docsPath = join(dirname(fileURLToPath(import.meta.url)), '../../AGENT_DOCS.md')
+const setupScriptPath = (() => {
+  const here = dirname(fileURLToPath(import.meta.url))
+  const builtPath = join(here, '../../SETUP_SCRIPT.sh')
+  const sourcePath = join(here, '../SETUP_SCRIPT.sh')
+  return existsSync(builtPath) ? builtPath : sourcePath
+})()
 
 function setupScript(baseUrl: string): string {
-  return `#!/bin/bash
-set -e
-
-TOKEN=$1
-
-# ── colours ────────────────────────────────────────────────────────────────
-BOLD="\\033[1m"; DIM="\\033[2m"; GREEN="\\033[32m"; CYAN="\\033[36m"
-YELLOW="\\033[33m"; RED="\\033[31m"; RESET="\\033[0m"
-
-header() { echo -e "\\n\${BOLD}\${CYAN}devLog agent setup\${RESET}\\n"; }
-ok()     { echo -e "  \${GREEN}✓\${RESET} $1"; }
-info()   { echo -e "  \${DIM}$1\${RESET}"; }
-err()    { echo -e "  \${RED}✗\${RESET} $1"; }
-
-ask() {
-  local prompt=$1 var=$2
-  echo -e -n "  \${BOLD}$prompt\${RESET} "
-  read -r "$var" </dev/tty
-}
-
-menu() {
-  local title=$1; shift; local options=("$@")
-  echo -e "  \${BOLD}$title\${RESET}"
-  for i in "\${!options[@]}"; do
-    echo -e "    \${CYAN}$((i+1)).\${RESET} \${options[$i]}"
-  done
-  ask "Choice:" MENU_CHOICE
-}
-
-if [ -z "$TOKEN" ] || [[ "$TOKEN" != dl_agent_* ]]; then
-  header
-  err "No valid devLog token provided."
-  echo ""
-  info "Get a token from your devLog app → Agent Access → New token"
-  info "Then run: curl -fsSL ${baseUrl}/setup.sh | bash -s -- <token>"
-  exit 1
-fi
-
-header
-
-# ── already installed? ──────────────────────────────────────────────────────
-ALREADY_PROJECT=false
-ALREADY_GLOBAL=false
-[ -f ".devlog" ] && ALREADY_PROJECT=true
-[ -f "$HOME/.devlog" ] && ALREADY_GLOBAL=true
-
-# ── action ──────────────────────────────────────────────────────────────────
-menu "What would you like to do?" "Install / update" "Uninstall"
-ACTION=$MENU_CHOICE
-
-# ── scope ───────────────────────────────────────────────────────────────────
-menu "Scope?" "This project only" "Global (all my projects)"
-SCOPE=$MENU_CHOICE
-
-if [ "$SCOPE" = "1" ]; then
-  TOKEN_FILE=".devlog"
-  TOKEN_REF=".devlog"
-  GLOBAL=false
-else
-  TOKEN_FILE="$HOME/.devlog"
-  TOKEN_REF="~/.devlog"
-  GLOBAL=true
-  mkdir -p "$HOME/.claude"
-fi
-
-# ── uninstall ────────────────────────────────────────────────────────────────
-if [ "$ACTION" = "2" ]; then
-  echo ""
-  [ -f "$TOKEN_FILE" ] && rm "$TOKEN_FILE" && ok "Removed $TOKEN_FILE" || info "$TOKEN_FILE not found"
-  FILES=("CLAUDE.md" ".cursor/rules/devlog.mdc" ".windsurfrules" ".github/copilot-instructions.md")
-  $GLOBAL && FILES=("$HOME/.claude/CLAUDE.md")
-  for f in "\${FILES[@]}"; do
-    if [ -f "$f" ] && grep -q "## devLog" "$f"; then
-      # Remove the devLog block (from ## devLog to next ## or EOF)
-      perl -i -0pe 's/\\n## devLog\\n.*?((?=\\n## )|\\z)//s' "$f" 2>/dev/null || sed -i '/## devLog/,/^## /{/^## devLog/d;/^## /!d}' "$f"
-      ok "Removed devLog section from $f"
-    fi
-  done
-  echo -e "\\n\${BOLD}Uninstalled.\${RESET}\\n"
-  exit 0
-fi
-
-# ── agent selection ──────────────────────────────────────────────────────────
-if ! $GLOBAL; then
-  echo -e "  \${BOLD}Which agents do you use?\${RESET} \${DIM}(enter numbers separated by spaces)\${RESET}"
-  echo -e "    \${CYAN}1.\${RESET} Claude Code  → CLAUDE.md"
-  echo -e "    \${CYAN}2.\${RESET} Cursor       → .cursor/rules/devlog.mdc"
-  echo -e "    \${CYAN}3.\${RESET} Windsurf     → .windsurfrules"
-  echo -e "    \${CYAN}4.\${RESET} Copilot      → .github/copilot-instructions.md"
-  echo -e "    \${CYAN}a.\${RESET} All of the above"
-  ask "Choice:" AGENTS_INPUT
-  [[ "$AGENTS_INPUT" == *"a"* ]] && AGENTS_INPUT="1 2 3 4"
-fi
-
-# ── write token ──────────────────────────────────────────────────────────────
-echo ""
-echo "$TOKEN" > "$TOKEN_FILE"
-ok "Token saved to $TOKEN_FILE"
-
-if ! $GLOBAL; then
-  if [ -f .gitignore ] && grep -qx "\\.devlog" .gitignore; then
-    info ".devlog already in .gitignore"
-  else
-    echo ".devlog" >> .gitignore
-    ok "Added .devlog to .gitignore"
-  fi
-fi
-
-# ── snippet ──────────────────────────────────────────────────────────────────
-SNIPPET="\\n## devLog\\nBase URL: ${baseUrl}\\nToken: read from $TOKEN_REF (never commit this file).\\n\\nAlways call GET /docs first for the latest reference.\\n\\nQuick reference:\\n  GET   /projects                      — list my projects\\n  POST  /projects                      — create a project\\n  PATCH /projects/{id}                 — update a project\\n  GET   /projects/{id}/timeline        — get project + all logs\\n  POST  /logs {project_id,title,content,mood,visibility} — create a log entry\\n  PATCH /logs/{id}                     — update a log entry\\n  GET   /projects/{id}/plan            — get milestones + todos\\n  POST  /projects/{id}/milestones      — create a milestone\\n  POST  /milestones/{id}/todos         — create a todo\\n  PATCH /milestones/{id}               — update a milestone\\n  PATCH /todos/{id}                    — update a todo\\n  POST  /todos/{id}/complete           — complete a todo\\n  POST  /todos/{id}/reopen             — reopen a todo\\n\\nAll requests: Authorization: Bearer \\$(cat $TOKEN_REF)\\nmood: building | shipped | stuck | reflecting | inspired | learning\\nvisibility: private | public | unlisted | shared"
-
-write_snippet() {
-  local file=$1
-  local dir; dir=\$(dirname "$file")
-  [ "$dir" != "." ] && mkdir -p "$dir"
-  if [ -f "$file" ] && grep -q "## devLog" "$file"; then
-    # Replace existing devLog section
-    perl -i -0pe 's/\n## devLog\n.*?((?=\n## )|\z)/\n'"$SNIPPET"'/s' "$file" 2>/dev/null || \
-      { grep -v "## devLog" "$file" > "$file.tmp" && mv "$file.tmp" "$file" && printf "$SNIPPET" >> "$file"; }
-    ok "$file devLog section updated"
-  else
-    printf "$SNIPPET" >> "$file"
-    ok "devLog section added to $file"
-  fi
-}
-
-if $GLOBAL; then
-  write_snippet "$HOME/.claude/CLAUDE.md"
-else
-  [[ "$AGENTS_INPUT" == *"1"* ]] && write_snippet "CLAUDE.md"
-  [[ "$AGENTS_INPUT" == *"2"* ]] && write_snippet ".cursor/rules/devlog.mdc"
-  [[ "$AGENTS_INPUT" == *"3"* ]] && write_snippet ".windsurfrules"
-  [[ "$AGENTS_INPUT" == *"4"* ]] && write_snippet ".github/copilot-instructions.md"
-fi
-
-echo -e "\\n\${BOLD}\${GREEN}All done.\${RESET} Your AI assistant can now access devLog.\\n"
-`
+  return readFileSync(setupScriptPath, 'utf8').replaceAll('__BASE_URL__', baseUrl)
 }
 
 function getBearerToken(req: IncomingMessage): string | null {
@@ -234,19 +108,29 @@ function withPlanRefs(milestones: PlanRow[], todos: PlanRow[]): { milestones: Pl
   }
 }
 
-async function readProjectPlan(projectId: string) {
+async function readProjectPlan(projectId: string, ctx?: AgentContext) {
   const [milestonesRes, todosRes] = await Promise.all([
     supabase.from('plan_milestones').select('*').eq('project_id', projectId).order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
     supabase.from('plan_todos').select('*').eq('project_id', projectId).order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
   ])
   if (milestonesRes.error) throw new Error(milestonesRes.error.message)
   if (todosRes.error) throw new Error(todosRes.error.message)
-  return withPlanRefs((milestonesRes.data ?? []) as PlanRow[], (todosRes.data ?? []) as PlanRow[])
+  let milestones = (milestonesRes.data ?? []) as PlanRow[]
+  let todos = (todosRes.data ?? []) as PlanRow[]
+  if (ctx) {
+    const role = await getProjectRole(ctx, projectId)
+    if (role === 'viewer') {
+      const visible = new Set(['shared', 'unlisted', 'public'])
+      milestones = milestones.filter((item) => visible.has(String(item.visibility)))
+      todos = todos.filter((item) => visible.has(String(item.visibility)))
+    }
+  }
+  return withPlanRefs(milestones, todos)
 }
 
 async function resolveTodoRefs(ctx: AgentContext, projectId: string, todoRef: string): Promise<PlanRow[]> {
-  await assertProjectAccess(ctx, projectId)
-  const { milestones, todos } = await readProjectPlan(projectId)
+  await assertProjectWriteAccess(ctx, projectId)
+  const { milestones, todos } = await readProjectPlan(projectId, ctx)
   const parts = todoRef.split('.')
   if (parts.length !== 3 || parts[2] === '0') throw new Error('todo_ref must look like 1.1.3 or 1.1.*')
   const milestone = milestones.find((m) => m.plan_ref === `${parts[0]}.${parts[1]}`)
@@ -337,10 +221,16 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
     // GET /projects
     if (method === 'GET' && pathname === '/projects') {
       requireScope(ctx, 'read_projects')
+      const { data: collabs, error: collabError } = await supabase
+        .from('collaborators')
+        .select('project_id')
+        .eq('user_id', ctx.ownerId)
+      if (collabError) { send(res, 500, { error: collabError.message }); return }
+      const projectIds = [...new Set([...(collabs ?? []).map((c) => c.project_id as string)])]
       let query = supabase
         .from('projects')
         .select('id, title, description, visibility, tags, cover_image_url, view_count, created_at, updated_at')
-        .eq('owner_id', ctx.ownerId)
+        .or(projectIds.length > 0 ? `owner_id.eq.${ctx.ownerId},id.in.(${projectIds.join(',')})` : `owner_id.eq.${ctx.ownerId}`)
         .order('updated_at', { ascending: false })
       if (ctx.allowedProjectIds) query = query.in('id', ctx.allowedProjectIds)
       const { data, error } = await query
@@ -384,7 +274,7 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
         mood = validateEnumField(body.mood, 'mood', LOG_MOODS)
       } catch (error) { sendValidationError(res, error); return }
       const projectIdValue = projectId as string
-      await assertProjectAccess(ctx, projectIdValue)
+      await assertProjectWriteAccess(ctx, projectIdValue)
       const { data, error } = await supabase
         .from('logs')
         .insert({
@@ -408,7 +298,7 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
     if (method === 'PATCH' && projectPatchMatch) {
       requireScope(ctx, 'update_project')
       const projectId = projectPatchMatch[1]
-      await assertProjectAccess(ctx, projectId)
+      await assertProjectOwnerAccess(ctx, projectId)
       const body = await readJsonBody(req)
       const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
       try {
@@ -461,7 +351,7 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
       requireScope(ctx, 'read_plan')
       const projectId = planMatch[1]
       await assertProjectAccess(ctx, projectId)
-      const plan = await readProjectPlan(projectId)
+      const plan = await readProjectPlan(projectId, ctx)
       await auditAgentAction(ctx, 'rest_get_project_plan', { projectId, metadata: { milestoneCount: plan.milestones.length, todoCount: plan.todos.length } })
       send(res, 200, plan)
       return
@@ -472,7 +362,7 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
     if (method === 'POST' && createMilestoneMatch) {
       requireScope(ctx, 'create_plan')
       const projectId = createMilestoneMatch[1]
-      await assertProjectAccess(ctx, projectId)
+      await assertProjectWriteAccess(ctx, projectId)
       const body = await readJsonBody(req)
       let title: string | null
       let description: string | null
@@ -489,7 +379,7 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
       } catch (error) { sendValidationError(res, error); return }
       const { data, error } = await supabase.from('plan_milestones').insert({
         project_id: projectId,
-        owner_id: ctx.ownerId,
+        owner_id: await getProjectOwnerId(projectId),
         title,
         description,
         status,
@@ -569,7 +459,7 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
       const { data, error } = await supabase.from('plan_todos').insert({
         project_id: projectId,
         milestone_id: milestoneId,
-        owner_id: ctx.ownerId,
+        owner_id: await getProjectOwnerId(projectId),
         title,
         description,
         status,
