@@ -12,7 +12,8 @@
     "start:stdio": "node dist/src/index.js",
     "start:http": "node dist/src/http.js",
     "token:create": "tsx scripts/create-token.ts",
-    "setup:claude-code": "tsx scripts/setup-claude-code.ts"
+    "setup:claude-code": "tsx scripts/setup-claude-code.ts",
+    "test:setup": "bash scripts/test-setup-sh.sh"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.13.0",

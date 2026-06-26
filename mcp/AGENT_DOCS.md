@@ -5,7 +5,20 @@ devLog is a cinematic timeline platform for makers. You are connected through a 
 Connection modes:
 - REST is the universal fallback at `https://api.devlog.one`.
 - Hosted MCP is available at `https://api.devlog.one/mcp` for clients that support HTTP MCP with Authorization headers.
-- setup.sh writes REST instructions for all supported agents and can write MCP config for known local project clients with `--mcp`.
+- Skills/rules/instructions teach the agent when and how to use devLog.
+- setup.sh is a local/global setup manager, verifier, status checker, and uninstaller. It writes REST instructions for all supported agents and can write MCP config for known local project clients with `--mcp`.
+
+Agent setup lifecycle:
+```bash
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- install <token> --local
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- install <token> --global
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- verify
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- status
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- uninstall --local
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- uninstall --global
+```
+
+Token resolution order: `./.devlog` → `~/.devlog` → `DEVLOG_AGENT_TOKEN`. If local and global tokens both exist, local wins. Uninstall only removes local/global setup files; revoke/delete remote tokens from devLog → Agent Access.
 
 ## Tools
 
@@ -202,6 +215,7 @@ Plan refs: `1.<milestone>.<todo>` are generated from sorted plan order, e.g. `1.
 ## Notes
 
 - Agents can access projects available to the token owner, further limited by `allowed_project_ids` when present.
+- For setup troubleshooting, run `setup.sh status` to inspect local/global/effective token source, then `setup.sh verify` to detect missing tokens, malformed tokens, revoked/expired tokens, missing read access, API reachability issues, or local tokens overriding global tokens.
 - Media cannot be uploaded via MCP/REST.
 - Agent-created plan items set `created_by_agent_token_id`.
 - Agent-completed todos set `completed_by_agent_token_id`.

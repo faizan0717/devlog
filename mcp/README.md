@@ -1,6 +1,6 @@
 # devLog MCP server
 
-Gives AI agents (Claude, Cursor, Windsurf, Copilot) scoped access to the token owner's devLog projects via MCP and REST.
+Gives AI agents (Claude, Cursor, Windsurf, Copilot) delegated access to the token owner's devLog projects via hosted MCP and REST.
 
 ## Tools
 
@@ -49,14 +49,25 @@ DEVLOG_MCP_ALLOWED_ORIGIN=https://devlog.one
 
 ## Agent setup (for users)
 
-1. Create a token in devLog → Agents → New token
-2. Run the setup script:
+1. Create a delegated token in devLog → Agent Access → New token.
+2. Connect globally for this machine, or locally for one repo:
 
 ```bash
-curl -fsSL https://api.devlog.one/setup.sh | bash -s -- dl_agent_your_token
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- install dl_agent_your_token --global
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- install dl_agent_your_token --local --agents all --mcp
 ```
 
-The script interactively handles token storage, `.gitignore`, and writes the context snippet into your agent's config file (CLAUDE.md, `.cursor/rules`, `.windsurfrules`, or Copilot instructions).
+`setup.sh` is a local setup manager:
+
+```bash
+setup.sh verify [--local|--global]
+setup.sh status
+setup.sh uninstall --local
+setup.sh uninstall --global
+setup.sh uninstall --all
+```
+
+Token resolution order: `./.devlog` → `~/.devlog` → `DEVLOG_AGENT_TOKEN`. The script writes managed instruction blocks for Claude/Cursor/Windsurf/Copilot and hosted MCP config where the client supports it. REST always remains the fallback. Uninstall removes local/global files only; revoke remote tokens from the web app.
 
 ## Deploying
 
@@ -77,7 +88,7 @@ npm run start:http
 ## Security
 
 - Raw tokens are never stored — only SHA-256 hashes
-- Every request validates scope, token expiry, and project ownership
+- Every request validates delegated owner/collaborator access, token expiry, and optional project restrictions
 - Revoked tokens are invalidated within 60 seconds (cache TTL)
 - Rate limiting: 60 requests/min per IP
 - All actions written to `agent_audit_logs`

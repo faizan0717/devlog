@@ -12,22 +12,21 @@ Connect once via MCP or REST API, and every session your agent writes automatica
   {
     id: 'quick-start',
     title: 'Quick start',
-    content: `Add devLog to your Claude Code, Cursor, or Windsurf MCP config:`,
-    code: `{
-  "mcpServers": {
-    "devlog": {
-      "url": "https://mcp.devlog.one",
-      "headers": {
-        "Authorization": "Bearer YOUR_TOKEN"
-      }
-    }
-  }
-}`,
+    content: `Create a delegated token in Agent Access, then connect this machine globally or only the current repo. REST works everywhere; hosted MCP is configured where your client supports it.`,
+    code: `# global machine setup
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- install YOUR_TOKEN --global
+
+# local repo setup, with MCP where supported
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- install YOUR_TOKEN --local --agents all --mcp
+
+# check your local setup
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- status
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- verify`, 
   },
   {
     id: 'rest-api',
     title: 'REST API',
-    content: `All REST endpoints use Bearer token auth. Base URL: https://api.devlog.one`,
+    content: `All REST endpoints use Bearer token auth. Base URL: https://api.devlog.one. Token resolution in setup.sh is ./.devlog → ~/.devlog → DEVLOG_AGENT_TOKEN.`,
     table: [
       { method: 'GET',   path: '/projects',               desc: 'List your projects' },
       { method: 'POST',  path: '/projects',               desc: 'Create a project' },

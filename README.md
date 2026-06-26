@@ -34,8 +34,8 @@ devLog is where makers document their work. Create projects, post timeline logs 
 - **Visibility system** — private / public / unlisted / shared per project and log
 - **Social layer** — follows, reactions, comments, real-time notifications
 - **Explore** — discover trending public projects and makers
-- **AI agent access** — scoped tokens let Claude, Cursor, Windsurf, or any MCP client post logs on your behalf
-- **REST API** — same access without MCP, works with any HTTP client or script
+- **AI agent access** — delegated machine tokens let Claude, Cursor, Windsurf, or scripts use devLog as you
+- **REST API** — universal fallback without MCP, works with any HTTP client or script
 
 ---
 
@@ -62,7 +62,7 @@ devLog is where makers document their work. Create projects, post timeline logs 
 │  Railway — always-on HTTP       │
 │  • MCP protocol (Claude etc.)   │
 │  • REST API (any HTTP client)   │
-│  • Scoped agent tokens          │
+│  • Delegated agent tokens       │
 │  • Audit logging                │
 └─────────────────────────────────┘
              ▲
@@ -74,7 +74,7 @@ devLog is where makers document their work. Create projects, post timeline logs 
 └─────────────────────────────────┘
 ```
 
-The MCP server never shares the Supabase service role key with the browser. Every agent action is validated against the token owner's scopes and recorded in `agent_audit_logs`.
+The MCP server never shares the Supabase service role key with the browser. Every agent action is validated as delegated access for the token owner, bounded by their project access and any selected-project restriction, and recorded in `agent_audit_logs`.
 
 ---
 
@@ -177,29 +177,30 @@ npm run dev:http       # http://localhost:8787
 
 ## AI agent access
 
-Get a token from the app → **Agents** → **New token**, then run the interactive setup script:
+Get a token from the app → **Agent Access** → **New token**. A token is the permission: it lets your local agent use devLog as you, limited by your project access and any selected-project restriction.
+
+Connect this machine globally:
 
 ```bash
-curl -fsSL https://api.devlog.one/setup.sh | bash -s -- <your-token>
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- install <your-token> --global
 ```
 
-The script:
-1. Saves your token to `.devlog` (gitignored automatically)
-2. Asks which agents you use (Claude Code, Cursor, Windsurf, Copilot)
-3. Writes the context snippet into the right config file for each
+Or connect only the current repo, with hosted MCP config where supported and REST instructions as fallback:
 
-After setup your AI assistant can:
+```bash
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- install <your-token> --local --agents all --mcp
+```
 
-| Action | Scope needed |
-|---|---|
-| List projects | `read_projects` |
-| Read project timeline | `read_logs` |
-| Create a project | `create_project` |
-| Update a project | `update_project` |
-| Create a log entry | `create_log` |
-| Update a log entry | `update_log` |
+Useful setup manager commands:
 
-All actions are scoped to the token owner and recorded in an audit log visible in the app.
+```bash
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- verify
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- status
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- uninstall --local
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- uninstall --global
+```
+
+Token resolution order is `./.devlog` → `~/.devlog` → `DEVLOG_AGENT_TOKEN`. `setup.sh` manages local files only; revoke/delete remote tokens from Agent Access.
 
 Full API reference: `GET /docs` on the MCP server.
 

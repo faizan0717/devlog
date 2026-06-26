@@ -26,40 +26,51 @@ const DELEGATED_AGENT_SCOPES: AgentScope[] = [
 
 const MCP_URL = (import.meta.env.VITE_DEVLOG_MCP_URL ?? 'http://localhost:8787') + '/mcp'
 
-function claudeMdSnippet(scopes: AgentScope[]) {
-  const base = MCP_URL.replace('/mcp', '')
-  const lines = [
-    '## devLog',
-    `Base URL: ${base}`,
-    'Token: read from the file .devlog in the project root (gitignored).',
-    '',
-    'Always call GET /docs first for the latest reference.',
-    '',
-    'Quick reference:',
-  ]
-  if (scopes.includes('read_projects'))  lines.push('  GET  /projects                                           — list my projects')
-  if (scopes.includes('create_project')) lines.push('  POST /projects  {title,description,visibility,tags}      — create a project')
-  if (scopes.includes('read_logs'))      lines.push('  GET  /projects/{id}/timeline                             — get project + all logs')
-  if (scopes.includes('create_log'))     lines.push('  POST /logs  {project_id,title,content,mood,visibility}   — create a log entry')
-  if (scopes.includes('read_plan'))      lines.push('  GET  /projects/{id}/plan                                 — get milestones + todos')
-  if (scopes.includes('create_plan'))    lines.push('  POST /projects/{id}/milestones, POST /milestones/{id}/todos — create plan items')
-  if (scopes.includes('update_plan'))    lines.push('  PATCH /milestones/{id}, PATCH /todos/{id}                — update plan items')
-  if (scopes.includes('complete_todo'))  lines.push('  POST /todos/{id}/complete, POST /todos/{id}/reopen       — complete/reopen todos')
-  lines.push('')
-  lines.push('All requests need: Authorization: Bearer <token from .devlog>')
-  lines.push('mood: building | shipped | stuck | reflecting | inspired | learning')
-  lines.push('visibility: private | public | unlisted | shared')
-  return lines.join('\n')
+function apiBaseUrl() {
+  return MCP_URL.replace('/mcp', '')
 }
 
 function setupCommand(token: string) {
-  const base = MCP_URL.replace('/mcp', '')
-  return `curl -fsSL ${base}/setup.sh | bash -s -- ${token}`
+  return `curl -fsSL ${apiBaseUrl()}/setup.sh | bash -s -- ${token}`
 }
 
 function mcpSetupCommand(token: string) {
-  const base = MCP_URL.replace('/mcp', '')
-  return `curl -fsSL ${base}/setup.sh | bash -s -- install ${token} --local --agents claude,cursor --mcp`
+  return `curl -fsSL ${apiBaseUrl()}/setup.sh | bash -s -- install ${token} --local --agents claude,cursor --mcp`
+}
+
+function tokenTemplateCommand(kind: 'global' | 'local') {
+  const scope = kind === 'global' ? '--global' : '--local'
+  const suffix = kind === 'local' ? ' --agents all --mcp' : ''
+  return `curl -fsSL ${apiBaseUrl()}/setup.sh | bash -s -- install <token> ${scope}${suffix}`
+}
+
+function setupUtilityCommand(command: 'status' | 'verify' | 'uninstall-local' | 'uninstall-global') {
+  const arg = command === 'uninstall-local' ? 'uninstall --local' : command === 'uninstall-global' ? 'uninstall --global' : command
+  return `curl -fsSL ${apiBaseUrl()}/setup.sh | bash -s -- ${arg}`
+}
+
+function tokenStatus(token: AgentToken): { label: string; className: string } {
+  if (token.revoked_at) return { label: 'Revoked', className: 'bg-red-50 text-red-600 border-red-200' }
+  if (token.expires_at && new Date(token.expires_at).getTime() <= Date.now()) return { label: 'Expired', className: 'bg-amber-50 text-amber-700 border-amber-200' }
+  return { label: 'Active', className: 'bg-green-50 text-green-700 border-green-200' }
+}
+
+function projectAccessLabel(token: AgentToken, projects: Project[]): string {
+  if (!token.allowed_project_ids) return 'All projects'
+  const names = token.allowed_project_ids
+    .map((id) => projects.find((project) => project.id === id)?.title)
+    .filter(Boolean)
+  if (names.length === 0) return `${token.allowed_project_ids.length} selected project(s)`
+  if (names.length <= 2) return names.join(', ')
+  return `${names.slice(0, 2).join(', ')} +${names.length - 2}`
+}
+
+function intendedSetupLabel(token: AgentToken): string {
+  const name = token.name.toLowerCase()
+  if (name.includes('local')) return 'Local repo intent'
+  if (name.includes('api') || name.includes('manual') || name.includes('script')) return 'Manual/API intent'
+  if (name.includes('machine') || name.includes('global') || name.includes('pc')) return 'Global machine intent'
+  return 'Unknown intent'
 }
 
 // ── shared card shell ────────────────────────────────────────────────────────
@@ -135,7 +146,7 @@ export default function AgentAccess() {
           </h1>
           <span className="font-mono text-[11px] text-ink-disabled">{MCP_URL}</span>
           <p className="mt-3 max-w-xl text-[14px] text-ink-tertiary leading-relaxed">
-            Create scoped tokens that let Claude, Cursor, Windsurf, or local agents connect to devLog without using your account password.
+            Create delegated machine tokens that let Claude, Cursor, Windsurf, or local agents use devLog as you without using your account password.
           </p>
           <p className="mt-2 max-w-xl text-[13px] text-ink-disabled leading-relaxed">
             devLog’s API and MCP endpoint are hosted at <span className="font-mono text-ink-tertiary">{MCP_URL.replace('/mcp', '')}</span>. Setup only saves your token and configures your agent.
@@ -175,49 +186,87 @@ export default function AgentAccess() {
                 <p className="text-[14px] text-ink-secondary">No agent tokens yet.</p>
                 <p className="mt-1 text-[13px] text-ink-disabled">Create one to connect your AI agent.</p>
               </Panel>
-            ) : tokens.map((token) => (
-              <Panel key={token.id}>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <h3 className="text-[15px] font-semibold text-ink-primary">{token.name}</h3>
-                      {token.revoked_at ? (
-                        <span className="font-mono text-[10px] font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">Revoked</span>
-                      ) : (
-                        <span className="font-mono text-[10px] font-medium px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">Active</span>
-                      )}
-                    </div>
-                    <p className="font-mono text-[11px] text-ink-disabled mb-1">
-                      Created {formatDate(token.created_at, 'relative')}
-                      {token.last_used_at && <> · Last used {formatDate(token.last_used_at, 'relative')}</>}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      <span className="font-mono text-[10px] text-ink-tertiary bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-md">
-                        Delegated user access
-                      </span>
-                      <span className="font-mono text-[10px] text-ink-tertiary bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-md">
-                        {token.allowed_project_ids
-                          ? `${token.allowed_project_ids.length} selected project(s)`
-                          : 'All projects'}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-[12px] text-ink-disabled leading-relaxed">
-                      This token lets your local agent use devLog as you, limited by the projects you choose and your account access.
-                    </p>
-                  </div>
-                  <div className="flex gap-2 flex-shrink-0">
-                    {!token.revoked_at && (
-                      <Button variant="secondary" size="sm" onClick={() => copy(claudeMdSnippet(token.scopes), 'Snippet copied')}>
-                        <Copy size={13} /> Copy snippet
+            ) : tokens.map((token) => {
+              const status = tokenStatus(token)
+              const tokenLogs = auditLogs.filter((log) => log.token_id === token.id).slice(0, 3)
+              return (
+                <Panel key={token.id}>
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <h3 className="text-[15px] font-semibold text-ink-primary">{token.name}</h3>
+                          <span className={`font-mono text-[10px] font-medium px-2 py-0.5 rounded-full border ${status.className}`}>{status.label}</span>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2 mt-3">
+                          <div>
+                            <p className="font-mono text-[10px] uppercase tracking-wider text-ink-disabled">Intent</p>
+                            <p className="text-[13px] text-ink-secondary mt-0.5">{intendedSetupLabel(token)}</p>
+                          </div>
+                          <div>
+                            <p className="font-mono text-[10px] uppercase tracking-wider text-ink-disabled">Project access</p>
+                            <p className="text-[13px] text-ink-secondary mt-0.5">{projectAccessLabel(token, projects)}</p>
+                          </div>
+                          <div>
+                            <p className="font-mono text-[10px] uppercase tracking-wider text-ink-disabled">Clients</p>
+                            <p className="text-[13px] text-ink-secondary mt-0.5">Claude, Cursor, Windsurf, Copilot, API</p>
+                          </div>
+                          <div>
+                            <p className="font-mono text-[10px] uppercase tracking-wider text-ink-disabled">Last used</p>
+                            <p className="text-[13px] text-ink-secondary mt-0.5">{token.last_used_at ? formatDate(token.last_used_at, 'relative') : 'Never'}</p>
+                          </div>
+                        </div>
+                        <p className="mt-3 text-[12px] text-ink-disabled leading-relaxed">
+                          Delegated access token. The web app shows token status and API usage, not whether setup files exist on your machine.
+                        </p>
+                      </div>
+                      <Button variant="danger" size="sm" className="flex-shrink-0" onClick={() => deleteToken(token)}>
+                        <Trash2 size={13} /> Delete
                       </Button>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+                      {!token.revoked_at && status.label !== 'Expired' && (
+                        <>
+                          <Button variant="secondary" size="sm" onClick={() => copy(tokenTemplateCommand('global'), 'Global install command copied')}>
+                            <Copy size={13} /> Global install
+                          </Button>
+                          <Button variant="secondary" size="sm" onClick={() => copy(tokenTemplateCommand('local'), 'Local install command copied')}>
+                            <Copy size={13} /> Local + MCP install
+                          </Button>
+                        </>
+                      )}
+                      <Button variant="secondary" size="sm" onClick={() => copy(setupUtilityCommand('verify'), 'Verify command copied')}>
+                        <Copy size={13} /> Verify
+                      </Button>
+                      <Button variant="secondary" size="sm" onClick={() => copy(setupUtilityCommand('status'), 'Status command copied')}>
+                        <Copy size={13} /> Status
+                      </Button>
+                      <Button variant="secondary" size="sm" onClick={() => copy(setupUtilityCommand('uninstall-local'), 'Local uninstall command copied')}>
+                        <Copy size={13} /> Uninstall local
+                      </Button>
+                      <Button variant="secondary" size="sm" onClick={() => copy(setupUtilityCommand('uninstall-global'), 'Global uninstall command copied')}>
+                        <Copy size={13} /> Uninstall global
+                      </Button>
+                    </div>
+
+                    {tokenLogs.length > 0 && (
+                      <div className="rounded-lg bg-chalk border border-gray-100 px-3 py-2.5">
+                        <p className="font-mono text-[10px] uppercase tracking-wider text-ink-disabled mb-2">Recent actions</p>
+                        <div className="space-y-1.5">
+                          {tokenLogs.map((log) => (
+                            <div key={log.id} className="flex items-center justify-between gap-3 text-[12px]">
+                              <span className="text-ink-secondary truncate">{log.action}</span>
+                              <span className="font-mono text-[10px] text-ink-disabled flex-shrink-0">{formatDate(log.created_at, 'relative')}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
-                    <Button variant="danger" size="sm" onClick={() => deleteToken(token)}>
-                      <Trash2 size={13} /> Delete
-                    </Button>
                   </div>
-                </div>
-              </Panel>
-            ))}
+                </Panel>
+              )
+            })}
           </section>
 
           {/* ── Sidebar ───────────────────────────────────────────────── */}
@@ -231,7 +280,7 @@ export default function AgentAccess() {
               </div>
               <ol className="space-y-3">
                 {[
-                  'Create a scoped token and copy the setup command.',
+                  'Create a delegated machine token and copy the setup command.',
                   'Run it in your terminal — it saves your token and configures your agent.',
                   'Your agent can use devLog through REST or MCP, depending on client support.',
                 ].map((step, i) => (
@@ -309,6 +358,7 @@ function CreateTokenModal({
   onCreated: (token: AgentToken) => void
   onCopy: (text: string, label?: string) => Promise<void>
 }) {
+  const [setupIntent, setSetupIntent]     = useState<'global' | 'local' | 'manual'>('global')
   const [name, setName]                   = useState('This machine')
   const [restrict, setRestrict]           = useState(false)
   const [selectedProjects, setSelectedProjects] = useState<string[]>([])
@@ -318,13 +368,21 @@ function CreateTokenModal({
     setSelectedProjects((cur) => cur.includes(id) ? cur.filter((p) => p !== id) : [...cur, id])
   }
 
+  const primarySetupCommand = createdToken
+    ? setupIntent === 'local'
+      ? mcpSetupCommand(createdToken)
+      : setupIntent === 'manual'
+        ? `export DEVLOG_AGENT_TOKEN=${createdToken}`
+        : setupCommand(createdToken)
+    : ''
+
   async function createToken(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     try {
       const result = await agentTokensService.create({
         ownerId,
-        name: name.trim() || 'This machine',
+        name: `${name.trim() || 'This machine'} (${setupIntent === 'global' ? 'global machine' : setupIntent === 'local' ? 'local repo' : 'manual/API'})`,
         scopes: DELEGATED_AGENT_SCOPES,
         allowedProjectIds: restrict ? selectedProjects : null,
         expiresAt: null,
@@ -345,7 +403,7 @@ function CreateTokenModal({
         <div className="space-y-4">
           <p className="text-[14px] text-ink-secondary">Run this in your terminal to connect this machine to devLog:</p>
           <pre className="overflow-auto rounded-lg bg-gray-50 border border-border p-4 font-mono text-[12px] text-ink-primary break-all whitespace-pre-wrap">
-            {setupCommand(createdToken)}
+            {primarySetupCommand}
           </pre>
           <div className="rounded-lg border border-border bg-chalk p-3">
             <p className="text-[12px] font-medium text-ink-primary">Optional: local MCP for Claude Code / Cursor</p>
@@ -356,8 +414,8 @@ function CreateTokenModal({
           </div>
           <p className="text-[12px] text-ink-disabled">The setup command saves this token and adds agent instructions/config where supported. Local setup is current-repo only; global setup works across workspaces. The web app shows token usage, not local filesystem state.</p>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => onCopy(setupCommand(createdToken), 'Command copied')}>
-              <Copy size={14} /> Copy global command
+            <Button onClick={() => onCopy(primarySetupCommand, 'Command copied')}>
+              <Copy size={14} /> Copy primary command
             </Button>
             <Button variant="secondary" onClick={() => onCopy(mcpSetupCommand(createdToken), 'MCP command copied')}>
               <Copy size={14} /> Copy local MCP command
@@ -367,7 +425,31 @@ function CreateTokenModal({
         </div>
       ) : (
         <form onSubmit={createToken} className="space-y-5">
-          <Input label="Token name" value={name} onChange={(e) => setName(e.target.value)} placeholder="This machine" />
+          <Input label="Token / machine name" value={name} onChange={(e) => setName(e.target.value)} placeholder="This machine" />
+
+          <div>
+            <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-ink-disabled">Setup intent</p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {[
+                { value: 'global', label: 'Global machine', hint: 'Best for one token per computer.' },
+                { value: 'local', label: 'Local repo', hint: 'Use only in this workspace.' },
+                { value: 'manual', label: 'Manual / API', hint: 'For scripts or custom setup.' },
+              ].map((option) => (
+                <label key={option.value} className={`cursor-pointer rounded-lg border p-3 ${setupIntent === option.value ? 'border-accent bg-accent/5' : 'border-border bg-paper'}`}>
+                  <input
+                    type="radio"
+                    name="setupIntent"
+                    value={option.value}
+                    checked={setupIntent === option.value}
+                    onChange={() => setSetupIntent(option.value as 'global' | 'local' | 'manual')}
+                    className="sr-only"
+                  />
+                  <span className="block text-[13px] font-medium text-ink-primary">{option.label}</span>
+                  <span className="mt-1 block text-[11px] leading-snug text-ink-disabled">{option.hint}</span>
+                </label>
+              ))}
+            </div>
+          </div>
 
           <div className="rounded-lg border border-border bg-chalk p-4">
             <p className="text-[13px] font-medium text-ink-primary">Delegated access</p>
