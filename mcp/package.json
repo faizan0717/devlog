@@ -13,6 +13,8 @@
     "start:http": "node dist/src/http.js",
     "token:create": "tsx scripts/create-token.ts",
     "setup:claude-code": "tsx scripts/setup-claude-code.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:setup": "bash scripts/test-setup-sh.sh"
   },
   "dependencies": {
@@ -24,6 +26,7 @@
   "devDependencies": {
     "@types/node": "^26.0.0",
     "tsx": "^4.19.4",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.9"
   }
 }

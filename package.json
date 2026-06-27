@@ -2,16 +2,30 @@
   "name": "devlog",
   "private": true,
   "version": "0.1.0",
-  "workspaces": ["ui", "mcp"],
+  "workspaces": [
+    "ui",
+    "mcp"
+  ],
   "scripts": {
     "ui": "npm run dev --prefix ui",
     "ui:build": "npm run build --prefix ui",
+    "ui:lint": "npm run lint --prefix ui",
     "mcp": "npm run dev:http --prefix mcp",
     "mcp:build": "npm run build --prefix mcp",
     "mcp:start": "npm run start:http --prefix mcp",
-    "dev": "concurrently \"npm run ui\" \"npm run mcp\""
+    "mcp:test": "npm run test --prefix mcp",
+    "dev": "concurrently \"npm run ui\" \"npm run mcp\"",
+    "lint": "npm run ui:lint",
+    "build": "npm run ui:build && npm run mcp:build",
+    "test": "npm run mcp:test",
+    "check": "npm run lint && npm run build && npm test",
+    "ci": "npm run check && npm run test:e2e",
+    "test:e2e": "playwright test",
+    "test:e2e:local": "PLAYWRIGHT_BASE_URL=http://localhost:5173 playwright test",
+    "test:e2e:prod": "PLAYWRIGHT_BASE_URL=https://devlog.one playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "concurrently": "^9.0.0"
   }
 }

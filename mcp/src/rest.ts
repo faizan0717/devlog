@@ -51,7 +51,7 @@ function isString(value: unknown): value is string {
   return typeof value === 'string'
 }
 
-function validateStringField(value: unknown, field: string, max: number, required = false): string | null {
+export function validateStringField(value: unknown, field: string, max: number, required = false): string | null {
   if (value === undefined || value === null) {
     if (required) throw new Error(`${field} is required`)
     return null
@@ -63,7 +63,7 @@ function validateStringField(value: unknown, field: string, max: number, require
   return trimmed || null
 }
 
-function validateEnumField(value: unknown, field: string, allowed: Set<string>, defaultValue?: string): string | null {
+export function validateEnumField(value: unknown, field: string, allowed: Set<string>, defaultValue?: string): string | null {
   if (value === undefined || value === null || value === '') return defaultValue ?? null
   if (!isString(value) || !allowed.has(value)) {
     throw new Error(`${field} must be one of: ${Array.from(allowed).join(', ')}`)
@@ -71,7 +71,7 @@ function validateEnumField(value: unknown, field: string, allowed: Set<string>, 
   return value
 }
 
-function validateTags(value: unknown): string[] {
+export function validateTags(value: unknown): string[] {
   if (value === undefined || value === null) return []
   if (!Array.isArray(value)) throw new Error('tags must be an array')
   if (value.length > 10) throw new Error('tags must contain at most 10 items')
@@ -89,7 +89,7 @@ function completionPatch(status: string | null): Record<string, unknown> {
 
 type PlanRow = Record<string, any>
 
-function withPlanRefs(milestones: PlanRow[], todos: PlanRow[]): { milestones: PlanRow[]; todos: PlanRow[] } {
+export function withPlanRefs(milestones: PlanRow[], todos: PlanRow[]): { milestones: PlanRow[]; todos: PlanRow[] } {
   const milestoneIndex = new Map<string, number>()
   milestones.forEach((milestone, index) => milestoneIndex.set(String(milestone.id), index))
 
@@ -140,7 +140,7 @@ async function resolveTodoRefs(ctx: AgentContext, projectId: string, todoRef: st
   return matches
 }
 
-function validateDateField(value: unknown, field: string): string | null {
+export function validateDateField(value: unknown, field: string): string | null {
   if (value === undefined || value === null || value === '') return null
   if (!isString(value) || !/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(`${field} must be YYYY-MM-DD`)
   return value

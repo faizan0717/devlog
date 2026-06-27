@@ -19,16 +19,24 @@ Account creation/sign-up is **not** part of the automated test scope. Test accou
 Current scripts:
 
 - Root:
-  - `npm run ui:build`
-  - `npm run mcp:build`
-  - `npm run dev`
+  - `npm run lint` — UI ESLint gate.
+  - `npm run build` — UI production build plus MCP TypeScript build.
+  - `npm test` — MCP Vitest unit/contract tests.
+  - `npm run check` — lint, build, and unit tests.
+  - `npm run ci` — quality gates plus Playwright smoke tests.
+  - `npm run test:e2e` — Playwright smoke tests against `PLAYWRIGHT_BASE_URL` or local Vite by default.
+  - `npm run test:e2e:local` — Playwright smoke tests against `http://localhost:5173`.
+  - `npm run test:e2e:prod` — Playwright smoke tests against `https://devlog.one`.
+  - `npm run dev` — local UI + MCP development servers.
 - UI:
   - `npm run build`
   - `npm run lint`
 - MCP:
   - `npm run build`
+  - `npm test`
+  - `npm run test:setup`
 
-There is currently no dedicated unit, integration, E2E, or database policy test runner configured. The first milestone should establish automated tests and CI gates before broadening coverage.
+GitHub Actions runs the same beta quality gates on pull requests and pushes to `main`: install, UI lint, UI/MCP build, MCP tests, and Playwright public smoke tests. These checks do not require production secrets.
 
 ## 3. Recommended Test Stack
 
