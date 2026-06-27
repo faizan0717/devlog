@@ -39,12 +39,15 @@ function publicTodoSourceLabel(todo: PlanMilestoneWithTodos['todos'][number]) {
   return 'added manually'
 }
 
-function PublicRoadmap({ milestones }: { milestones: PlanMilestoneWithTodos[] }) {
-  const visibleMilestones = milestones.filter((milestone) => milestone.visibility === 'public' || milestone.visibility === 'unlisted')
-  if (visibleMilestones.length === 0) return null
+function isPublicRoadmapItem(visibility: string) {
+  return visibility === 'public' || visibility === 'unlisted'
+}
 
+function PublicRoadmap({ milestones }: { milestones: PlanMilestoneWithTodos[] }) {
+  const visibleMilestones = milestones.filter((milestone) => isPublicRoadmapItem(milestone.visibility))
+  const hasAnyPlanItems = milestones.length > 0
   const doneCount = visibleMilestones.filter((m) => m.status === 'done').length
-  const progress = Math.round((doneCount / visibleMilestones.length) * 100)
+  const progress = visibleMilestones.length > 0 ? Math.round((doneCount / visibleMilestones.length) * 100) : 0
 
   return (
     <section className="mb-10 rounded-[1.5rem] border border-surface-800/70 bg-surface-900/45 p-5 sm:p-6">
@@ -56,22 +59,36 @@ function PublicRoadmap({ milestones }: { milestones: PlanMilestoneWithTodos[] })
           <h2 className="text-title text-ink-primary">What’s planned next</h2>
           <p className="mt-1 text-body text-ink-tertiary">Public milestones from this project’s devLog plan.</p>
         </div>
-        <div className="min-w-[160px]">
-          <div className="mb-1 flex justify-between font-mono text-caption text-ink-tertiary">
-            <span>{doneCount}/{visibleMilestones.length} shipped</span>
-            <span>{progress}%</span>
+        {visibleMilestones.length > 0 && (
+          <div className="min-w-[160px]">
+            <div className="mb-1 flex justify-between font-mono text-caption text-ink-tertiary">
+              <span>{doneCount}/{visibleMilestones.length} shipped</span>
+              <span>{progress}%</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-surface-800">
+              <div className="h-full rounded-full bg-mood-shipped" style={{ width: `${progress}%` }} />
+            </div>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-surface-800">
-            <div className="h-full rounded-full bg-mood-shipped" style={{ width: `${progress}%` }} />
-          </div>
-        </div>
+        )}
       </div>
 
+      {visibleMilestones.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-surface-700/70 bg-surface-950/25 px-4 py-6 text-center">
+          <p className="text-body font-medium text-ink-secondary">
+            {hasAnyPlanItems ? 'This roadmap is private for now.' : 'No public roadmap yet.'}
+          </p>
+          <p className="mt-1 text-sm text-ink-tertiary">
+            {hasAnyPlanItems
+              ? 'The maker has plan items, but none are marked public or unlisted.'
+              : 'When the maker publishes milestones, they will appear here.'}
+          </p>
+        </div>
+      ) : (
       <div className="space-y-3">
         {visibleMilestones.map((milestone, milestoneIndex) => {
           const meta = PLAN_STATUS_META[milestone.status]
           const Icon = meta.Icon
-          const visibleTodos = milestone.todos.filter((todo) => todo.visibility === 'public' || todo.visibility === 'unlisted')
+          const visibleTodos = milestone.todos.filter((todo) => isPublicRoadmapItem(todo.visibility))
           const doneTodos = visibleTodos.filter((todo) => todo.status === 'done').length
           return (
             <article key={milestone.id} className="rounded-2xl border border-surface-800/70 bg-surface-950/35 p-4">
@@ -117,6 +134,7 @@ function PublicRoadmap({ milestones }: { milestones: PlanMilestoneWithTodos[] })
           )
         })}
       </div>
+      )}
     </section>
   )
 }
@@ -138,7 +156,7 @@ export default function PublicProject() {
     if (!id) return
     setLoading(true)
     Promise.all([
-      exploreService.getTrendingProjects(100).then((all) => all.find((p) => p.id === id) ?? null),
+      exploreService.getPublicProjectById(id),
       exploreService.getPublicLogsByProject(id),
       planService.getForProject(id).catch(() => []),
     ])

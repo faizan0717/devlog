@@ -22,6 +22,18 @@ export const exploreService = {
     })) as unknown as PublicProject[]
   },
 
+  async getPublicProjectById(projectId: string): Promise<PublicProject | null> {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*, owner:profiles!projects_owner_id_fkey(id, username, avatar_url)')
+      .eq('id', projectId)
+      .in('visibility', ['public', 'unlisted'])
+      .maybeSingle()
+    if (error) throw error
+    if (!data) return null
+    return { ...data, log_count: 0 } as unknown as PublicProject
+  },
+
   async getRecentPublicLogs(cursor?: string): Promise<PublicLog[]> {
     let q = supabase
       .from('logs')

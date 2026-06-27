@@ -125,7 +125,7 @@ export default function Docs() {
                     </thead>
                     <tbody className="divide-y divide-border">
                       {section.table.map((row) => (
-                        <tr key={row.path} className="bg-paper">
+                        <tr key={`${row.method} ${row.path}`} className="bg-paper">
                           <td className="px-4 py-2.5 font-mono text-[11px] text-accent">{row.method}</td>
                           <td className="px-4 py-2.5 font-mono text-ink-secondary">{row.path}</td>
                           <td className="px-4 py-2.5 text-ink-tertiary">{row.desc}</td>

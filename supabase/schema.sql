@@ -105,12 +105,12 @@ alter table public.comments     enable row level security;
 create policy "profiles: public read"  on public.profiles for select using (true);
 create policy "profiles: owner write"  on public.profiles for update using (auth.uid() = id);
 
--- Projects: owner full access; collaborators can read; public projects readable by all
+-- Projects: owner full access; collaborators can read; public/unlisted projects readable by all
 create policy "projects: owner all"    on public.projects for all using (auth.uid() = owner_id);
 create policy "projects: collab read"  on public.projects for select using (
   exists (select 1 from public.collaborators where project_id = id and user_id = auth.uid())
 );
-create policy "projects: public read"  on public.projects for select using (visibility = 'public');
+create policy "projects: public read"  on public.projects for select using (visibility in ('public', 'unlisted'));
 
 -- Logs: inherit project access
 create policy "logs: owner all" on public.logs for all using (
