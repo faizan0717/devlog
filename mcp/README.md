@@ -45,6 +45,8 @@ DEVLOG_SUPABASE_URL=https://your-project.supabase.co
 DEVLOG_SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 PORT=8787
 DEVLOG_MCP_ALLOWED_ORIGIN=https://devlog.one
+DEVLOG_RATE_LIMIT_WINDOW_MS=60000
+DEVLOG_RATE_LIMIT_MAX=120
 ```
 
 ## Agent setup (for users)
@@ -90,5 +92,5 @@ npm run start:http
 - Raw tokens are never stored — only SHA-256 hashes
 - Every request validates delegated owner/collaborator access, token expiry, and optional project restrictions
 - Revoked tokens are invalidated within 60 seconds (cache TTL)
-- Rate limiting: 60 requests/min per IP
+- Rate limiting: configurable per IP with `DEVLOG_RATE_LIMIT_WINDOW_MS` and `DEVLOG_RATE_LIMIT_MAX` (defaults to 60 requests/min)
 - All actions written to `agent_audit_logs`

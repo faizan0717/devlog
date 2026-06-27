@@ -10,8 +10,15 @@ import { getErrorMessage, getHttpStatus } from './errors.js'
 const port = Number(process.env.PORT ?? process.env.DEVLOG_MCP_PORT ?? 8787)
 const host = process.env.HOST ?? '0.0.0.0'
 const allowedOrigin = process.env.DEVLOG_MCP_ALLOWED_ORIGIN ?? '*'
-const RATE_LIMIT_WINDOW_MS = 60_000
-const RATE_LIMIT_MAX = 60
+function positiveIntegerEnv(name: string, fallback: number): number {
+  const raw = process.env[name]
+  if (!raw) return fallback
+  const parsed = Number(raw)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback
+}
+
+const RATE_LIMIT_WINDOW_MS = positiveIntegerEnv('DEVLOG_RATE_LIMIT_WINDOW_MS', 60_000)
+const RATE_LIMIT_MAX = positiveIntegerEnv('DEVLOG_RATE_LIMIT_MAX', 60)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 
 function setCors(res: ServerResponse): void {
@@ -27,16 +34,17 @@ function sendJson(res: ServerResponse, status: number, payload: unknown): void {
   res.end(JSON.stringify(payload))
 }
 
-function checkRateLimit(req: IncomingMessage): boolean {
+function checkRateLimit(req: IncomingMessage): { allowed: true } | { allowed: false; retryAfterSeconds: number } {
   const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? req.socket.remoteAddress ?? 'unknown'
   const now = Date.now()
   const entry = rateLimitMap.get(ip)
   if (!entry || entry.resetAt < now) {
     rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS })
-    return true
+    return { allowed: true }
   }
   entry.count++
-  return entry.count <= RATE_LIMIT_MAX
+  if (entry.count <= RATE_LIMIT_MAX) return { allowed: true }
+  return { allowed: false, retryAfterSeconds: Math.max(1, Math.ceil((entry.resetAt - now) / 1000)) }
 }
 
 function log(req: IncomingMessage, status: number): void {
@@ -119,9 +127,18 @@ const server = http.createServer((req, res) => {
       return
     }
 
-    if (!checkRateLimit(req)) {
+    const rateLimit = checkRateLimit(req)
+    if (!rateLimit.allowed) {
       log(req, 429)
-      sendJson(res, 429, { error: 'Too many requests' })
+      setCors(res)
+      res.setHeader('Retry-After', String(rateLimit.retryAfterSeconds))
+      res.writeHead(429, { 'content-type': 'application/json' })
+      res.end(JSON.stringify({
+        error: 'Too many requests. Please wait a moment and try again.',
+        retry_after_seconds: rateLimit.retryAfterSeconds,
+        limit: RATE_LIMIT_MAX,
+        window_seconds: Math.ceil(RATE_LIMIT_WINDOW_MS / 1000),
+      }))
       return
     }
 
@@ -199,6 +216,7 @@ try {
   await validateStartup()
   server.listen(port, host, () => {
     console.log(`[devLog MCP] listening on http://${host}:${port}`)
+    console.log(`[devLog MCP] rate limit: ${RATE_LIMIT_MAX} requests / ${Math.ceil(RATE_LIMIT_WINDOW_MS / 1000)}s per IP`)
     console.log(`[devLog MCP] endpoints: ${ALL_ENDPOINTS.join('  ')}`)
   })
 } catch (err) {
