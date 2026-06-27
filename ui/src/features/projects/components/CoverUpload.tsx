@@ -1,7 +1,9 @@
 import { useRef, useState, DragEvent } from 'react'
 import { ImagePlus, X, Upload } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/utils'
 import { Spinner } from '@/components/ui'
+import { UPLOAD_ACCEPT, UPLOAD_HELP_TEXT, validateUploadFile } from '@/utils/uploadValidation'
 
 interface CoverUploadProps {
   value?: string | null
@@ -26,6 +28,12 @@ export function CoverUpload({
 
   function handleFile(file: File | null) {
     if (!file) return
+    try {
+      validateUploadFile(file, 'projectCover')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Cover upload is not allowed.')
+      return
+    }
     const url = URL.createObjectURL(file)
     setPreview(url)
     onChange(file)
@@ -36,7 +44,7 @@ export function CoverUpload({
     setDragging(false)
     if (disabled || uploading) return
     const file = e.dataTransfer.files[0]
-    if (file?.type.startsWith('image/')) handleFile(file)
+    handleFile(file ?? null)
   }
 
   function handleRemove() {
@@ -82,7 +90,7 @@ export function CoverUpload({
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept={UPLOAD_ACCEPT.projectCover}
           className="hidden"
           onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
         />
@@ -110,11 +118,11 @@ export function CoverUpload({
     >
       <ImagePlus size={24} className="text-ink-tertiary mb-2" />
       <p className="text-body text-ink-secondary">Add a cover image</p>
-      <p className="text-caption text-ink-tertiary mt-1">Drag and drop or click to upload</p>
+      <p className="text-caption text-ink-tertiary mt-1">{UPLOAD_HELP_TEXT.projectCover}</p>
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept={UPLOAD_ACCEPT.projectCover}
         className="hidden"
         onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
       />

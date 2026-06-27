@@ -18,7 +18,9 @@ When you create log entries, projects, milestones, or todos — all of that cont
   },
   {
     title: 'Public content',
-    body: `Content marked "public" is visible to anyone, including search engines. Content marked "unlisted" is accessible to anyone with the direct link but is not indexed or surfaced in explore/search. You can change visibility at any time.`,
+    body: `Content marked "public" is visible to anyone, including search engines. Content marked "unlisted" is accessible to anyone with the direct link but is not indexed or surfaced in explore/search. You can change visibility at any time.
+
+Uploaded avatars, project covers, and log media are stored in public media buckets during beta. Private logs and projects are protected by app/database visibility rules, but media URLs should be treated as shareable links if someone has the exact URL.`,
   },
   {
     title: 'Data deletion',

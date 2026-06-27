@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { safeUploadExtension } from '@/utils/uploadValidation'
 import type { Log, LogMedia, LogMood } from '@/types'
 
 export const logsService = {
@@ -59,15 +60,9 @@ export const logsService = {
   },
 
   async uploadMedia(logId: string, file: File, userId: string): Promise<LogMedia> {
-    const MAX_SIZE = 50 * 1024 * 1024
-    if (file.size > MAX_SIZE) throw new Error('File too large — max 50 MB')
-
-    const ALLOWED_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov'])
-    const ext = (file.name.split('.').pop() ?? '').toLowerCase()
-    if (!ALLOWED_EXTS.has(ext)) throw new Error('File type not allowed')
-
+    const ext = safeUploadExtension(file, 'logMedia')
     const path = `${userId}/${logId}/${Date.now()}.${ext}`
-    const { error } = await supabase.storage.from('log-media').upload(path, file)
+    const { error } = await supabase.storage.from('log-media').upload(path, file, { contentType: file.type })
     if (error) throw error
 
     const { data: urlData } = supabase.storage.from('log-media').getPublicUrl(path)

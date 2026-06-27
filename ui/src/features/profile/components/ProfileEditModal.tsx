@@ -6,6 +6,7 @@ import { profilesService } from '@/services/profiles.service'
 import { useAuthStore } from '@/stores/authStore'
 import type { Profile } from '@/types'
 import { cn } from '@/utils'
+import { UPLOAD_ACCEPT, UPLOAD_HELP_TEXT } from '@/utils/uploadValidation'
 
 interface ProfileEditModalProps {
   open: boolean
@@ -137,7 +138,7 @@ export function ProfileEditModal({ open, profile, onClose, onSaved }: ProfileEdi
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept={UPLOAD_ACCEPT.avatar}
               className="sr-only"
               onChange={handleAvatarUpload}
               disabled={isUploadingAvatar || isSaving}
@@ -147,7 +148,7 @@ export function ProfileEditModal({ open, profile, onClose, onSaved }: ProfileEdi
           <div>
             <p className="text-title text-ink-primary">@{previewProfile.username}</p>
             <p className="mt-1 text-caption text-ink-tertiary">
-              Click your avatar to upload a new photo.
+              Click your avatar to upload a new photo. {UPLOAD_HELP_TEXT.avatar}
             </p>
           </div>
         </div>

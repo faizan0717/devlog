@@ -24,6 +24,7 @@ import { planService } from '@/services/plan.service'
 import type { Log, PlanMilestone, PlanMilestoneWithTodos, PlanStatus, PlanTodo, PlanTodoWithSources, Visibility } from '@/types'
 import { cn, formatDate } from '@/utils'
 import { COVER_GRADIENTS, getCoverGradient } from '@/utils/coverGradient'
+import { UPLOAD_ACCEPT } from '@/utils/uploadValidation'
 
 // ── Share modal ───────────────────────────────────────────────────────────────
 
@@ -1194,8 +1195,8 @@ export default function ProjectDetail() {
       await projectsService.update(project.id, { cover_image_url: url })
       refresh()
       toast.success('Cover updated')
-    } catch {
-      toast.error('Failed to upload cover')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to upload cover')
     } finally {
       setCoverUploading(false)
       e.target.value = ''
@@ -1275,7 +1276,7 @@ export default function ProjectDetail() {
         <input
           ref={coverInputRef}
           type="file"
-          accept="image/*"
+          accept={UPLOAD_ACCEPT.projectCover}
           className="hidden"
           onChange={handleCoverUpload}
         />

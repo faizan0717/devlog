@@ -20,6 +20,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { ROUTES } from '@/utils'
 import { cn } from '@/utils/cn'
 import { fadeUp } from '@/lib/motion'
+import { UPLOAD_ACCEPT, UPLOAD_HELP_TEXT } from '@/utils/uploadValidation'
 import type { Profile } from '@/types'
 
 const SECTION = 'mb-9 pb-9 border-b border-gray-100'
@@ -208,7 +209,7 @@ export default function Profile() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept={UPLOAD_ACCEPT.avatar}
                   className="sr-only"
                   onChange={handleAvatarUpload}
                   disabled={isUploadingAvatar}
@@ -224,7 +225,7 @@ export default function Profile() {
               >
                 Upload photo
               </button>
-              <span className="font-mono text-[10px] text-ink-disabled">PNG, JPG up to 2MB. Square recommended.</span>
+              <span className="font-mono text-[10px] text-ink-disabled">{UPLOAD_HELP_TEXT.avatar} Square recommended.</span>
             </div>
           </div>
         </div>

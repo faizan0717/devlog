@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { safeUploadExtension } from '@/utils/uploadValidation'
 import type { Profile } from '@/types'
 
 export type ProfileUpdatePayload = Partial<
@@ -38,11 +39,11 @@ export const profilesService = {
   },
 
   async uploadAvatar(userId: string, file: File): Promise<string> {
-    const ext = file.name.split('.').pop()
+    const ext = safeUploadExtension(file, 'avatar')
     const path = `${userId}/avatar.${ext}`
     const { error } = await supabase.storage
       .from('avatars')
-      .upload(path, file, { upsert: true })
+      .upload(path, file, { upsert: true, contentType: file.type })
     if (error) throw error
     const { data } = supabase.storage.from('avatars').getPublicUrl(path)
     return data.publicUrl

@@ -47,8 +47,8 @@ export default function NewProject() {
         try {
           const coverUrl = await projectsService.uploadCover(project.id, coverFile, user.id)
           await projectsService.update(project.id, { cover_image_url: coverUrl })
-        } catch {
-          toast.error('Project created but cover upload failed')
+        } catch (err) {
+          toast.error(err instanceof Error ? `Project created but cover upload failed: ${err.message}` : 'Project created but cover upload failed')
         } finally {
           setUploadingCover(false)
         }

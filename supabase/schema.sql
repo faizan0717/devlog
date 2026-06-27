@@ -207,9 +207,12 @@ alter table public.profiles
 -- ──────────────────────────────────────────────
 -- Storage: avatars bucket
 -- ──────────────────────────────────────────────
-insert into storage.buckets (id, name, public)
-  values ('avatars', 'avatars', true)
-  on conflict (id) do nothing;
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  values ('avatars', 'avatars', true, 5242880, array['image/jpeg','image/png','image/gif','image/webp'])
+  on conflict (id) do update set
+    public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
 
 create policy "avatars: owner upload" on storage.objects
   for insert with check (
@@ -255,9 +258,12 @@ end $$;
 -- ──────────────────────────────────────────────
 -- Storage: project-covers bucket
 -- ──────────────────────────────────────────────
-insert into storage.buckets (id, name, public)
-  values ('project-covers', 'project-covers', true)
-  on conflict (id) do nothing;
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  values ('project-covers', 'project-covers', true, 10485760, array['image/jpeg','image/png','image/gif','image/webp'])
+  on conflict (id) do update set
+    public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
 
 create policy "project-covers: owner upload" on storage.objects
   for insert with check (
@@ -291,9 +297,12 @@ alter table public.logs
 -- ──────────────────────────────────────────────
 -- Storage: log-media bucket
 -- ──────────────────────────────────────────────
-insert into storage.buckets (id, name, public)
-  values ('log-media', 'log-media', true)
-  on conflict (id) do nothing;
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  values ('log-media', 'log-media', true, 52428800, array['image/jpeg','image/png','image/gif','image/webp','video/mp4','video/webm','video/quicktime'])
+  on conflict (id) do update set
+    public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
 
 create policy "log-media: owner upload" on storage.objects
   for insert with check (

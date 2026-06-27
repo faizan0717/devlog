@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { ImagePlus, Loader2 } from 'lucide-react'
 import { cn } from '@/utils'
+import { UPLOAD_ACCEPT, UPLOAD_HELP_TEXT } from '@/utils/uploadValidation'
 
 interface MediaUploadProps {
   onUpload: (file: File) => Promise<void>
@@ -54,7 +55,7 @@ export function MediaUpload({ onUpload, uploadingCount, disabled }: MediaUploadP
       <input
         ref={inputRef}
         type="file"
-        accept="image/*,video/*"
+        accept={UPLOAD_ACCEPT.logMedia}
         multiple
         className="sr-only"
         onChange={(e) => handleFiles(e.target.files)}
@@ -74,6 +75,7 @@ export function MediaUpload({ onUpload, uploadingCount, disabled }: MediaUploadP
           <p className="text-caption text-ink-tertiary">
             {dragging ? 'Drop to upload' : 'Drop images or videos, or click to browse'}
           </p>
+          <p className="text-[11px] text-ink-disabled">{UPLOAD_HELP_TEXT.logMedia}</p>
         </>
       )}
     </div>

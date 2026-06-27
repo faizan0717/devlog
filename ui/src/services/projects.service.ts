@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { safeUploadExtension } from '@/utils/uploadValidation'
 import type { Project, ProjectWithDetails } from '@/types'
 
 export const projectsService = {
@@ -69,11 +70,11 @@ export const projectsService = {
   },
 
   async uploadCover(projectId: string, file: File, ownerId: string): Promise<string> {
-    const ext = file.name.split('.').pop() ?? 'jpg'
+    const ext = safeUploadExtension(file, 'projectCover')
     const path = `${ownerId}/${projectId}.${ext}`
     const { error } = await supabase.storage
       .from('project-covers')
-      .upload(path, file, { upsert: true })
+      .upload(path, file, { upsert: true, contentType: file.type })
     if (error) throw error
     const { data } = supabase.storage.from('project-covers').getPublicUrl(path)
     return data.publicUrl
