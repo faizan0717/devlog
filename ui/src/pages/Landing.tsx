@@ -460,6 +460,7 @@ export default function Landing() {
             { label: 'Docs',    to: '/docs'    },
             { label: 'Pricing', to: '/pricing' },
             { label: 'Privacy', to: '/privacy' },
+            { label: 'Support', to: ROUTES.SUPPORT },
           ] as const).map(({ label, to }) => (
             <Link key={label} to={to} className="text-[13px] text-ink-disabled hover:text-ink-secondary transition-colors font-sans">
               {label}

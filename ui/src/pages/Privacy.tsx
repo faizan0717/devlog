@@ -32,7 +32,7 @@ Uploaded avatars, project covers, and log media are stored in public media bucke
   },
   {
     title: 'Contact',
-    body: `Questions about your data? Email us at privacy@devlog.one. We'll respond within 5 business days.`,
+    body: `Questions about your data? Email us at privacy@devlog.one. To report abusive public content, use the Support page or email support@devlog.one. We'll respond within 5 business days, and urgent abuse reports are triaged sooner during beta.`,
   },
 ]
 
@@ -75,6 +75,7 @@ export default function Privacy() {
           <Link to="/docs" className="text-[13px] text-ink-disabled hover:text-ink-secondary transition-colors">Docs</Link>
           <Link to="/pricing" className="text-[13px] text-ink-disabled hover:text-ink-secondary transition-colors">Pricing</Link>
           <Link to="/privacy" className="text-[13px] text-ink-disabled hover:text-ink-secondary transition-colors">Privacy</Link>
+          <Link to={ROUTES.SUPPORT} className="text-[13px] text-ink-disabled hover:text-ink-secondary transition-colors">Support</Link>
         </div>
       </footer>
     </div>

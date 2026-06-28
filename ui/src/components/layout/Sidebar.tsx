@@ -1,7 +1,7 @@
 import { NavLink, Link, useNavigate } from 'react-router-dom'
-import { Compass, CheckSquare, Map, Settings, LogOut, KeyRound, MessageCircle, FolderOpen, LayoutGrid } from 'lucide-react'
+import { Compass, CheckSquare, Map, Settings, LogOut, KeyRound, MessageCircle, FolderOpen, LayoutGrid, ShieldAlert } from 'lucide-react'
 import { toast } from 'sonner'
-import { cn, ROUTES } from '@/utils'
+import { ABUSE_REPORT_URL, cn, FEEDBACK_URL, ROUTES } from '@/utils'
 import { getCoverGradient } from '@/utils/coverGradient'
 import { useAuthStore } from '@/stores/authStore'
 import { useProjects } from '@/features/projects/hooks/useProjects'
@@ -186,13 +186,21 @@ export function Sidebar() {
           )}
 
           <a
-            href="https://github.com/faizan0717/devlog/issues/new?title=Beta%20feedback"
+            href={FEEDBACK_URL}
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-ink-tertiary transition-colors hover:bg-gray-50 hover:text-ink-secondary"
           >
             <MessageCircle size={14} className="shrink-0" />
             Feedback
+          </a>
+
+          <a
+            href={ABUSE_REPORT_URL}
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-ink-tertiary transition-colors hover:bg-red-50 hover:text-danger"
+          >
+            <ShieldAlert size={14} className="shrink-0" />
+            Report abuse
           </a>
 
           <button

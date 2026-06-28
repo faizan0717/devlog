@@ -12,6 +12,12 @@ export function PublicNav() {
 
       <div className="flex items-center gap-2">
         <Link
+          to={ROUTES.SUPPORT}
+          className="hidden px-3.5 py-[7px] text-[13px] text-ink-secondary hover:text-ink-primary transition-colors sm:inline-flex"
+        >
+          Support
+        </Link>
+        <Link
           to={ROUTES.LOGIN}
           className="px-3.5 py-[7px] text-[13px] text-ink-secondary hover:text-ink-primary transition-colors"
         >

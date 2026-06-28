@@ -15,6 +15,7 @@ A cinematic timeline platform for makers. Document your projects, ship logs, and
 | App | https://devlog.one |
 | MCP / REST API | https://api.devlog.one |
 | API docs | https://api.devlog.one/docs |
+| Support / abuse reports | https://devlog.one/support |
 | Health | https://api.devlog.one/health |
 
 ---
@@ -75,6 +76,8 @@ devLog is where makers document their work. Create projects, post timeline logs 
 ```
 
 The MCP server never shares the Supabase service role key with the browser. Every agent action is validated as delegated access for the token owner, bounded by their project access and any selected-project restriction, and recorded in `agent_audit_logs`.
+
+Public beta operations, moderation, and launch-week monitoring live in [`docs/beta-operations.md`](docs/beta-operations.md).
 
 ---
 

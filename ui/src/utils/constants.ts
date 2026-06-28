@@ -19,7 +19,12 @@ export const ROUTES = {
   PUBLIC_PROFILE: '/u/:username',
   PUBLIC_PROJECT: '/p/:id',
   PUBLIC_LOG: '/p/:projectId/logs/:logId',
+  SUPPORT: '/support',
   NOT_FOUND: '*',
 } as const
+
+export const SUPPORT_EMAIL = 'support@devlog.one'
+export const FEEDBACK_URL = 'https://github.com/faizan0717/devlog/issues/new?title=Beta%20feedback'
+export const ABUSE_REPORT_URL = `mailto:${SUPPORT_EMAIL}?subject=devLog%20abuse%20report`
 
 export const TRANSITION_DURATION = 0.35

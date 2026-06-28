@@ -201,6 +201,7 @@ export default function Docs() {
           <Link to="/docs" className="text-[13px] text-ink-disabled hover:text-ink-secondary transition-colors">Docs</Link>
           <Link to="/pricing" className="text-[13px] text-ink-disabled hover:text-ink-secondary transition-colors">Pricing</Link>
           <Link to="/privacy" className="text-[13px] text-ink-disabled hover:text-ink-secondary transition-colors">Privacy</Link>
+          <Link to={ROUTES.SUPPORT} className="text-[13px] text-ink-disabled hover:text-ink-secondary transition-colors">Support</Link>
         </div>
       </footer>
     </div>

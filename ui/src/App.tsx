@@ -31,6 +31,7 @@ const NotFound = lazy(() => import('@/pages/NotFound'))
 const Docs = lazy(() => import('@/pages/Docs'))
 const Pricing = lazy(() => import('@/pages/Pricing'))
 const Privacy = lazy(() => import('@/pages/Privacy'))
+const Support = lazy(() => import('@/pages/Support'))
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -216,6 +217,7 @@ function AnimatedRoutes() {
         <Route path="/docs"    element={<Suspense fallback={<PageLoader />}><Docs /></Suspense>} />
         <Route path="/pricing" element={<Suspense fallback={<PageLoader />}><Pricing /></Suspense>} />
         <Route path="/privacy" element={<Suspense fallback={<PageLoader />}><Privacy /></Suspense>} />
+        <Route path={ROUTES.SUPPORT} element={<Suspense fallback={<PageLoader />}><Support /></Suspense>} />
 
         <Route
           path={ROUTES.NOT_FOUND}
