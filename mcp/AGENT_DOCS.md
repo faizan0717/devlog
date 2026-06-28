@@ -3,15 +3,15 @@
 devLog is a cinematic timeline platform for makers. You are connected through a delegated agent token for the token owner. The token lets you use devLog as that user, limited by their project access and any selected-project restriction on the token.
 
 Connection modes:
-- REST is the universal fallback at `https://api.devlog.one`.
-- Hosted MCP is available at `https://api.devlog.one/mcp` for clients that support HTTP MCP with Authorization headers.
-- Skills/rules/instructions teach the agent when and how to use devLog.
+- REST is the universal fallback at `https://api.devlog.one`; use it whenever MCP is unsupported or unavailable.
+- Hosted MCP is available at `https://api.devlog.one/mcp` only for clients that support HTTP MCP with Authorization headers.
+- Skills/rules/instructions teach the agent when and how to use devLog, including the REST fallback.
 - setup.sh is a local/global setup manager, verifier, status checker, and uninstaller. It writes REST instructions for all supported agents and can write MCP config for known local project clients with `--mcp`.
 
 Agent setup lifecycle:
 ```bash
-curl -fsSL https://api.devlog.one/setup.sh | bash -s -- install <token> --local
 curl -fsSL https://api.devlog.one/setup.sh | bash -s -- install <token> --global
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- install <token> --local --agents all --mcp
 curl -fsSL https://api.devlog.one/setup.sh | bash -s -- verify
 curl -fsSL https://api.devlog.one/setup.sh | bash -s -- status
 curl -fsSL https://api.devlog.one/setup.sh | bash -s -- uninstall --local
@@ -25,14 +25,14 @@ Token resolution order: `./.devlog` → `~/.devlog` → `DEVLOG_AGENT_TOKEN`. If
 ### devlog_get_docs
 Fetch this help file. Call this at the start of any devLog session to get the latest tool docs.
 
-No params, no scope required.
+No params. No token permissions beyond a valid connection are needed.
 
 ---
 
 ### devlog_list_projects
 List projects the token owner can access (filtered to allowed projects if the token is restricted).
 
-**Requires:** delegated project access.
+**Access:** token owner must be able to access the project(s).
 
 ---
 
@@ -41,7 +41,7 @@ Read one project and its timeline logs.
 
 **Params:** `project_id` uuid.
 
-**Requires:** delegated project access.
+**Access:** token owner must be able to access the project(s).
 
 ---
 
@@ -50,7 +50,7 @@ Create a new devLog project.
 
 **Params:** `title`, optional `description`, `visibility` (`private` | `public` | `unlisted`), `tags`.
 
-**Requires:** delegated user access.
+**Access:** token owner can create projects.
 
 ---
 
@@ -59,7 +59,7 @@ Update project fields.
 
 **Params:** `project_id`, optional `title`, `description`, `visibility`, `tags`.
 
-**Requires:** project owner access.
+**Access:** token owner must be able to update the project.
 
 ---
 
@@ -68,7 +68,7 @@ Create a timeline log entry.
 
 **Params:** `project_id`, `title`, optional `content`, `visibility`, `mood`.
 
-**Requires:** write access to the project.
+**Access:** token owner must be able to write to the project.
 
 ---
 
@@ -77,7 +77,7 @@ Update a timeline log entry.
 
 **Params:** `log_id`, optional `title`, `content`, `visibility`, `mood`.
 
-**Requires:** write access to the log project.
+**Access:** token owner must be able to write to the log project.
 
 ---
 
@@ -88,7 +88,7 @@ Read project plan milestones and todos.
 
 Returns `{ milestones, todos }`. Each returned milestone has `plan_ref` like `1.1`; each todo has `plan_ref` like `1.1.3`.
 
-**Requires:** delegated project access.
+**Access:** token owner must be able to access the project(s).
 
 ---
 
@@ -104,7 +104,7 @@ Create a plan milestone.
 - optional `target_date` as `YYYY-MM-DD`
 - optional `sort_order` integer
 
-**Requires:** write access to the project.
+**Access:** token owner must be able to write to the project.
 
 ---
 
@@ -113,7 +113,7 @@ Update a plan milestone.
 
 **Params:** `milestone_id`, optional `title`, `description`, `status`, `visibility`, `target_date`, `sort_order`.
 
-**Requires:** write access to the project.
+**Access:** token owner must be able to write to the project.
 
 ---
 
@@ -122,7 +122,7 @@ Delete a plan milestone and its todos.
 
 **Params:** `milestone_id` uuid.
 
-**Requires:** write access to the project.
+**Access:** token owner must be able to write to the project.
 
 ---
 
@@ -137,7 +137,7 @@ Create a plan todo under a milestone.
 - `visibility` — `private` | `public` | `shared` | `unlisted` default `private`
 - optional `sort_order` integer
 
-**Requires:** write access to the project.
+**Access:** token owner must be able to write to the project.
 
 ---
 
@@ -146,7 +146,7 @@ Update a plan todo.
 
 **Params:** `todo_id`, optional `title`, `description`, `status`, `visibility`, `milestone_id`, `sort_order`.
 
-**Requires:** write access to the project.
+**Access:** token owner must be able to write to the project.
 
 ---
 
@@ -155,7 +155,7 @@ Delete a plan todo.
 
 **Params:** `todo_id` uuid.
 
-**Requires:** write access to the project.
+**Access:** token owner must be able to write to the project.
 
 ---
 
@@ -164,7 +164,7 @@ Mark todo(s) as done and record the completing agent token.
 
 **Params:** either `todo_id` uuid, or `project_id` uuid + `todo_ref` (`1.1.3` for one todo, `1.1.*` for all todos in a milestone).
 
-**Requires:** write access to the project.
+**Access:** token owner must be able to write to the project.
 
 ---
 
@@ -173,7 +173,7 @@ Reopen completed todo(s).
 
 **Params:** either `todo_id` uuid, or `project_id` uuid + `todo_ref` (`1.1.3` or `1.1.*`), optional `status` (`pending` | `doing`, default `pending`).
 
-**Requires:** write access to the project.
+**Access:** token owner must be able to write to the project.
 
 ---
 
@@ -181,26 +181,26 @@ Reopen completed todo(s).
 
 All requests require `Authorization: Bearer <token>`.
 
-| Method | Path | Scope | Description |
+| Method | Path | Access | Description |
 |--------|------|-------|-------------|
-| GET | `/docs` | none | This file |
-| GET | `/projects` | `read_projects` | List projects |
-| POST | `/projects` | `create_project` | Create project |
-| PATCH | `/projects/:id` | `update_project` | Update project |
-| GET | `/projects/:id/timeline` | `read_logs` | Project + logs |
-| POST | `/logs` | `create_log` | Create log |
-| PATCH | `/logs/:id` | `update_log` | Update log |
-| GET | `/projects/:id/plan` | `read_plan` | Milestones + todos |
-| POST | `/projects/:id/milestones` | `create_plan` | Create milestone |
-| PATCH | `/milestones/:id` | `update_plan` | Update milestone |
-| DELETE | `/milestones/:id` | `update_plan` | Delete milestone |
-| POST | `/milestones/:id/todos` | `create_plan` | Create todo |
-| PATCH | `/todos/:id` | `update_plan` | Update todo |
-| DELETE | `/todos/:id` | `update_plan` | Delete todo |
-| POST | `/todos/:id/complete` | `complete_todo` | Complete todo |
-| POST | `/todos/:id/reopen` | `complete_todo` | Reopen todo |
-| POST | `/projects/:id/todos/complete` | `complete_todo` | Complete todo(s) by `todo_ref` body (`1.1.3` or `1.1.*`) |
-| POST | `/projects/:id/todos/reopen` | `complete_todo` | Reopen todo(s) by `todo_ref` body (`1.1.3` or `1.1.*`) |
+| GET | `/docs` | Public docs | This file |
+| GET | `/projects` | Project access | List projects |
+| POST | `/projects` | User project creation | Create project |
+| PATCH | `/projects/:id` | Project write access | Update project |
+| GET | `/projects/:id/timeline` | Project access | Project + logs |
+| POST | `/logs` | Project write access | Create log |
+| PATCH | `/logs/:id` | Project write access | Update log |
+| GET | `/projects/:id/plan` | Project access | Milestones + todos |
+| POST | `/projects/:id/milestones` | Project write access | Create milestone |
+| PATCH | `/milestones/:id` | Project write access | Update milestone |
+| DELETE | `/milestones/:id` | Project write access | Delete milestone |
+| POST | `/milestones/:id/todos` | Project write access | Create todo |
+| PATCH | `/todos/:id` | Project write access | Update todo |
+| DELETE | `/todos/:id` | Project write access | Delete todo |
+| POST | `/todos/:id/complete` | Project write access | Complete todo |
+| POST | `/todos/:id/reopen` | Project write access | Reopen todo |
+| POST | `/projects/:id/todos/complete` | Project write access | Complete todo(s) by `todo_ref` body (`1.1.3` or `1.1.*`) |
+| POST | `/projects/:id/todos/reopen` | Project write access | Reopen todo(s) by `todo_ref` body (`1.1.3` or `1.1.*`) |
 
 ## References
 
@@ -215,7 +215,7 @@ Plan refs: `1.<milestone>.<todo>` are generated from sorted plan order, e.g. `1.
 ## Notes
 
 - Agents can access projects available to the token owner, further limited by `allowed_project_ids` when present.
-- For setup troubleshooting, run `setup.sh status` to inspect local/global/effective token source, then `setup.sh verify` to detect missing tokens, malformed tokens, revoked/expired tokens, missing read access, API reachability issues, or local tokens overriding global tokens.
+- For setup troubleshooting, run `setup.sh status` to inspect local/global/effective token source, then `setup.sh verify` to detect missing tokens, malformed tokens, revoked/expired tokens, project-access restrictions, API reachability issues, or local tokens overriding global tokens.
 - Media cannot be uploaded via MCP/REST.
 - Agent-created plan items set `created_by_agent_token_id`.
 - Agent-completed todos set `completed_by_agent_token_id`.

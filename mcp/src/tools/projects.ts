@@ -11,7 +11,7 @@ function jsonText(value: unknown) {
 export function registerProjectTools(server: McpServer): void {
   server.tool(
     'devlog_create_project',
-    'Create a new devLog project owned by the token owner. Requires create_project scope.',
+    'Create a new devLog project owned by the token owner.',
     {
       title: z.string().min(1).max(100),
       description: z.string().max(500).optional(),

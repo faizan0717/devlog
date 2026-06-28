@@ -756,8 +756,18 @@ function PlanTab({
   const [editingTodo, setEditingTodo] = useState<PlanTodo | null>(null)
   const [mutatingId, setMutatingId] = useState<string | null>(null)
   const [sidebarWidth, setSidebarWidth] = useState(236)
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches,
+  )
   const containerRef = useRef<HTMLDivElement>(null)
   const isResizing = useRef(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 640px)')
+    const handler = () => setIsDesktop(mq.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   function startResize(e: ReactMouseEvent) {
     e.preventDefault()
@@ -935,8 +945,8 @@ function PlanTab({
 
   return (
     <>
-      <div ref={containerRef} className="-mx-10 flex min-h-[520px]" style={{ userSelect: isResizing.current ? 'none' : undefined }}>
-        <div className="bg-chalk px-3 py-5 flex flex-col shrink-0 overflow-y-auto" style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
+      <div ref={containerRef} className="-mx-4 sm:-mx-10 flex flex-col sm:flex-row min-h-[520px]" style={{ userSelect: isResizing.current ? 'none' : undefined }}>
+        <div className="bg-chalk px-3 py-5 flex flex-col overflow-y-auto sm:shrink-0" style={isDesktop ? { width: sidebarWidth, minWidth: sidebarWidth } : undefined}>
           <div className="flex items-center justify-between px-1.5 mb-3.5">
             <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-disabled">Milestones</span>
             {canEdit && (
@@ -999,10 +1009,11 @@ function PlanTab({
           </div>
         </div>
 
-        {/* Drag handle */}
+        {/* Drag handle — desktop only */}
         <div
           onMouseDown={startResize}
-          className="w-[5px] shrink-0 cursor-col-resize relative group"
+          className="hidden sm:block w-[5px] shrink-0 cursor-col-resize relative group"
+          aria-hidden="true"
         >
           <div className="absolute inset-y-0 left-[2px] w-px bg-border group-hover:bg-accent/40 transition-colors duration-150" />
         </div>
@@ -1283,7 +1294,7 @@ export default function ProjectDetail() {
       </div>
 
       {/* ── Project header ── */}
-      <div className="bg-paper border-b border-border px-10 pt-6">
+      <div className="bg-paper border-b border-border px-4 sm:px-10 pt-6">
         <div className="flex items-start justify-between gap-4 mb-5 flex-wrap">
           <div>
             {/* Name + badges */}
@@ -1351,11 +1362,13 @@ export default function ProjectDetail() {
         </div>
 
         {/* Tab bar */}
-        <div className="flex gap-0">
+        <div role="tablist" aria-label="Project sections" className="flex gap-0">
           {(['logs', 'plan'] as const).map((t) => (
             <button
               key={t}
               type="button"
+              role="tab"
+              aria-selected={tab === t}
               onClick={() => setTab(t)}
               className={cn(
                 'relative px-5 py-2.5 text-[13px] capitalize transition-colors duration-150',
@@ -1386,7 +1399,7 @@ export default function ProjectDetail() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
-            className="px-10 py-8"
+            className="px-4 sm:px-10 py-8"
           >
             <ProjectTimeline
               logs={logs ?? []}
@@ -1405,7 +1418,7 @@ export default function ProjectDetail() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
-            className="px-10 py-8"
+            className="px-4 sm:px-10 py-8"
           >
             <PlanTab
               milestones={plan ?? []}
@@ -1431,7 +1444,7 @@ export default function ProjectDetail() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
-            className="px-10 py-8"
+            className="px-4 sm:px-10 py-8"
           >
             <div className="mb-5">
               <h2 className="text-[18px] font-semibold text-ink-primary">Project settings</h2>
@@ -1439,14 +1452,15 @@ export default function ProjectDetail() {
             </div>
 
             {/* Two-column grid */}
-            <div className="grid grid-cols-[3fr_2fr] gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr] gap-4 mb-4">
 
               {/* Left — General */}
               <form onSubmit={handleSaveSettings} className="bg-paper border border-border rounded-xl p-6 flex flex-col gap-4">
                 <p className="text-[12px] uppercase tracking-wider font-medium text-ink-disabled">General</p>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[12px] uppercase tracking-wider font-medium text-ink-disabled">Title</label>
+                  <label htmlFor="settings-title" className="text-[12px] uppercase tracking-wider font-medium text-ink-disabled">Title</label>
                   <input
+                    id="settings-title"
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
                     disabled={saving}
@@ -1455,8 +1469,9 @@ export default function ProjectDetail() {
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[12px] uppercase tracking-wider font-medium text-ink-disabled">Description</label>
+                  <label htmlFor="settings-desc" className="text-[12px] uppercase tracking-wider font-medium text-ink-disabled">Description</label>
                   <textarea
+                    id="settings-desc"
                     value={editDesc}
                     onChange={(e) => setEditDesc(e.target.value)}
                     disabled={saving}
@@ -1467,11 +1482,11 @@ export default function ProjectDetail() {
                 </div>
                 <TagInput tags={editTags} onChange={setEditTags} disabled={saving} />
                 <div className="flex flex-col gap-2">
-                  <label className="text-[12px] uppercase tracking-wider font-medium text-ink-disabled">Visibility</label>
+                  <span className="text-[12px] uppercase tracking-wider font-medium text-ink-disabled">Visibility</span>
                   <VisibilitySelector value={editVisibility} onChange={setEditVisibility} disabled={saving} />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-[12px] uppercase tracking-wider font-medium text-ink-disabled">Cover gradient</label>
+                  <span className="text-[12px] uppercase tracking-wider font-medium text-ink-disabled">Cover gradient</span>
                   <div className="flex items-center gap-3">
                     <GradientPicker value={editGradient} onChange={setEditGradient} disabled={saving} />
                     {editGradient && (

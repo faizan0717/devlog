@@ -15,7 +15,7 @@ import { getCoverGradient } from '@/utils/coverGradient'
 import type { PlanMilestoneWithTodos, PlanStatus, PublicProject as PublicProjectType, Profile, PublicLog } from '@/types'
 
 const PLAN_STATUS_META: Record<PlanStatus, { label: string; className: string; Icon: typeof Circle }> = {
-  pending: { label: 'planned', className: 'border-surface-700 bg-surface-900/70 text-ink-tertiary', Icon: Circle },
+  pending: { label: 'planned', className: 'border-border bg-chalk text-ink-tertiary', Icon: Circle },
   doing: { label: 'building', className: 'border-orange-500/25 bg-orange-500/10 text-mood-building', Icon: Clock3 },
   done: { label: 'shipped', className: 'border-green-500/25 bg-green-500/10 text-mood-shipped', Icon: CheckCircle2 },
 }
@@ -50,7 +50,7 @@ function PublicRoadmap({ milestones }: { milestones: PlanMilestoneWithTodos[] })
   const progress = visibleMilestones.length > 0 ? Math.round((doneCount / visibleMilestones.length) * 100) : 0
 
   return (
-    <section className="mb-10 rounded-[1.5rem] border border-surface-800/70 bg-surface-900/45 p-5 sm:p-6">
+    <section className="mb-10 rounded-[1.5rem] border border-border bg-chalk p-5 sm:p-6">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="mb-2 flex items-center gap-2 font-mono text-caption uppercase tracking-widest text-ink-tertiary">
@@ -65,7 +65,7 @@ function PublicRoadmap({ milestones }: { milestones: PlanMilestoneWithTodos[] })
               <span>{doneCount}/{visibleMilestones.length} shipped</span>
               <span>{progress}%</span>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-surface-800">
+            <div className="h-1.5 overflow-hidden rounded-full bg-gray-200">
               <div className="h-full rounded-full bg-mood-shipped" style={{ width: `${progress}%` }} />
             </div>
           </div>
@@ -73,7 +73,7 @@ function PublicRoadmap({ milestones }: { milestones: PlanMilestoneWithTodos[] })
       </div>
 
       {visibleMilestones.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-surface-700/70 bg-surface-950/25 px-4 py-6 text-center">
+        <div className="rounded-2xl border border-dashed border-border bg-white px-4 py-6 text-center">
           <p className="text-body font-medium text-ink-secondary">
             {hasAnyPlanItems ? 'This roadmap is private for now.' : 'No public roadmap yet.'}
           </p>
@@ -91,7 +91,7 @@ function PublicRoadmap({ milestones }: { milestones: PlanMilestoneWithTodos[] })
           const visibleTodos = milestone.todos.filter((todo) => isPublicRoadmapItem(todo.visibility))
           const doneTodos = visibleTodos.filter((todo) => todo.status === 'done').length
           return (
-            <article key={milestone.id} className="rounded-2xl border border-surface-800/70 bg-surface-950/35 p-4">
+            <article key={milestone.id} className="rounded-2xl border border-border bg-white p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <div className="mb-1.5 flex flex-wrap items-center gap-2">
@@ -114,8 +114,8 @@ function PublicRoadmap({ milestones }: { milestones: PlanMilestoneWithTodos[] })
                   {visibleTodos.slice(0, 6).map((todo, todoIndex) => {
                     const done = todo.status === 'done'
                     return (
-                      <div key={todo.id} className="flex items-start gap-2 rounded-xl border border-surface-800/60 bg-surface-900/45 px-3 py-2.5">
-                        <span className={cn('mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded', done ? 'bg-mood-shipped' : 'border border-surface-600')}>
+                      <div key={todo.id} className="flex items-start gap-2 rounded-xl border border-border bg-chalk px-3 py-2.5">
+                        <span className={cn('mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded', done ? 'bg-mood-shipped' : 'border border-border')}>
                           {done && <CheckCircle2 size={11} className="text-white" />}
                         </span>
                         <div className="min-w-0">
@@ -169,7 +169,7 @@ export default function PublicProject() {
         setOwner(ownerProfile)
         setLoading(false)
       })
-      .catch((err: Error) => { setError(err.message); setLoading(false) })
+      .catch(() => { setError('Project not found or not public.'); setLoading(false) })
   }, [id])
 
   useEffect(() => {
@@ -208,61 +208,59 @@ export default function PublicProject() {
 
   return (
     <AnimatedPage className="max-w-5xl pb-20">
-      {/* ── Hero ──────────────────────────────────────────────── */}
-      <div className="relative mb-6 min-h-[320px] overflow-hidden rounded-[1.5rem] sm:min-h-[380px]">
-        {project.cover_image_url ? (
-          <img src={project.cover_image_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        ) : (
-          <div className="absolute inset-0" style={{ background: getCoverGradient(project) }} />
+      {/* ── Cover ── */}
+      <div
+        className="relative mb-6 h-[200px] overflow-hidden rounded-[1.5rem]"
+        style={!project.cover_image_url ? { background: getCoverGradient(project) } : undefined}
+      >
+        {project.cover_image_url && (
+          <img src={project.cover_image_url} alt="" className="h-full w-full object-cover" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-surface-950 via-surface-950/50 to-transparent" />
-
-        {/* Top row */}
         <div className="absolute right-4 top-4 flex items-center gap-2">
           {isOwner && (
             <Link to={`/projects/${project.id}`}>
-              <Button variant="secondary" size="sm" className="backdrop-blur-sm">
+              <Button variant="secondary" size="sm" className="bg-white/90 backdrop-blur-sm">
                 <Pencil size={13} className="mr-1" /> Edit
               </Button>
             </Link>
           )}
           {(project.view_count ?? 0) > 0 && (
-            <span className="flex items-center gap-1.5 rounded-pill border border-surface-700 bg-surface-950/60 px-3 py-1 font-mono text-caption text-ink-secondary backdrop-blur-sm">
+            <span className="flex items-center gap-1.5 rounded-pill border border-white/20 bg-black/30 px-3 py-1 font-mono text-caption text-white backdrop-blur-sm">
               <Eye size={12} /> {project.view_count}
             </span>
           )}
         </div>
-
-        {/* Bottom: title + owner row */}
-        <div className="absolute bottom-0 left-0 right-0 p-6">
-          {project.tags && project.tags.length > 0 && (
-            <div className="mb-3 flex flex-wrap gap-1.5">
-              {project.tags.map((tag) => (
-                <span key={tag} className="rounded-pill border border-surface-700 bg-surface-950/60 px-2 py-0.5 text-caption text-ink-secondary backdrop-blur-sm">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-          <h1 className="text-[clamp(2.25rem,12vw,3.5rem)] font-bold leading-[1.05] tracking-[-0.03em] text-ink-primary">{project.title}</h1>
-          {project.description && (
-            <p className="mt-2 max-w-2xl text-body text-ink-secondary line-clamp-2">{project.description}</p>
-          )}
-
-          {/* Owner row pinned at bottom */}
-          {owner && (
-            <div className="mt-5 flex items-center gap-3">
-              <Link to={`/u/${owner.username}`} className="flex items-center gap-2 text-body text-ink-secondary hover:text-ink-primary transition-colors">
-                <Avatar src={owner.avatar_url} name={owner.username} size="sm" />
-                <span className="font-medium">@{owner.username}</span>
-              </Link>
-              <FollowButton targetUserId={project.owner_id} currentUserId={user?.id} size="sm" />
-            </div>
-          )}
-        </div>
       </div>
 
-      {/* ── Mood summary strip ────────────────────────────────── */}
+      {/* ── Project header ── */}
+      <div className="mb-8">
+        {project.tags && project.tags.length > 0 && (
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {project.tags.map((tag) => (
+              <span key={tag} className="rounded-pill border border-border bg-chalk px-2 py-0.5 text-caption text-ink-tertiary">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+        <h1 className="font-mono text-[clamp(1.5rem,5vw,2.5rem)] font-semibold leading-tight tracking-[-0.02em] text-ink-primary">
+          {project.title}
+        </h1>
+        {project.description && (
+          <p className="mt-2 max-w-2xl text-body text-ink-secondary">{project.description}</p>
+        )}
+        {owner && (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Link to={`/u/${owner.username}`} className="flex items-center gap-2 text-body text-ink-secondary hover:text-ink-primary transition-colors">
+              <Avatar src={owner.avatar_url} name={owner.username} size="sm" />
+              <span className="font-medium">@{owner.username}</span>
+            </Link>
+            <FollowButton targetUserId={project.owner_id} currentUserId={user?.id} size="sm" />
+          </div>
+        )}
+      </div>
+
+      {/* ── Mood summary strip ── */}
       {moodSummary.length > 0 && (
         <div className="mb-8 flex flex-wrap gap-2">
           {moodSummary.map((m) => (
@@ -298,7 +296,7 @@ export default function PublicProject() {
 
         {/* Sidebar */}
         <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-          <div className="rounded-glass border border-surface-800/60 bg-surface-900/50 p-5">
+          <div className="rounded-glass border border-border bg-white p-5">
             <div className="space-y-4">
               <div>
                 <p className="font-mono text-[1.6rem] font-bold leading-none text-ink-primary">{logs.length}</p>
@@ -312,7 +310,7 @@ export default function PublicProject() {
           </div>
 
           {owner && !isOwner && (
-            <div className="rounded-glass border border-surface-800/60 bg-surface-900/50 p-5">
+            <div className="rounded-glass border border-border bg-white p-5">
               <Link to={`/u/${owner.username}`} className="mb-3 flex items-center gap-2">
                 <Avatar src={owner.avatar_url} name={owner.username} size="sm" />
                 <span className="text-body font-medium text-ink-primary">@{owner.username}</span>

@@ -67,8 +67,9 @@ export default function Login() {
         {/* Email/password form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <label className="font-mono text-[11px] text-ink-tertiary tracking-[0.06em] font-medium">EMAIL</label>
+            <label htmlFor="login-email" className="font-mono text-[11px] text-ink-tertiary tracking-[0.06em] font-medium">EMAIL</label>
             <input
+              id="login-email"
               type="email"
               placeholder="you@example.com"
               value={email}
@@ -80,12 +81,13 @@ export default function Login() {
 
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <label className="font-mono text-[11px] text-ink-tertiary tracking-[0.06em] font-medium">PASSWORD</label>
+              <label htmlFor="login-password" className="font-mono text-[11px] text-ink-tertiary tracking-[0.06em] font-medium">PASSWORD</label>
               <Link to={ROUTES.FORGOT_PASSWORD} className="text-[12px] text-accent hover:text-accent-dark transition-colors">
                 Forgot password?
               </Link>
             </div>
             <input
+              id="login-password"
               type="password"
               placeholder="••••••••"
               value={password}

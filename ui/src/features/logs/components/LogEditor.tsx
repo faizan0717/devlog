@@ -39,7 +39,7 @@ export function LogEditor({ projectId, userId, logId, initialLog, projectVisibil
     <div className="flex flex-col h-full">
 
       {/* ── Toolbar ── */}
-      <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-paper/95 backdrop-blur-sm px-8 h-12 shrink-0">
+      <div className="sticky top-0 z-20 flex items-center gap-2 sm:gap-3 border-b border-border bg-paper/95 backdrop-blur-sm px-4 sm:px-8 h-12 shrink-0">
 
         <button
           type="button"
@@ -53,7 +53,7 @@ export function LogEditor({ projectId, userId, logId, initialLog, projectVisibil
         <div className="w-px h-4 bg-border" />
 
         {/* Autosave status */}
-        <div className="flex items-center h-5 min-w-[56px]">
+        <div className="flex items-center h-5 min-w-[56px]" aria-live="polite" aria-atomic="true">
           <AnimatePresence mode="wait">
             {editor.saving && (
               <motion.span
@@ -148,15 +148,16 @@ export function LogEditor({ projectId, userId, logId, initialLog, projectVisibil
       </div>
 
       {/* ── Two-column body ── */}
-      <div className="flex flex-1 min-h-0 divide-x divide-border">
+      <div className="flex flex-col sm:flex-row flex-1 min-h-0 sm:divide-x divide-border">
 
         {/* Left — title + content */}
         <div className="flex-1 min-w-0 overflow-y-auto bg-white">
-          <div className="max-w-2xl mx-auto px-8 py-8">
+          <div className="max-w-2xl mx-auto px-4 sm:px-8 py-8">
           <input
             value={editor.title}
             onChange={(e) => editor.handleTitleChange(e.target.value)}
             placeholder="Untitled"
+            aria-label="Log title"
             className="w-full bg-transparent text-ink-primary placeholder:text-ink-disabled outline-none border-none mb-5"
             style={{ fontSize: 'clamp(1.75rem, 4vw, 2.25rem)', lineHeight: '1.2', fontWeight: 700, letterSpacing: '-0.02em' }}
           />
@@ -202,7 +203,7 @@ export function LogEditor({ projectId, userId, logId, initialLog, projectVisibil
         </div>
 
         {/* Right — metadata + media */}
-        <div className="w-[280px] shrink-0 overflow-y-auto px-6 py-8 flex flex-col gap-6 bg-chalk">
+        <div className="w-full sm:w-[280px] sm:shrink-0 overflow-y-auto px-6 py-8 flex flex-col gap-6 bg-chalk border-t sm:border-t-0">
 
           {/* Mood */}
           <div>

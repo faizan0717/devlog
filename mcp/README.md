@@ -1,37 +1,80 @@
-# devLog MCP server
+# devLog MCP / REST server
 
-Gives AI agents (Claude, Cursor, Windsurf, Copilot) delegated access to the token owner's devLog projects via hosted MCP and REST.
+Gives AI agents (Claude, Cursor, Windsurf, Copilot, scripts) delegated access to the token owner's devLog projects via hosted MCP and REST.
 
-## Tools
+REST is the universal interface. Hosted MCP is available at `/mcp` for clients that support HTTP MCP with Authorization headers; unsupported MCP clients should use REST and the setup.sh-written agent instructions.
 
-| Tool | Scope required |
+## Agent capabilities
+
+| Capability | MCP tool / REST endpoint |
 |---|---|
-| `devlog_get_docs` | none |
-| `devlog_list_projects` | `read_projects` |
-| `devlog_get_project_timeline` | `read_logs` |
-| `devlog_create_project` | `create_project` |
-| `devlog_update_project` | `update_project` |
-| `devlog_create_log` | `create_log` |
-| `devlog_update_log` | `update_log` |
+| Read docs | `devlog_get_docs` / `GET /docs` |
+| List projects | `devlog_list_projects` / `GET /projects` |
+| Read timeline | `devlog_get_project_timeline` / `GET /projects/:id/timeline` |
+| Create/update projects | `devlog_create_project`, `devlog_update_project` / `POST /projects`, `PATCH /projects/:id` |
+| Create/update logs | `devlog_create_log`, `devlog_update_log` / `POST /logs`, `PATCH /logs/:id` |
+| Read project plan | `devlog_get_project_plan` / `GET /projects/:id/plan` |
+| Manage milestones | create/update/delete milestone tools / `/projects/:id/milestones`, `/milestones/:id` |
+| Manage todos | create/update/delete todo tools / `/milestones/:id/todos`, `/todos/:id` |
+| Complete/reopen todos | complete/reopen tools / `/todos/:id/complete`, `/todos/:id/reopen`, `/projects/:id/todos/complete`, `/projects/:id/todos/reopen` |
+
+Access is delegated by the token. The server validates token owner/collaborator project access, optional selected-project restrictions, expiry/revocation, and writes audit events.
 
 ## REST endpoints
 
-Same coverage without MCP — works with any HTTP client.
-
-```
-GET    /docs
-GET    /projects
-POST   /projects
-PATCH  /projects/:id
-GET    /projects/:id/timeline
-POST   /logs
-PATCH  /logs/:id
-GET    /health
-```
-
 All requests: `Authorization: Bearer <token>`
 
-## Setup
+```
+GET     /docs
+GET     /projects
+POST    /projects
+PATCH   /projects/:id
+GET     /projects/:id/timeline
+POST    /logs
+PATCH   /logs/:id
+GET     /projects/:id/plan
+POST    /projects/:id/milestones
+PATCH   /milestones/:id
+DELETE  /milestones/:id
+POST    /milestones/:id/todos
+PATCH   /todos/:id
+DELETE  /todos/:id
+POST    /todos/:id/complete
+POST    /todos/:id/reopen
+POST    /projects/:id/todos/complete   # body: { "todo_ref": "1.1.3" } or "1.1.*"
+POST    /projects/:id/todos/reopen
+GET     /setup.sh
+GET     /health
+```
+
+Plan statuses: `pending` | `doing` | `done`. Plan refs are generated from sorted plan order, e.g. `1.1.3`; use `1.1.*` for all todos in milestone `1.1`.
+
+## Agent setup (for users)
+
+1. Create a delegated token in devLog → **Agent Access** → **New token**.
+2. Choose global machine setup or local repo setup.
+
+```bash
+# Global: available from any workspace on this machine
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- install dl_agent_your_token --global
+
+# Local: current repo only; writes REST instructions and MCP config where supported
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- install dl_agent_your_token --local --agents all --mcp
+```
+
+`setup.sh` lifecycle:
+
+```bash
+setup.sh status                 # local/global files + effective token source; no network call
+setup.sh verify [--local|--global]  # token format, API reachability, docs, project access
+setup.sh uninstall --local
+setup.sh uninstall --global
+setup.sh uninstall --all
+```
+
+Token resolution order: `./.devlog` → `~/.devlog` → `DEVLOG_AGENT_TOKEN`. The script writes managed instruction blocks for Claude/Cursor/Windsurf/Copilot and hosted MCP config for known project-local clients when `--mcp` is used. REST always remains the fallback. Uninstall removes local/global files only; revoke remote tokens from the web app.
+
+## Local development
 
 ```bash
 cp .env.example .env   # fill in Supabase URL + service role key
@@ -48,28 +91,6 @@ DEVLOG_MCP_ALLOWED_ORIGIN=https://devlog.one
 DEVLOG_RATE_LIMIT_WINDOW_MS=60000
 DEVLOG_RATE_LIMIT_MAX=120
 ```
-
-## Agent setup (for users)
-
-1. Create a delegated token in devLog → Agent Access → New token.
-2. Connect globally for this machine, or locally for one repo:
-
-```bash
-curl -fsSL https://api.devlog.one/setup.sh | bash -s -- install dl_agent_your_token --global
-curl -fsSL https://api.devlog.one/setup.sh | bash -s -- install dl_agent_your_token --local --agents all --mcp
-```
-
-`setup.sh` is a local setup manager:
-
-```bash
-setup.sh verify [--local|--global]
-setup.sh status
-setup.sh uninstall --local
-setup.sh uninstall --global
-setup.sh uninstall --all
-```
-
-Token resolution order: `./.devlog` → `~/.devlog` → `DEVLOG_AGENT_TOKEN`. The script writes managed instruction blocks for Claude/Cursor/Windsurf/Copilot and hosted MCP config where the client supports it. REST always remains the fallback. Uninstall removes local/global files only; revoke remote tokens from the web app.
 
 ## Deploying
 
@@ -93,4 +114,4 @@ npm run start:http
 - Every request validates delegated owner/collaborator access, token expiry, and optional project restrictions
 - Revoked tokens are invalidated within 60 seconds (cache TTL)
 - Rate limiting: configurable per IP with `DEVLOG_RATE_LIMIT_WINDOW_MS` and `DEVLOG_RATE_LIMIT_MAX` (defaults to 60 requests/min)
-- All actions written to `agent_audit_logs`
+- All actions are written to `agent_audit_logs`

@@ -74,8 +74,9 @@ export default function Register() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <label className="font-mono text-[11px] text-ink-tertiary tracking-[0.06em] font-medium">DISPLAY NAME</label>
+            <label htmlFor="reg-name" className="font-mono text-[11px] text-ink-tertiary tracking-[0.06em] font-medium">DISPLAY NAME</label>
             <input
+              id="reg-name"
               type="text"
               placeholder="Ada Lovelace"
               value={displayName}
@@ -86,8 +87,9 @@ export default function Register() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="font-mono text-[11px] text-ink-tertiary tracking-[0.06em] font-medium">EMAIL</label>
+            <label htmlFor="reg-email" className="font-mono text-[11px] text-ink-tertiary tracking-[0.06em] font-medium">EMAIL</label>
             <input
+              id="reg-email"
               type="email"
               placeholder="you@example.com"
               value={email}
@@ -98,8 +100,9 @@ export default function Register() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="font-mono text-[11px] text-ink-tertiary tracking-[0.06em] font-medium">PASSWORD</label>
+            <label htmlFor="reg-password" className="font-mono text-[11px] text-ink-tertiary tracking-[0.06em] font-medium">PASSWORD</label>
             <input
+              id="reg-password"
               type="password"
               placeholder="••••••••"
               value={password}

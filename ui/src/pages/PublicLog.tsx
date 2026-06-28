@@ -43,7 +43,7 @@ export default function PublicLog() {
         setLog(l)
         setLoading(false)
       })
-      .catch((err: Error) => { setError(err.message); setLoading(false) })
+      .catch(() => { setError('Log not found or not public.'); setLoading(false) })
   }, [logId])
 
   // Fetch sibling logs from the same project for "More from this project"

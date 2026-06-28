@@ -169,7 +169,7 @@ export default function PublicProfile() {
 
       {/* ── Profile header ──────────────────────────────────────────────── */}
       <div className="bg-paper border-b border-border sticky top-0 z-10">
-        <div className="max-w-[900px] mx-auto px-10">
+        <div className="max-w-[900px] mx-auto px-4 sm:px-10">
 
           {/* Avatar row */}
           <div className="flex items-end gap-5 mt-[-36px] mb-5 flex-wrap">
@@ -267,10 +267,13 @@ export default function PublicProfile() {
                 </div>
               </div>
 
-              <div className="flex gap-0 mt-4">
+              <div role="tablist" aria-label="Profile sections" className="flex gap-0 mt-4">
                 {(['logs', 'projects'] as const).map((t) => (
                   <button
                     key={t}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === t}
                     onClick={() => setTab(t)}
                     className="px-5 py-2.5 text-[13px] transition-all capitalize border-b-2"
                     style={{
@@ -290,7 +293,7 @@ export default function PublicProfile() {
 
       {/* ── Tab content ─────────────────────────────────────────────────── */}
       {!isPrivateVisitor && (
-        <div className="max-w-[900px] mx-auto px-10 py-8">
+        <div className="max-w-[900px] mx-auto px-4 sm:px-10 py-8">
 
           {/* ── Logs tab ────────────────────────────────────────────────── */}
           {tab === 'logs' && (

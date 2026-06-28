@@ -107,7 +107,7 @@ devlog/
 │   ├── src/
 │   │   ├── http.ts      # HTTP server, rate limiting, CORS, health
 │   │   ├── rest.ts      # REST endpoints + setup.sh script
-│   │   ├── auth.ts      # token validation, scope checks, cache (60s TTL)
+│   │   ├── auth.ts      # token validation, access checks, cache (60s TTL)
 │   │   ├── audit.ts     # agent_audit_logs writer
 │   │   └── tools/       # MCP tool definitions (docs, projects, logs)
 │   ├── AGENT_DOCS.md    # live docs served at GET /docs
@@ -177,32 +177,43 @@ npm run dev:http       # http://localhost:8787
 
 ## AI agent access
 
-Get a token from the app → **Agent Access** → **New token**. A token is the permission: it lets your local agent use devLog as you, limited by your project access and any selected-project restriction.
+Create a token in the app → **Agent Access** → **New token**. A token delegates machine access: your coding assistant can use devLog as you, bounded by your project access and any selected-project restriction. You never give the agent your account password.
 
-Connect this machine globally:
+### Choose one setup command
+
+Global machine setup (recommended for most users):
 
 ```bash
 curl -fsSL https://api.devlog.one/setup.sh | bash -s -- install <your-token> --global
 ```
 
-Or connect only the current repo, with hosted MCP config where supported and REST instructions as fallback:
+Local repo setup (run inside one repo; adds instructions for Claude/Cursor/Windsurf/Copilot and MCP config where supported):
 
 ```bash
 curl -fsSL https://api.devlog.one/setup.sh | bash -s -- install <your-token> --local --agents all --mcp
 ```
 
-Useful setup manager commands:
+### How agents connect
+
+- **REST:** always available at `https://api.devlog.one`; any agent or script can use it with `Authorization: Bearer <token>`.
+- **Hosted MCP:** available at `https://api.devlog.one/mcp` only for clients that support HTTP MCP with Authorization headers. Unsupported clients should use the REST instructions written by setup.sh.
+- **Skills/rules/instructions:** setup.sh writes managed instruction blocks so agents know to call `GET /docs` first, where to read the token, and which endpoints to use.
+
+### setup.sh lifecycle
 
 ```bash
-curl -fsSL https://api.devlog.one/setup.sh | bash -s -- verify
-curl -fsSL https://api.devlog.one/setup.sh | bash -s -- status
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- status          # local files + effective token source
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- verify          # API reachability + token validity
 curl -fsSL https://api.devlog.one/setup.sh | bash -s -- uninstall --local
 curl -fsSL https://api.devlog.one/setup.sh | bash -s -- uninstall --global
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- uninstall --all
 ```
 
-Token resolution order is `./.devlog` → `~/.devlog` → `DEVLOG_AGENT_TOKEN`. `setup.sh` manages local files only; revoke/delete remote tokens from Agent Access.
+Token resolution order is `./.devlog` → `~/.devlog` → `DEVLOG_AGENT_TOKEN`; local overrides global. Uninstall removes setup.sh-managed local/global files only. Revoke/delete remote tokens from **Agent Access**.
 
-Full API reference: `GET /docs` on the MCP server.
+### Plan tools
+
+Agents can read and update project plans through REST or MCP: milestones, todos, statuses (`pending`, `doing`, `done`), visibility, and completion/reopen actions. Plan refs such as `1.1.3` identify todos in sorted order; `1.1.*` targets every todo in a milestone. Full live API reference: `GET /docs`.
 
 ---
 

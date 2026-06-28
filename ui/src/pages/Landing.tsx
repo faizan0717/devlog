@@ -36,15 +36,15 @@ export default function Landing() {
     <div className="min-h-screen bg-chalk text-ink-primary overflow-x-hidden">
 
       {/* ── NAV ─────────────────────────────────────────────────── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 h-[60px] bg-chalk/95 backdrop-blur-[16px] border-b border-black/[0.08]">
-        <Link to={ROUTES.HOME} className="font-mono text-[17px] font-semibold tracking-[-0.01em]">
-          <span className="text-ink-tertiary">dev</span>
-          <span className="text-ink-primary">Log</span>
+      <nav aria-label="Main navigation" className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-8 h-[60px] bg-chalk/95 backdrop-blur-[16px] border-b border-black/[0.08]">
+        <Link to={ROUTES.HOME} aria-label="devLog home" className="font-mono text-[17px] font-semibold tracking-[-0.01em]">
+          <span className="text-ink-tertiary" aria-hidden="true">dev</span>
+          <span className="text-ink-primary" aria-hidden="true">Log</span>
         </Link>
         <div className="flex items-center gap-2">
           <Link
             to={ROUTES.LOGIN}
-            className="hidden sm:block text-sm text-ink-secondary px-4 py-2 hover:text-ink-primary transition-colors font-sans"
+            className="text-sm text-ink-secondary px-4 py-2 hover:text-ink-primary transition-colors font-sans"
           >
             Sign in
           </Link>
@@ -52,13 +52,13 @@ export default function Landing() {
             to={ROUTES.REGISTER}
             className="text-sm font-semibold text-white bg-accent px-5 py-2 rounded-[6px] hover:bg-accent-dark transition-colors font-sans tracking-[-0.01em]"
           >
-            Start logging →
+            Get started
           </Link>
         </div>
       </nav>
 
       {/* ── HERO ─────────────────────────────────────────────────── */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-8 pt-[60px] pb-0 text-center overflow-hidden">
+      <section className="relative min-h-screen flex flex-col items-center justify-center px-4 sm:px-8 pt-[60px] pb-0 text-center overflow-hidden">
         {/* subtle grid + radial */}
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_0%,rgba(37,99,235,0.07),transparent_60%)]" />
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(100,116,139,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(100,116,139,0.08)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_70%_at_50%_0%,black,transparent)]" />
@@ -71,7 +71,7 @@ export default function Landing() {
         >
           {/* badge */}
           <div className="inline-flex items-center gap-2 bg-accent/[0.08] border border-accent/[0.22] rounded-full px-4 py-1.5 mb-10">
-            <span className="w-[7px] h-[7px] rounded-full bg-accent inline-block animate-pulse flex-shrink-0" />
+            <span className="w-[7px] h-[7px] rounded-full bg-accent inline-block animate-pulse flex-shrink-0" aria-hidden="true" />
             <span className="font-mono text-[11px] text-accent tracking-[0.08em] font-medium">AI-NATIVE BUILD JOURNAL</span>
           </div>
 
@@ -178,7 +178,7 @@ export default function Landing() {
       </section>
 
       {/* ── PROBLEMS / SOLUTIONS ─────────────────────────────────── */}
-      <section className="py-32 px-8 max-w-[1100px] mx-auto w-full">
+      <section className="py-32 px-4 sm:px-8 max-w-[1100px] mx-auto w-full">
         <div className="text-center mb-16">
           <h2 className="font-serif italic text-[clamp(36px,4vw,64px)] text-ink-primary leading-[1.08] tracking-[-0.025em]">
             What your build is missing.
@@ -186,8 +186,8 @@ export default function Landing() {
         </div>
 
         <div className="border border-[#e5e7eb] rounded-[14px] overflow-hidden">
-          {/* column headers */}
-          <div className="grid grid-cols-2">
+          {/* column headers — hidden on mobile, replaced by inline labels */}
+          <div className="hidden sm:grid grid-cols-2">
             <div className="px-7 py-4 border-b border-r border-[#e5e7eb] bg-paper">
               <span className="font-mono text-[11px] text-[#ef4444] tracking-[0.1em] font-medium">WITHOUT DEVLOG</span>
             </div>
@@ -197,17 +197,16 @@ export default function Landing() {
           </div>
 
           {PROBLEMS.map((row, i) => (
-            <div key={i} className="grid grid-cols-2">
-              <div className="p-7 border-r border-[#f3f4f6] flex items-start gap-3.5 bg-[#fef2f2]/30">
-                {i < PROBLEMS.length - 1 && <div className="absolute inset-x-0 bottom-0 h-px bg-[#f3f4f6]" />}
+            <div key={i} className="grid grid-cols-1 sm:grid-cols-2 border-b border-[#f3f4f6] last:border-0">
+              <div className="p-5 sm:p-7 sm:border-r sm:border-[#f3f4f6] flex items-start gap-3.5 bg-[#fef2f2]/30">
                 <div className="w-[18px] h-[18px] rounded-full border border-[#ef4444]/30 flex-shrink-0 mt-0.5 flex items-center justify-center">
                   <div className="w-[7px] h-[1.5px] bg-[#ef4444] rounded-[1px]" />
                 </div>
                 <p className="text-sm text-ink-secondary leading-[1.6]">{row.bad}</p>
               </div>
-              <div className="p-7 flex items-start gap-3.5 bg-[#f0fdf4]/30">
+              <div className="p-5 sm:p-7 flex items-start gap-3.5 bg-[#f0fdf4]/30">
                 <div className="w-[18px] h-[18px] rounded-full border border-[#22c55e]/30 flex-shrink-0 mt-0.5 flex items-center justify-center">
-                  <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+                  <svg width="9" height="7" viewBox="0 0 9 7" fill="none" aria-hidden="true">
                     <path d="M1 3.5L3.2 5.8L8 1" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>

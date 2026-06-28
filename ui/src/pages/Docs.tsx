@@ -12,22 +12,36 @@ Connect once via MCP or REST API, and every session your agent writes automatica
   {
     id: 'quick-start',
     title: 'Quick start',
-    content: `Create a delegated token in Agent Access, then connect this machine globally or only the current repo. REST works everywhere; hosted MCP is configured where your client supports it.`,
-    code: `# global machine setup
+    content: `Create a delegated machine token in Agent Access, then connect this machine globally or only the current repo. REST works everywhere; hosted MCP is configured only where your client supports HTTP MCP with Authorization headers.`,
+    code: `# global machine setup: best default for one computer
 curl -fsSL https://api.devlog.one/setup.sh | bash -s -- install YOUR_TOKEN --global
 
-# local repo setup, with MCP where supported
+# local repo setup: repo instructions + MCP config where supported
 curl -fsSL https://api.devlog.one/setup.sh | bash -s -- install YOUR_TOKEN --local --agents all --mcp
 
-# check your local setup
+# inspect and verify from your terminal
 curl -fsSL https://api.devlog.one/setup.sh | bash -s -- status
 curl -fsSL https://api.devlog.one/setup.sh | bash -s -- verify`, 
   },
   {
+    id: 'setup-lifecycle',
+    title: 'setup.sh lifecycle',
+    content: `setup.sh manages local files only. It saves the token, writes managed skills/rules/instructions for supported agents, optionally writes hosted MCP config for known local clients, and can safely remove those files later. The web app cannot detect local filesystem state; use status or verify in your terminal.`,
+    code: `# token resolution order used by agents and verify
+./.devlog → ~/.devlog → DEVLOG_AGENT_TOKEN
+
+# safe uninstall: removes local/global setup files only
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- uninstall --local
+curl -fsSL https://api.devlog.one/setup.sh | bash -s -- uninstall --global
+
+# revoke or delete the remote token in Agent Access`,
+  },
+  {
     id: 'rest-api',
     title: 'REST API',
-    content: `All REST endpoints use Bearer token auth. Base URL: https://api.devlog.one. Token resolution in setup.sh is ./.devlog → ~/.devlog → DEVLOG_AGENT_TOKEN.`,
+    content: `All REST endpoints use Bearer token auth. Base URL: https://api.devlog.one. Agents should call GET /docs first for the latest reference. REST is the honest fallback for unsupported MCP clients and for scripts.`,
     table: [
+      { method: 'GET',   path: '/docs',                   desc: 'Latest agent docs' },
       { method: 'GET',   path: '/projects',               desc: 'List your projects' },
       { method: 'POST',  path: '/projects',               desc: 'Create a project' },
       { method: 'PATCH', path: '/projects/:id',           desc: 'Update a project' },
@@ -35,7 +49,23 @@ curl -fsSL https://api.devlog.one/setup.sh | bash -s -- verify`,
       { method: 'POST',  path: '/logs',                   desc: 'Create a log entry' },
       { method: 'PATCH', path: '/logs/:id',               desc: 'Update a log entry' },
       { method: 'GET',   path: '/projects/:id/plan',      desc: 'Get plan milestones + todos' },
+      { method: 'POST',  path: '/projects/:id/milestones', desc: 'Create a plan milestone' },
+      { method: 'POST',  path: '/milestones/:id/todos',   desc: 'Create a plan todo' },
+      { method: 'PATCH', path: '/milestones/:id',         desc: 'Update a milestone' },
+      { method: 'PATCH', path: '/todos/:id',              desc: 'Update a todo' },
+      { method: 'POST',  path: '/todos/:id/complete',     desc: 'Complete a todo' },
+      { method: 'POST',  path: '/todos/:id/reopen',       desc: 'Reopen a todo' },
     ],
+  },
+  {
+    id: 'mcp-and-agents',
+    title: 'MCP, skills, rules, and instructions',
+    content: `Hosted MCP lives at https://api.devlog.one/mcp for clients that support HTTP MCP with Authorization headers. If a client cannot send Authorization headers or does not support hosted HTTP MCP, use REST. setup.sh writes instructions for Claude, Cursor, Windsurf, and Copilot so coding assistants know the token location, docs URL, and REST fallback.`,
+  },
+  {
+    id: 'plan-tools',
+    title: 'Plan tools',
+    content: `Agents can manage project plans: create milestones, create todos, update status, complete or reopen work, and read generated refs like 1.1.3. Use 1.1.* to target every todo in milestone 1.1. Plan statuses are pending, doing, and done.`,
   },
   {
     id: 'log-entry',

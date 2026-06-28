@@ -50,19 +50,20 @@ export function Navbar() {
 
       {/* Search */}
       <div ref={searchWrapperRef} className="relative ml-2 flex-1 max-w-[360px]">
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-gray-50 px-3 py-[7px]">
-          <Search size={13} className="shrink-0 text-ink-disabled" />
+        <div role="search" className="flex items-center gap-2 rounded-lg border border-border bg-gray-50 px-3 py-[7px]">
+          <Search size={13} className="shrink-0 text-ink-disabled" aria-hidden="true" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Escape' && handleClose()}
             placeholder="Search builders, projects..."
+            aria-label="Search builders and projects"
             className="flex-1 bg-transparent text-[13px] text-ink-primary placeholder:text-ink-disabled outline-none"
           />
           {results.loading && <Spinner size="sm" />}
           {!results.loading && query && (
-            <button type="button" onClick={handleClose} className="text-ink-disabled hover:text-ink-tertiary">
-              <X size={13} />
+            <button type="button" onClick={handleClose} aria-label="Clear search" className="text-ink-disabled hover:text-ink-tertiary">
+              <X size={13} aria-hidden="true" />
             </button>
           )}
         </div>
@@ -86,13 +87,13 @@ export function Navbar() {
       {profileTo ? (
         <Link
           to={profileTo}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent font-mono text-[12px] font-semibold text-white hover:bg-accent-dark transition-colors"
-          title={`@${username}`}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent font-mono text-[12px] font-semibold text-white hover:bg-accent-dark transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+          aria-label={`Go to profile @${username}`}
         >
-          {initials}
+          <span aria-hidden="true">{initials}</span>
         </Link>
       ) : (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 font-mono text-[12px] font-semibold text-ink-tertiary">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 font-mono text-[12px] font-semibold text-ink-tertiary" aria-hidden="true">
           {initials}
         </div>
       )}

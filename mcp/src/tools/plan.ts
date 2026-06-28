@@ -169,7 +169,7 @@ export function registerPlanTools(server: McpServer): void {
 
   server.tool(
     'devlog_update_plan_milestone',
-    'Update a plan milestone. Requires update_plan scope.',
+    'Update a plan milestone when the token owner can write to the project.',
     {
       milestone_id: z.string().uuid(),
       title: z.string().min(1).max(160).optional(),
@@ -204,7 +204,7 @@ export function registerPlanTools(server: McpServer): void {
 
   server.tool(
     'devlog_delete_plan_milestone',
-    'Delete a plan milestone and its todos. Requires update_plan scope.',
+    'Delete a plan milestone and its todos when the token owner can write to the project.',
     { milestone_id: z.string().uuid() },
     async ({ milestone_id }) => {
       const ctx = await getAgentContext()
@@ -219,7 +219,7 @@ export function registerPlanTools(server: McpServer): void {
 
   server.tool(
     'devlog_create_plan_todo',
-    'Create a plan todo under a milestone. Requires create_plan scope.',
+    'Create a plan todo under a milestone when the token owner can write to the project.',
     {
       milestone_id: z.string().uuid(),
       title: z.string().min(1).max(240),
@@ -261,7 +261,7 @@ export function registerPlanTools(server: McpServer): void {
 
   server.tool(
     'devlog_update_plan_todo',
-    'Update a plan todo. Requires update_plan scope.',
+    'Update a plan todo when the token owner can write to the project.',
     {
       todo_id: z.string().uuid(),
       title: z.string().min(1).max(240).optional(),
@@ -300,7 +300,7 @@ export function registerPlanTools(server: McpServer): void {
 
   server.tool(
     'devlog_delete_plan_todo',
-    'Delete a plan todo. Requires update_plan scope.',
+    'Delete a plan todo when the token owner can write to the project.',
     { todo_id: z.string().uuid() },
     async ({ todo_id }) => {
       const ctx = await getAgentContext()
@@ -315,7 +315,7 @@ export function registerPlanTools(server: McpServer): void {
 
   server.tool(
     'devlog_complete_plan_todo',
-    'Mark plan todo(s) as done and record the completing agent. Use todo_id, or project_id + todo_ref like 1.1.3 / 1.1.*. Requires complete_todo scope.',
+    'Mark plan todo(s) as done and record the completing agent. Use todo_id, or project_id + todo_ref like 1.1.3 / 1.1.*.',
     {
       todo_id: z.string().uuid().optional(),
       project_id: z.string().uuid().optional(),
@@ -357,7 +357,7 @@ export function registerPlanTools(server: McpServer): void {
 
   server.tool(
     'devlog_reopen_plan_todo',
-    'Reopen completed plan todo(s). Use todo_id, or project_id + todo_ref like 1.1.3 / 1.1.*. Requires complete_todo scope.',
+    'Reopen completed plan todo(s). Use todo_id, or project_id + todo_ref like 1.1.3 / 1.1.*.',
     {
       todo_id: z.string().uuid().optional(),
       project_id: z.string().uuid().optional(),

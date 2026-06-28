@@ -31,11 +31,11 @@ function apiBaseUrl() {
 }
 
 function setupCommand(token: string) {
-  return `curl -fsSL ${apiBaseUrl()}/setup.sh | bash -s -- ${token}`
+  return `curl -fsSL ${apiBaseUrl()}/setup.sh | bash -s -- install ${token} --global`
 }
 
 function mcpSetupCommand(token: string) {
-  return `curl -fsSL ${apiBaseUrl()}/setup.sh | bash -s -- install ${token} --local --agents claude,cursor --mcp`
+  return `curl -fsSL ${apiBaseUrl()}/setup.sh | bash -s -- install ${token} --local --agents all --mcp`
 }
 
 function tokenTemplateCommand(kind: 'global' | 'local') {
@@ -146,10 +146,10 @@ export default function AgentAccess() {
           </h1>
           <span className="font-mono text-[11px] text-ink-disabled">{MCP_URL}</span>
           <p className="mt-3 max-w-xl text-[14px] text-ink-tertiary leading-relaxed">
-            Create delegated machine tokens that let Claude, Cursor, Windsurf, or local agents use devLog as you without using your account password.
+            Create delegated machine tokens for coding assistants and scripts. A token lets an agent use devLog as you without seeing your account password.
           </p>
           <p className="mt-2 max-w-xl text-[13px] text-ink-disabled leading-relaxed">
-            devLog’s API and MCP endpoint are hosted at <span className="font-mono text-ink-tertiary">{MCP_URL.replace('/mcp', '')}</span>. Setup only saves your token and configures your agent.
+            devLog’s REST API is hosted at <span className="font-mono text-ink-tertiary">{MCP_URL.replace('/mcp', '')}</span>. Hosted MCP is available for clients that support HTTP MCP with Authorization headers; everyone else can use REST.
           </p>
         </div>
         <Button onClick={() => { setCreatedToken(null); setCreateOpen(true) }}>
@@ -217,7 +217,7 @@ export default function AgentAccess() {
                           </div>
                         </div>
                         <p className="mt-3 text-[12px] text-ink-disabled leading-relaxed">
-                          Delegated access token. The web app shows token status and API usage, not whether setup files exist on your machine.
+                          Delegated machine access. devLog shows token status and API usage, but cannot detect local setup files on your machine.
                         </p>
                       </div>
                       <Button variant="danger" size="sm" className="flex-shrink-0" onClick={() => deleteToken(token)}>
@@ -280,9 +280,9 @@ export default function AgentAccess() {
               </div>
               <ol className="space-y-3">
                 {[
-                  'Create a delegated machine token and copy the setup command.',
-                  'Run it in your terminal — it saves your token and configures your agent.',
-                  'Your agent can use devLog through REST or MCP, depending on client support.',
+                  'Create a delegated machine token and copy the setup command shown after creation.',
+                  'Run global setup for this computer, or local setup inside one repo.',
+                  'Your agent gets REST instructions everywhere; supported clients also get hosted MCP config when you pass --mcp.',
                 ].map((step, i) => (
                   <li key={i} className="flex gap-3">
                     <span className="font-mono text-[11px] text-accent font-semibold w-4 flex-shrink-0 mt-0.5">{i + 1}.</span>
@@ -296,16 +296,16 @@ export default function AgentAccess() {
             <Panel>
               <h2 className="text-[13px] font-semibold text-ink-primary mb-3">Local vs global setup</h2>
               <div className="space-y-2 text-[13px] text-ink-tertiary leading-relaxed">
-                <p><span className="font-medium text-ink-secondary">Local</span> works only in the current repo or project.</p>
-                <p><span className="font-medium text-ink-secondary">Global</span> is available from any workspace on this machine.</p>
-                <p className="text-ink-disabled">When both exist, the local token should override the global token.</p>
+                <p><span className="font-medium text-ink-secondary">Global</span> saves <span className="font-mono">~/.devlog</span> and global Claude instructions for any workspace on this machine.</p>
+                <p><span className="font-medium text-ink-secondary">Local</span> saves <span className="font-mono">./.devlog</span> plus repo instructions for Claude, Cursor, Windsurf, and Copilot.</p>
+                <p className="text-ink-disabled">Token resolution is local <span className="font-mono">./.devlog</span> → global <span className="font-mono">~/.devlog</span> → <span className="font-mono">DEVLOG_AGENT_TOKEN</span>.</p>
               </div>
             </Panel>
 
             <Panel>
               <h2 className="text-[13px] font-semibold text-ink-primary mb-3">What this page knows</h2>
               <p className="text-[13px] text-ink-tertiary leading-relaxed">
-                devLog can show token status, project access, audit events, and last API use. It cannot see whether setup files exist on your machine; check that from your terminal.
+                devLog can show token status, project access, audit events, and last API use. It cannot see your filesystem, so use the Status or Verify commands to inspect local setup.
               </p>
             </Panel>
 
@@ -401,18 +401,18 @@ function CreateTokenModal({
     <Modal open={open} onClose={onClose} title={createdToken ? 'Copy your token' : 'Create agent token'} className="max-w-2xl">
       {createdToken ? (
         <div className="space-y-4">
-          <p className="text-[14px] text-ink-secondary">Run this in your terminal to connect this machine to devLog:</p>
+          <p className="text-[14px] text-ink-secondary">Run this in your terminal to connect your agent to devLog:</p>
           <pre className="overflow-auto rounded-lg bg-gray-50 border border-border p-4 font-mono text-[12px] text-ink-primary break-all whitespace-pre-wrap">
             {primarySetupCommand}
           </pre>
           <div className="rounded-lg border border-border bg-chalk p-3">
-            <p className="text-[12px] font-medium text-ink-primary">Optional: local MCP for Claude Code / Cursor</p>
-            <p className="mt-1 text-[12px] text-ink-disabled">Run inside a repo when you want hosted MCP configured for supported clients, with REST instructions as fallback.</p>
+            <p className="text-[12px] font-medium text-ink-primary">Optional: local repo setup with MCP where supported</p>
+            <p className="mt-1 text-[12px] text-ink-disabled">Run inside a repo. It writes REST instructions for Claude, Cursor, Windsurf, and Copilot, and MCP config for clients setup.sh knows how to configure.</p>
             <pre className="mt-2 overflow-auto rounded-md bg-gray-50 border border-border p-3 font-mono text-[11px] text-ink-primary break-all whitespace-pre-wrap">
               {mcpSetupCommand(createdToken)}
             </pre>
           </div>
-          <p className="text-[12px] text-ink-disabled">The setup command saves this token and adds agent instructions/config where supported. Local setup is current-repo only; global setup works across workspaces. The web app shows token usage, not local filesystem state.</p>
+          <p className="text-[12px] text-ink-disabled">The setup command saves this token and adds agent instructions/config where supported. Local setup is current-repo only; global setup works across workspaces. Use setup.sh status/verify in your terminal to inspect local state.</p>
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => onCopy(primarySetupCommand, 'Command copied')}>
               <Copy size={14} /> Copy primary command
@@ -454,7 +454,7 @@ function CreateTokenModal({
           <div className="rounded-lg border border-border bg-chalk p-4">
             <p className="text-[13px] font-medium text-ink-primary">Delegated access</p>
             <p className="mt-1 text-[12px] text-ink-disabled leading-relaxed">
-              This token lets your local agent use devLog as you. For a simple setup, create one global token per computer and revoke it anytime from Agent Access.
+              This token lets your agent use devLog as you, limited by your project access and any selected-project restriction below. For a simple setup, create one global token per computer and revoke it anytime from Agent Access.
             </p>
           </div>
 

@@ -66,7 +66,7 @@ function CommentItem({ comment, isOwn, onDelete, onEdit }: CommentItemProps) {
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              className="w-full glass rounded-glass text-body text-ink-primary px-3 py-2 outline-none border border-accent/40 resize-none min-h-[60px]"
+              className="w-full bg-white rounded-glass text-body text-ink-primary px-3 py-2 outline-none border border-border focus:border-accent/40 resize-none min-h-[60px] transition-colors duration-200"
               autoFocus
             />
             <div className="flex gap-2">
@@ -134,7 +134,7 @@ function CommentInput({ onSubmit, userAvatar, username }: CommentInputProps) {
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Leave a comment… (⌘+Enter to submit)"
-          className="w-full glass rounded-glass text-body text-ink-primary placeholder:text-ink-disabled px-3 py-2 outline-none border border-transparent focus:border-accent/40 resize-none min-h-[72px] transition-all duration-200"
+          className="w-full bg-white rounded-glass text-body text-ink-primary placeholder:text-ink-disabled px-3 py-2 outline-none border border-border focus:border-accent/40 resize-none min-h-[72px] transition-all duration-200"
         />
         <button
           type="submit"

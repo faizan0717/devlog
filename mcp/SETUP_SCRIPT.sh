@@ -19,16 +19,29 @@ err()    { printf "  %b✗%b %s\n" "$RED" "$RESET" "$1"; }
 usage() {
   cat <<EOF
 Usage:
-  setup.sh install <token> --local [--agents claude,cursor,windsurf,copilot] [--mcp]
-  setup.sh install <token> --global [--mcp]
-  setup.sh verify [--local|--global]
+  setup.sh install <token> --global
+      Save token to ~/.devlog and add global Claude instructions.
+
+  setup.sh install <token> --local [--agents all|claude,cursor,windsurf,copilot] [--mcp]
+      Save token to ./.devlog, add repo agent instructions, and optionally write
+      hosted MCP config for clients setup.sh can configure. REST instructions are
+      always installed and are the fallback for unsupported MCP clients.
+
   setup.sh status
-  setup.sh uninstall --local
-  setup.sh uninstall --global
-  setup.sh uninstall --all
+      Print local/global files and the effective token source. No network call.
+
+  setup.sh verify [--local|--global]
+      Check token format, API reachability, docs, and basic project access.
+
+  setup.sh uninstall --local|--global|--all
+      Remove setup.sh-managed local/global files. This does not revoke remote tokens;
+      revoke/delete tokens in devLog → Agent Access.
+
+Token resolution for agents and verify:
+  ./.devlog → ~/.devlog → DEVLOG_AGENT_TOKEN
 
 Backwards compatible:
-  setup.sh <token>
+  setup.sh <token>   # installs globally
 EOF
 }
 
@@ -87,7 +100,7 @@ devlog_block() {
 ## devLog
 Base URL: $BASE_URL
 Token: read from $token_ref (never commit this file).
-Modes: REST is always available. Hosted MCP may also be configured at $BASE_URL/mcp when the client supports HTTP MCP with Authorization headers.
+Modes: REST is always available. Hosted MCP may also be configured at $BASE_URL/mcp when the client supports HTTP MCP with Authorization headers. If MCP is unsupported or misconfigured, use the REST endpoints below.
 
 Always call GET /docs first for the latest reference. If /docs is unavailable, use mcp/AGENT_DOCS.md in this repo as the fallback reference.
 
@@ -319,7 +332,7 @@ status_cmd() {
   if [ -n "$EFFECTIVE_TOKEN" ]; then ok "$EFFECTIVE_SOURCE is active ($(mask_token "$EFFECTIVE_TOKEN"))"; else warn "No token found"; fi
   [ -f .devlog ] && [ -f "$HOME/.devlog" ] && info "Local ./.devlog overrides global ~/.devlog"
   printf "\n%bAPI%b\n" "$BOLD" "$RESET"
-  info "Run setup.sh verify to check API reachability and scopes."
+  info "Run setup.sh verify to check API reachability, token validity, and project access."
 }
 
 http_code() {
@@ -347,12 +360,13 @@ verify_cmd() {
   [ "$code" = "200" ] && ok "GET /docs reachable" || warn "GET /docs returned $code"
   code="$(http_code "$BASE_URL/projects" "$EFFECTIVE_TOKEN")"
   case "$code" in
-    200) ok "GET /projects succeeded" ;;
+    200) ok "GET /projects succeeded; REST fallback is ready" ;;
     401) err "Token is invalid, revoked, expired, or not accepted"; exit 1 ;;
-    403) warn "Token is valid but missing read_projects, or project access is restricted. This may be okay for create-log-only tokens." ;;
+    403) warn "Token is valid but cannot list projects. It may be limited to selected project actions." ;;
     000) err "Network failure or curl unavailable"; exit 1 ;;
     *) warn "GET /projects returned $code" ;;
   esac
+  info "Hosted MCP endpoint: $BASE_URL/mcp (only for clients with HTTP MCP + Authorization header support)."
 }
 
 uninstall_scope() {
@@ -425,7 +439,8 @@ case "$CMD" in
       fi
     fi
     install_scope "$SCOPE" "$TOKEN"
-    printf "\n%bAll done.%b Your agent is connected to devLog.\n" "$BOLD$GREEN" "$RESET"
+    printf "\n%bAll done.%b Your agent has devLog REST instructions.\n" "$BOLD$GREEN" "$RESET"
+    [ "$MCP" = "true" ] && info "MCP config was attempted where supported; REST remains available if your client does not support hosted HTTP MCP."
     ;;
   verify) verify_cmd ;;
   status) status_cmd ;;

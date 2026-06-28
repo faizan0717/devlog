@@ -46,7 +46,7 @@ export default function Explore() {
   }, [recentLogs.data, activeMood])
 
   return (
-    <AnimatedPage className="mx-auto max-w-[1160px] px-6 py-9 pb-20">
+    <AnimatedPage className="mx-auto max-w-[1160px] px-4 sm:px-6 py-9 pb-20">
       <div className="flex flex-col lg:flex-row gap-10">
 
         {/* ── Left panel: how devLog works + CTA ── */}
@@ -111,9 +111,11 @@ export default function Explore() {
               Public logs
             </h1>
 
-            <div className="flex flex-wrap gap-1.5">
+            <div role="group" aria-label="Filter by mood" className="flex flex-wrap gap-1.5">
               <button
+                type="button"
                 onClick={() => setActiveMood(null)}
+                aria-pressed={activeMood === null}
                 className={`font-mono text-[11px] px-3 py-[5px] rounded-full border transition-colors ${
                   activeMood === null
                     ? 'bg-ink-primary text-white border-ink-primary'
@@ -128,7 +130,9 @@ export default function Explore() {
                 return (
                   <button
                     key={m.value}
+                    type="button"
                     onClick={() => setActiveMood(activeMood === m.value ? null : m.value)}
+                    aria-pressed={activeMood === m.value}
                     className={`font-mono text-[11px] px-3 py-[5px] rounded-full border transition-colors ${
                       isActive
                         ? `${c.text} ${c.border} ${c.bg}`
