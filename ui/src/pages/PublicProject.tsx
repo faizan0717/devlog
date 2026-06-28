@@ -40,7 +40,7 @@ function publicTodoSourceLabel(todo: PlanMilestoneWithTodos['todos'][number]) {
 }
 
 function isPublicRoadmapItem(visibility: string) {
-  return visibility === 'public' || visibility === 'unlisted'
+  return visibility === 'public'
 }
 
 function PublicRoadmap({ milestones }: { milestones: PlanMilestoneWithTodos[] }) {
@@ -79,7 +79,7 @@ function PublicRoadmap({ milestones }: { milestones: PlanMilestoneWithTodos[] })
           </p>
           <p className="mt-1 text-sm text-ink-tertiary">
             {hasAnyPlanItems
-              ? 'The maker has plan items, but none are marked public or unlisted.'
+              ? 'The maker has plan items, but none are marked public.'
               : 'When the maker publishes milestones, they will appear here.'}
           </p>
         </div>
