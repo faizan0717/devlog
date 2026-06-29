@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { Gift } from 'lucide-react'
 import { ROUTES } from '@/utils'
 
 export function PublicNav() {
@@ -8,6 +9,10 @@ export function PublicNav() {
         <span className="text-ink-disabled">dev</span>
         <span className="text-ink-primary">Log</span>
       </Link>
+      <div className="hidden items-center gap-1.5 rounded-full border border-accent/20 bg-accent/[0.08] px-3 py-1 text-[12px] font-semibold text-accent md:flex">
+        <Gift size={13} aria-hidden="true" />
+        <span>Free for the next 30 days</span>
+      </div>
       <div className="flex-1" />
 
       <div className="flex items-center gap-2">

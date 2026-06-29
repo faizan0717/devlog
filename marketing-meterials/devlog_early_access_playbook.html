@@ -1,0 +1,1725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>devLog — Early Access Growth Playbook</title>
+  <style>
+    :root {
+      --bg: #0d0d12;
+      --surface: #13131a;
+      --surface2: #1a1a24;
+      --border: #252532;
+      --border2: #2e2e3e;
+      --purple: #7c5cfc;
+      --purple-dim: #5a3fd4;
+      --purple-glow: rgba(124, 92, 252, 0.15);
+      --purple-glow2: rgba(124, 92, 252, 0.08);
+      --text: #e8e8f0;
+      --text-dim: #9090a8;
+      --text-muted: #5a5a72;
+      --green: #4ade80;
+      --amber: #f59e0b;
+      --blue: #60a5fa;
+      --pink: #f472b6;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR NAV ── */
+    .sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      width: 240px;
+      height: 100vh;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 28px 0;
+      z-index: 100;
+      overflow-y: auto;
+    }
+
+    .sidebar-logo {
+      padding: 0 24px 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    .sidebar-logo .brand {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--purple);
+      letter-spacing: -0.3px;
+    }
+
+    .sidebar-logo .tag {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-top: 4px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 24px;
+      font-size: 13px;
+      color: var(--text-dim);
+      cursor: pointer;
+      text-decoration: none;
+      border-left: 2px solid transparent;
+      transition: all 0.15s;
+    }
+
+    .nav-item:hover { color: var(--text); background: var(--purple-glow2); }
+    .nav-item.active { color: var(--purple); border-left-color: var(--purple); background: var(--purple-glow2); }
+
+    .nav-icon { width: 16px; text-align: center; font-size: 14px; }
+
+    /* ── MAIN ── */
+    .main {
+      margin-left: 240px;
+      padding: 0 48px 80px;
+      max-width: 1000px;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 80px 0 56px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 64px;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--purple);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      background: var(--purple-glow);
+      border: 1px solid rgba(124,92,252,0.3);
+      padding: 5px 12px;
+      border-radius: 100px;
+      margin-bottom: 24px;
+    }
+
+    .pulse {
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .hero h1 {
+      font-size: 52px;
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -1.5px;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+
+    .hero h1 span { color: var(--purple); }
+
+    .hero-sub {
+      font-size: 18px;
+      color: var(--text-dim);
+      max-width: 560px;
+      line-height: 1.6;
+      margin-bottom: 36px;
+    }
+
+    .hero-meta {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .hero-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .hero-badge strong { color: var(--text-dim); }
+
+    /* ── SECTION HEADERS ── */
+    .section {
+      margin-bottom: 72px;
+      scroll-margin-top: 32px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .section-num {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--purple);
+      background: var(--purple-glow);
+      border: 1px solid rgba(124,92,252,0.25);
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    /* ── CALLOUT BOXES ── */
+    .callout {
+      background: var(--purple-glow2);
+      border: 1px solid rgba(124,92,252,0.2);
+      border-left: 3px solid var(--purple);
+      border-radius: 10px;
+      padding: 18px 22px;
+      margin-bottom: 24px;
+    }
+
+    .callout.green { border-left-color: var(--green); border-color: rgba(74,222,128,0.2); background: rgba(74,222,128,0.05); }
+    .callout.amber { border-left-color: var(--amber); border-color: rgba(245,158,11,0.2); background: rgba(245,158,11,0.05); }
+
+    .callout-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--purple);
+      margin-bottom: 8px;
+    }
+
+    .callout.green .callout-label { color: var(--green); }
+    .callout.amber .callout-label { color: var(--amber); }
+
+    .callout p {
+      font-size: 15px;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .callout p strong { color: var(--purple); }
+
+    /* ── PROBLEM LIST ── */
+    .problem-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .problem-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      color: var(--text-dim);
+      transition: border-color 0.15s;
+    }
+
+    .problem-item:hover { border-color: var(--border2); color: var(--text); }
+    .problem-icon { font-size: 16px; margin-top: 1px; flex-shrink: 0; }
+
+    /* ── FEATURE PILLARS ── */
+    .pillars-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .pillar-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      transition: border-color 0.2s, transform 0.2s;
+      cursor: default;
+    }
+
+    .pillar-card:hover {
+      border-color: var(--purple);
+      transform: translateY(-2px);
+    }
+
+    .pillar-icon {
+      font-size: 28px;
+      margin-bottom: 14px;
+    }
+
+    .pillar-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .pillar-desc {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .pillar-promise {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--purple);
+      background: var(--purple-glow);
+      padding: 5px 10px;
+      border-radius: 6px;
+      display: inline-block;
+    }
+
+    /* ── ICP TABLE ── */
+    .icp-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .icp-row {
+      display: grid;
+      grid-template-columns: 180px 1fr 1fr;
+      gap: 16px;
+      padding: 16px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      align-items: start;
+      transition: border-color 0.15s;
+    }
+
+    .icp-row:hover { border-color: var(--border2); }
+
+    .icp-segment {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .icp-pain {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    .icp-hook {
+      font-size: 13px;
+      color: var(--purple);
+      font-weight: 500;
+    }
+
+    .icp-header {
+      display: grid;
+      grid-template-columns: 180px 1fr 1fr;
+      gap: 16px;
+      padding: 8px 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+    }
+
+    /* ── ROADMAP ── */
+    .roadmap {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      position: relative;
+    }
+
+    .roadmap::before {
+      content: '';
+      position: absolute;
+      left: 20px;
+      top: 0; bottom: 0;
+      width: 1px;
+      background: linear-gradient(to bottom, var(--purple), transparent);
+    }
+
+    .roadmap-phase {
+      display: flex;
+      gap: 24px;
+      padding-bottom: 28px;
+      position: relative;
+    }
+
+    .phase-dot {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--surface2);
+      border: 2px solid var(--border2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: var(--mono);
+      color: var(--text-muted);
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+      transition: all 0.2s;
+    }
+
+    .roadmap-phase:hover .phase-dot {
+      border-color: var(--purple);
+      color: var(--purple);
+      background: var(--purple-glow);
+    }
+
+    .phase-body {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 22px;
+      transition: border-color 0.15s;
+    }
+
+    .roadmap-phase:hover .phase-body { border-color: var(--border2); }
+
+    .phase-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .phase-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .phase-goal {
+      font-size: 13px;
+      color: var(--purple);
+      background: var(--purple-glow);
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+
+    .phase-details {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .phase-detail-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .phase-detail-text {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    /* ── COPY BLOCKS ── */
+    .copy-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .copy-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+
+    .copy-platform {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .platform-icon {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .platform-icon.linkedin { background: rgba(10,102,194,0.2); }
+    .platform-icon.twitter { background: rgba(0,0,0,0.3); }
+    .platform-icon.reddit { background: rgba(255,69,0,0.15); }
+    .platform-icon.dm { background: rgba(74,222,128,0.15); }
+
+    .copy-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--purple);
+      background: var(--purple-glow);
+      border: 1px solid rgba(124,92,252,0.3);
+      padding: 5px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .copy-btn:hover { background: rgba(124,92,252,0.2); }
+    .copy-btn.copied { color: var(--green); background: rgba(74,222,128,0.1); border-color: rgba(74,222,128,0.3); }
+
+    .copy-body {
+      padding: 20px;
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.75;
+      white-space: pre-wrap;
+      font-family: var(--font);
+    }
+
+    /* ── METRICS ── */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .metric-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+
+    .metric-card:hover {
+      border-color: var(--purple);
+      transform: translateY(-1px);
+    }
+
+    .metric-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      margin-bottom: 8px;
+    }
+
+    .metric-arrow {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 6px;
+      font-family: var(--mono);
+    }
+
+    .metric-why {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+
+    .metric-target {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+      background: rgba(74,222,128,0.1);
+      border: 1px solid rgba(74,222,128,0.2);
+      padding: 4px 10px;
+      border-radius: 6px;
+      display: inline-block;
+    }
+
+    /* ── PRICING ── */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .pricing-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      transition: all 0.2s;
+    }
+
+    .pricing-card.featured {
+      border-color: var(--purple);
+      background: var(--purple-glow2);
+    }
+
+    .pricing-card:hover { transform: translateY(-2px); }
+
+    .pricing-plan {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .pricing-card.featured .pricing-plan { color: var(--purple); }
+
+    .pricing-price {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+      font-family: var(--mono);
+    }
+
+    .pricing-period {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .pricing-offer {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .pricing-purpose {
+      font-size: 12px;
+      color: var(--purple);
+      font-weight: 500;
+    }
+
+    .pricing-card.featured .pricing-purpose { color: var(--green); }
+
+    /* ── CHECKLIST ── */
+    .checklist {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .check-item:hover { border-color: var(--border2); }
+    .check-item.done { opacity: 0.5; }
+    .check-item.done .check-text { text-decoration: line-through; color: var(--text-muted); }
+
+    .check-box {
+      width: 20px; height: 20px;
+      border-radius: 6px;
+      border: 2px solid var(--border2);
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s;
+      font-size: 12px;
+    }
+
+    .check-item.done .check-box {
+      background: var(--purple);
+      border-color: var(--purple);
+      color: white;
+    }
+
+    .check-text { font-size: 14px; color: var(--text-dim); line-height: 1.4; }
+
+    /* ── 30-DAY PLAN ── */
+    .weeks-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .week-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      transition: border-color 0.15s;
+    }
+
+    .week-card:hover { border-color: var(--purple); }
+
+    .week-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--purple);
+      margin-bottom: 6px;
+    }
+
+    .week-goal {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .week-actions {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    .week-output {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--green);
+      background: rgba(74,222,128,0.08);
+      border: 1px solid rgba(74,222,128,0.2);
+      padding: 6px 12px;
+      border-radius: 8px;
+    }
+
+    /* ── DEMO STRATEGY ── */
+    .demo-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      counter-reset: demo-counter;
+    }
+
+    .demo-step {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      padding: 16px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      counter-increment: demo-counter;
+      transition: border-color 0.15s;
+    }
+
+    .demo-step:hover { border-color: var(--purple); }
+
+    .step-num {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      background: var(--purple-glow);
+      border: 1px solid rgba(124,92,252,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--purple);
+      font-family: var(--mono);
+      flex-shrink: 0;
+    }
+
+    .step-text { font-size: 14px; color: var(--text-dim); line-height: 1.5; padding-top: 4px; }
+    .step-text strong { color: var(--text); }
+
+    /* ── FOUNDER RULE ── */
+    .founder-rule {
+      background: linear-gradient(135deg, rgba(124,92,252,0.12) 0%, rgba(124,92,252,0.04) 100%);
+      border: 1px solid rgba(124,92,252,0.3);
+      border-radius: 16px;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .founder-rule-icon { font-size: 40px; margin-bottom: 16px; }
+
+    .founder-rule h3 {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--purple);
+      margin-bottom: 12px;
+      letter-spacing: -0.3px;
+    }
+
+    .founder-rule p {
+      font-size: 16px;
+      color: var(--text-dim);
+      max-width: 540px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* ── LANDING COPY ── */
+    .landing-sections {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .landing-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 22px;
+      transition: border-color 0.15s;
+    }
+
+    .landing-item:hover { border-color: var(--border2); }
+
+    .landing-item-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .landing-item-text { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
+
+    /* ── PROGRESS BAR ── */
+    .progress-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .progress-row:last-child { border-bottom: none; }
+
+    .progress-label { font-size: 13px; color: var(--text-dim); width: 180px; flex-shrink: 0; }
+
+    .progress-bar-wrap {
+      flex: 1;
+      height: 6px;
+      background: var(--surface2);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--purple-dim), var(--purple));
+      border-radius: 100px;
+      transition: width 1s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .progress-val {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--purple);
+      font-family: var(--mono);
+      width: 50px;
+      text-align: right;
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      text-align: center;
+      padding: 40px 0;
+      color: var(--text-muted);
+      font-size: 13px;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer a { color: var(--purple); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    /* ── SCROLL HIGHLIGHT ── */
+    .section.in-view .section-title { color: var(--text); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 0 20px 60px; }
+      .hero h1 { font-size: 36px; }
+      .pillars-grid, .metrics-grid, .pricing-grid, .weeks-grid { grid-template-columns: 1fr; }
+      .icp-row { grid-template-columns: 1fr; }
+      .icp-header { display: none; }
+      .phase-details { grid-template-columns: 1fr; }
+    }
+
+    /* ── TOOLTIP ── */
+    [data-tip] { position: relative; }
+    [data-tip]:hover::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      font-size: 12px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      z-index: 99;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">devLog</div>
+    <div class="tag">Early Access Playbook</div>
+  </div>
+
+  <a class="nav-item active" href="#narrative" onclick="setActive(this)">
+    <span class="nav-icon">📖</span> Product Narrative
+  </a>
+  <a class="nav-item" href="#pillars" onclick="setActive(this)">
+    <span class="nav-icon">⚡</span> Feature Pillars
+  </a>
+  <a class="nav-item" href="#icp" onclick="setActive(this)">
+    <span class="nav-icon">🎯</span> Ideal Customer
+  </a>
+  <a class="nav-item" href="#roadmap" onclick="setActive(this)">
+    <span class="nav-icon">🗺</span> Roadmap
+  </a>
+  <a class="nav-item" href="#landing" onclick="setActive(this)">
+    <span class="nav-icon">🏠</span> Landing Copy
+  </a>
+  <a class="nav-item" href="#marketing" onclick="setActive(this)">
+    <span class="nav-icon">📣</span> Marketing Posts
+  </a>
+  <a class="nav-item" href="#demo" onclick="setActive(this)">
+    <span class="nav-icon">🎬</span> Demo Strategy
+  </a>
+  <a class="nav-item" href="#growth" onclick="setActive(this)">
+    <span class="nav-icon">📅</span> 30-Day Plan
+  </a>
+  <a class="nav-item" href="#metrics" onclick="setActive(this)">
+    <span class="nav-icon">📊</span> Metrics
+  </a>
+  <a class="nav-item" href="#pricing" onclick="setActive(this)">
+    <span class="nav-icon">💰</span> Pricing
+  </a>
+  <a class="nav-item" href="#checklist" onclick="setActive(this)">
+    <span class="nav-icon">✅</span> Checklist
+  </a>
+  <a class="nav-item" href="#founder" onclick="setActive(this)">
+    <span class="nav-icon">⚖️</span> Founder Rule
+  </a>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-eyebrow">
+      <span class="pulse"></span>
+      Early Access Live
+    </div>
+    <h1>Your project memory,<br><span>updated by AI.</span></h1>
+    <p class="hero-sub">Plan roadmaps, track todos, log progress, and share your build journey — with AI agents that can update your project through MCP + REST.</p>
+    <div class="hero-meta">
+      <div class="hero-badge">Version <strong>Early Access</strong></div>
+      <div class="hero-badge">Audience <strong>AI builders · Indie hackers · Students · OSS</strong></div>
+      <div class="hero-badge">URL <strong>devlog.one</strong></div>
+    </div>
+  </div>
+
+  <!-- 1. PRODUCT NARRATIVE -->
+  <section class="section" id="narrative">
+    <div class="section-header">
+      <div class="section-num">01</div>
+      <h2 class="section-title">Product Narrative</h2>
+    </div>
+
+    <div class="callout">
+      <div class="callout-label">One-liner</div>
+      <p>devLog helps builders <strong>plan, track, and share projects</strong> — with AI agents that can update logs, todos, and roadmap automatically.</p>
+    </div>
+
+    <h3 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:14px;">What problem are we solving?</h3>
+    <div class="problem-list">
+      <div class="problem-item"><span class="problem-icon">🌀</span> Builders lose context across commits, chats, TODO files, screenshots, and memory.</div>
+      <div class="problem-item"><span class="problem-icon">✍️</span> Build-in-public takes effort because progress updates need to be written manually.</div>
+      <div class="problem-item"><span class="problem-icon">🤖</span> AI coding agents help ship code, but project history and decisions aren't captured in a clean timeline.</div>
+      <div class="problem-item"><span class="problem-icon">🏋️</span> Project management tools are too heavy for solo builders; GitHub shows code, not the story.</div>
+    </div>
+
+    <h3 style="font-size:16px;font-weight:700;color:var(--text);margin:20px 0 14px;">What devLog becomes</h3>
+    <div class="problem-list">
+      <div class="problem-item"><span class="problem-icon">🧠</span> A living project memory layer for each project.</div>
+      <div class="problem-item"><span class="problem-icon">🗺</span> A clean roadmap with milestones and todos.</div>
+      <div class="problem-item"><span class="problem-icon">🎞</span> A cinematic timeline of progress logs and decisions.</div>
+      <div class="problem-item"><span class="problem-icon">🌐</span> A public proof-of-work page for makers.</div>
+      <div class="problem-item"><span class="problem-icon">🔗</span> A bridge between AI agents and project documentation through MCP + REST.</div>
+    </div>
+  </section>
+
+  <!-- 2. FEATURE PILLARS -->
+  <section class="section" id="pillars">
+    <div class="section-header">
+      <div class="section-num">02</div>
+      <h2 class="section-title">Feature Pillars</h2>
+    </div>
+
+    <div class="pillars-grid">
+      <div class="pillar-card">
+        <div class="pillar-icon">🗺</div>
+        <div class="pillar-name">Plan</div>
+        <div class="pillar-desc">Milestones, roadmap, todos, statuses, sort order, visibility. Structure what you're building before you build it.</div>
+        <span class="pillar-promise">Know what to build next.</span>
+      </div>
+      <div class="pillar-card">
+        <div class="pillar-icon">📓</div>
+        <div class="pillar-name">Log</div>
+        <div class="pillar-desc">Timeline entries, markdown logs, mood/status, media, private/public visibility. A running journal of every decision.</div>
+        <span class="pillar-promise">Capture the journey while you build.</span>
+      </div>
+      <div class="pillar-card">
+        <div class="pillar-icon">⚡</div>
+        <div class="pillar-name">Automate</div>
+        <div class="pillar-desc">Agent tokens, MCP tools, REST API, audit logs, project-restricted access. Your AI tools become part of the workflow.</div>
+        <span class="pillar-promise">Let AI agents update your project memory.</span>
+      </div>
+      <div class="pillar-card">
+        <div class="pillar-icon">🌐</div>
+        <div class="pillar-name">Share</div>
+        <div class="pillar-desc">Public projects, logs, profile, proof-of-work timeline. Show the world how you built it, not just the final artifact.</div>
+        <span class="pillar-promise">Show how you built it, not just the final repo.</span>
+      </div>
+    </div>
+
+    <div class="callout green">
+      <div class="callout-label">Primary Value Proposition — use on landing page</div>
+      <p>Plan your roadmap, track todos, log progress, and share your build journey — with AI agents helping along the way.</p>
+    </div>
+  </section>
+
+  <!-- 3. ICP -->
+  <section class="section" id="icp">
+    <div class="section-header">
+      <div class="section-num">03</div>
+      <h2 class="section-title">Ideal Customer Profile</h2>
+    </div>
+
+    <div class="icp-header">
+      <span>Segment</span>
+      <span>Pain</span>
+      <span>Hook</span>
+    </div>
+    <div class="icp-grid">
+      <div class="icp-row">
+        <div class="icp-segment">🤖 AI-assisted indie builders</div>
+        <div class="icp-pain">Use Claude/Cursor/Windsurf but project context gets scattered.</div>
+        <div class="icp-hook">Your AI agent can log progress for you.</div>
+      </div>
+      <div class="icp-row">
+        <div class="icp-segment">🎓 Students & portfolio builders</div>
+        <div class="icp-pain">Need proof-of-work, not just final GitHub links.</div>
+        <div class="icp-hook">Turn projects into public build stories.</div>
+      </div>
+      <div class="icp-row">
+        <div class="icp-segment">🏆 Hackathon teams</div>
+        <div class="icp-pain">Need fast progress tracking and shareable updates.</div>
+        <div class="icp-hook">One timeline for what got built, when, and by whom.</div>
+      </div>
+      <div class="icp-row">
+        <div class="icp-segment">🔧 OSS maintainers</div>
+        <div class="icp-pain">Release notes and roadmap context are hard to maintain.</div>
+        <div class="icp-hook">Keep roadmap and progress logs connected.</div>
+      </div>
+      <div class="icp-row">
+        <div class="icp-segment">🚀 Startup MVP builders</div>
+        <div class="icp-pain">Need updates for users, friends, mentors, investors.</div>
+        <div class="icp-hook">Share progress without writing long updates manually.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. ROADMAP -->
+  <section class="section" id="roadmap">
+    <div class="section-header">
+      <div class="section-num">04</div>
+      <h2 class="section-title">Early Access Roadmap</h2>
+    </div>
+
+    <div class="roadmap">
+      <div class="roadmap-phase">
+        <div class="phase-dot">P0</div>
+        <div class="phase-body">
+          <div class="phase-top">
+            <div class="phase-name">Phase 0 — Now</div>
+            <div class="phase-goal">Make early access usable & explainable</div>
+          </div>
+          <div class="phase-details">
+            <div>
+              <div class="phase-detail-label">Build / Improve</div>
+              <div class="phase-detail-text">Landing copy, demo data, onboarding, first feedback loop.</div>
+            </div>
+            <div>
+              <div class="phase-detail-label">Success Metric</div>
+              <div class="phase-detail-text">10 users create project + log/todo.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="roadmap-phase">
+        <div class="phase-dot">P1</div>
+        <div class="phase-body">
+          <div class="phase-top">
+            <div class="phase-name">Phase 1 — Activation</div>
+            <div class="phase-goal">First value in 5 minutes</div>
+          </div>
+          <div class="phase-details">
+            <div>
+              <div class="phase-detail-label">Build / Improve</div>
+              <div class="phase-detail-text">First-project wizard, sample project, guided first log/todo.</div>
+            </div>
+            <div>
+              <div class="phase-detail-label">Success Metric</div>
+              <div class="phase-detail-text">40% of signups create project.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="roadmap-phase">
+        <div class="phase-dot">P2</div>
+        <div class="phase-body">
+          <div class="phase-top">
+            <div class="phase-name">Phase 2 — Agent Wow Moment</div>
+            <div class="phase-goal">Make agent integration feel magical</div>
+          </div>
+          <div class="phase-details">
+            <div>
+              <div class="phase-detail-label">Build / Improve</div>
+              <div class="phase-detail-text">Setup verification, copy-paste agent command, clearer token UX.</div>
+            </div>
+            <div>
+              <div class="phase-detail-label">Success Metric</div>
+              <div class="phase-detail-text">10 users connect or test agent token.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="roadmap-phase">
+        <div class="phase-dot">P3</div>
+        <div class="phase-body">
+          <div class="phase-top">
+            <div class="phase-name">Phase 3 — Public Sharing</div>
+            <div class="phase-goal">Make public pages worth sharing</div>
+          </div>
+          <div class="phase-details">
+            <div>
+              <div class="phase-detail-label">Build / Improve</div>
+              <div class="phase-detail-text">Polish public profile/project pages, social preview image, share CTA.</div>
+            </div>
+            <div>
+              <div class="phase-detail-label">Success Metric</div>
+              <div class="phase-detail-text">20 shared public project links.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="roadmap-phase">
+        <div class="phase-dot">P4</div>
+        <div class="phase-body">
+          <div class="phase-top">
+            <div class="phase-name">Phase 4 — Retention</div>
+            <div class="phase-goal">Make users return weekly</div>
+          </div>
+          <div class="phase-details">
+            <div>
+              <div class="phase-detail-label">Build / Improve</div>
+              <div class="phase-detail-text">Weekly project digest, streak/progress summary, recent activity.</div>
+            </div>
+            <div>
+              <div class="phase-detail-label">Success Metric</div>
+              <div class="phase-detail-text">30% weekly active project owners.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="roadmap-phase">
+        <div class="phase-dot">P5</div>
+        <div class="phase-body">
+          <div class="phase-top">
+            <div class="phase-name">Phase 5 — Monetization</div>
+            <div class="phase-goal">Validate paid willingness</div>
+          </div>
+          <div class="phase-details">
+            <div>
+              <div class="phase-detail-label">Build / Improve</div>
+              <div class="phase-detail-text">Free/Pro limits, custom domains/profile, private projects, more agent logs.</div>
+            </div>
+            <div>
+              <div class="phase-detail-label">Success Metric</div>
+              <div class="phase-detail-text">5 users say they would pay.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:32px;">
+      <h3 style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px;">Product priorities for the next 30 days</h3>
+      <div class="problem-list">
+        <div class="problem-item"><span class="problem-icon">🧭</span> Create a short onboarding flow: create project → add milestone → add todo → add log → create agent token.</div>
+        <div class="problem-item"><span class="problem-icon">🎭</span> Add one or two polished demo projects inside devLog and link them from the homepage.</div>
+        <div class="problem-item"><span class="problem-icon">🔑</span> Make agent setup dead simple: one token, one setup command, one verify command, one example prompt.</div>
+        <div class="problem-item"><span class="problem-icon">📢</span> Improve public project pages for sharing on LinkedIn/X.</div>
+        <div class="problem-item"><span class="problem-icon">💬</span> Add feedback button or simple feedback form inside the app.</div>
+        <div class="problem-item"><span class="problem-icon">📈</span> Track activation events: signup, project created, todo created, log created, token created, public project shared.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. LANDING COPY -->
+  <section class="section" id="landing">
+    <div class="section-header">
+      <div class="section-num">05</div>
+      <h2 class="section-title">Landing Page Copy</h2>
+    </div>
+
+    <div class="callout">
+      <div class="callout-label">Hero Headline</div>
+      <p style="font-size:22px;font-weight:800;letter-spacing:-0.5px;">Your project memory, updated by AI.</p>
+    </div>
+
+    <div class="callout" style="margin-top:-8px;">
+      <div class="callout-label">Hero Subtext</div>
+      <p>Plan roadmaps, track todos, log progress, and share your build journey — with AI agents that can update your project through MCP + REST.</p>
+    </div>
+
+    <h3 style="font-size:15px;font-weight:700;color:var(--text);margin:24px 0 14px;">CTA Options</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px;">
+      <button class="copy-btn" onclick="copyText(this,'Start using devLog')">Start using devLog</button>
+      <button class="copy-btn" onclick="copyText(this,'Get early access')">Get early access</button>
+      <button class="copy-btn" onclick="copyText(this,'Create your first project')">Create your first project</button>
+      <button class="copy-btn" onclick="copyText(this,'Try devLog free')">Try devLog free</button>
+    </div>
+
+    <h3 style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px;">Section Structure</h3>
+    <div class="landing-sections">
+      <div class="landing-item">
+        <div class="landing-item-title">Plan what you are building</div>
+        <div class="landing-item-text">Create milestones, todos, and roadmap items for every project.</div>
+      </div>
+      <div class="landing-item">
+        <div class="landing-item-title">Log progress without friction</div>
+        <div class="landing-item-text">Turn decisions, updates, and shipped work into a clean project timeline.</div>
+      </div>
+      <div class="landing-item">
+        <div class="landing-item-title">Let agents update memory</div>
+        <div class="landing-item-text">Claude, Cursor, Windsurf, Codex, and scripts can create logs and complete todos through MCP + REST.</div>
+      </div>
+      <div class="landing-item">
+        <div class="landing-item-title">Share proof of work</div>
+        <div class="landing-item-text">Public project pages show how your project evolved, not just what it became.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. MARKETING POSTS -->
+  <section class="section" id="marketing">
+    <div class="section-header">
+      <div class="section-num">06</div>
+      <h2 class="section-title">Marketing Posts</h2>
+    </div>
+
+    <div class="copy-block">
+      <div class="copy-header">
+        <div class="copy-platform">
+          <div class="platform-icon linkedin">💼</div>
+          LinkedIn Launch Post
+        </div>
+        <button class="copy-btn" onclick="copyBlock(this,'linkedin-copy')">
+          <span>Copy</span>
+        </button>
+      </div>
+      <div class="copy-body" id="linkedin-copy">I am opening early access for devLog.
+
+devLog is a project memory layer for builders. You can create projects, plan roadmap/milestones, track todos, write build logs, share public progress, and let AI agents update your project through MCP + REST.
+
+The idea is simple: GitHub shows the code. devLog shows the journey.
+
+I am looking for early builders using Claude, Cursor, Windsurf, Codex, or any AI coding workflow.
+
+Try it here: devlog.one
+
+If you try it, send brutal feedback. I am mainly looking for onboarding issues, confusing flows, and what would make this genuinely useful.</div>
+    </div>
+
+    <div class="copy-block">
+      <div class="copy-header">
+        <div class="copy-platform">
+          <div class="platform-icon twitter">𝕏</div>
+          X / Twitter Post
+        </div>
+        <button class="copy-btn" onclick="copyBlock(this,'twitter-copy')">
+          <span>Copy</span>
+        </button>
+      </div>
+      <div class="copy-body" id="twitter-copy">devLog early access is live.
+
+A project memory layer for builders:
+- roadmaps
+- todos
+- build logs
+- public project timelines
+- AI agent access via MCP + REST
+
+GitHub shows the code.
+devLog shows the journey.
+
+Try it: devlog.one</div>
+    </div>
+
+    <div class="copy-block">
+      <div class="copy-header">
+        <div class="copy-platform">
+          <div class="platform-icon reddit">🔴</div>
+          Reddit / Community Post
+        </div>
+        <button class="copy-btn" onclick="copyBlock(this,'reddit-copy')">
+          <span>Copy</span>
+        </button>
+      </div>
+      <div class="copy-body" id="reddit-copy">I built a small tool that lets builders maintain project logs, roadmaps, and todos — and lets AI coding agents update them through MCP + REST.
+
+The problem I am trying to solve: when using AI tools, project context gets scattered across chats, commits, TODO files, and memory. devLog keeps a clean project timeline and roadmap.
+
+I am not looking for praise; I am looking for feedback from people who build side projects or use AI coding agents.
+
+Early access: devlog.one</div>
+    </div>
+
+    <div class="copy-block">
+      <div class="copy-header">
+        <div class="copy-platform">
+          <div class="platform-icon dm">💬</div>
+          Short DM / WhatsApp Message
+        </div>
+        <button class="copy-btn" onclick="copyBlock(this,'dm-copy')">
+          <span>Copy</span>
+        </button>
+      </div>
+      <div class="copy-body" id="dm-copy">Hey, I launched early access for devLog.
+
+It is a project memory tool for builders — you can plan roadmap/todos, log progress, share your build journey, and even let AI agents update the project using MCP + REST.
+
+Would love if you try it and give honest feedback: devlog.one</div>
+    </div>
+  </section>
+
+  <!-- 7. DEMO STRATEGY -->
+  <section class="section" id="demo">
+    <div class="section-header">
+      <div class="section-num">07</div>
+      <h2 class="section-title">Demo Strategy</h2>
+    </div>
+
+    <div class="callout amber">
+      <div class="callout-label">Goal</div>
+      <p>Show the full product in under 60 seconds: <strong>Plan → Build → Agent update → Timeline → Share</strong></p>
+    </div>
+
+    <div class="demo-steps">
+      <div class="demo-step">
+        <div class="step-num">1</div>
+        <div class="step-text">Create a demo project called <strong>AI Badminton Analyzer</strong>.</div>
+      </div>
+      <div class="demo-step">
+        <div class="step-num">2</div>
+        <div class="step-text">Add 3 milestones: <strong>MVP foundation, video analysis, public beta</strong>.</div>
+      </div>
+      <div class="demo-step">
+        <div class="step-num">3</div>
+        <div class="step-text">Add <strong>5 todos</strong> under the first milestone.</div>
+      </div>
+      <div class="demo-step">
+        <div class="step-num">4</div>
+        <div class="step-text">Create 4 timeline logs: <strong>project initialized, tracking logic added, UI created, agent logged update</strong>.</div>
+      </div>
+      <div class="demo-step">
+        <div class="step-num">5</div>
+        <div class="step-text">Create one <strong>agent token</strong> and show the setup/verify flow.</div>
+      </div>
+      <div class="demo-step">
+        <div class="step-num">6</div>
+        <div class="step-text">Ask the agent: <strong>"Log today's progress to devLog and mark the completed todo."</strong></div>
+      </div>
+      <div class="demo-step">
+        <div class="step-num">7</div>
+        <div class="step-text">Show the <strong>public timeline URL</strong> at the end.</div>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:24px;">
+      <div class="callout-label">Demo Script</div>
+      <p>"I am building a project with an AI coding agent. Instead of losing updates inside chat or commits, I connect devLog. Now my project has a roadmap, todos, progress logs, and a public timeline. My agent can also update it for me."</p>
+    </div>
+  </section>
+
+  <!-- 8. 30-DAY PLAN -->
+  <section class="section" id="growth">
+    <div class="section-header">
+      <div class="section-num">08</div>
+      <h2 class="section-title">30-Day Growth Plan</h2>
+    </div>
+
+    <div class="weeks-grid">
+      <div class="week-card">
+        <div class="week-label">Week 1</div>
+        <div class="week-goal">Activation Foundation</div>
+        <div class="week-actions">Fix landing copy, add demo projects, add feedback form, record demo.</div>
+        <div class="week-output">Homepage + 1 demo video + 2 public projects</div>
+      </div>
+      <div class="week-card">
+        <div class="week-label">Week 2</div>
+        <div class="week-goal">First Users</div>
+        <div class="week-actions">Post on LinkedIn/X, DM 50 builders, share in 3 communities.</div>
+        <div class="week-output">20 signups, 10 activated users</div>
+      </div>
+      <div class="week-card">
+        <div class="week-label">Week 3</div>
+        <div class="week-goal">Onboarding Fixes</div>
+        <div class="week-actions">Interview users, watch flows, fix confusing screens, simplify token setup.</div>
+        <div class="week-output">Better activation and agent setup</div>
+      </div>
+      <div class="week-card">
+        <div class="week-label">Week 4</div>
+        <div class="week-goal">Public Proof Loop</div>
+        <div class="week-actions">Encourage users to share public project pages; collect testimonials.</div>
+        <div class="week-output">10 public projects, 3 testimonials</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. METRICS -->
+  <section class="section" id="metrics">
+    <div class="section-header">
+      <div class="section-num">09</div>
+      <h2 class="section-title">Metrics Dashboard</h2>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:24px;">
+      <div class="progress-row">
+        <div class="progress-label">Visitor → Signup</div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:15%"></div></div>
+        <div class="progress-val">10–20%</div>
+      </div>
+      <div class="progress-row">
+        <div class="progress-label">Signup → Project</div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:40%"></div></div>
+        <div class="progress-val">40%+</div>
+      </div>
+      <div class="progress-row">
+        <div class="progress-label">Project → First Log</div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:50%"></div></div>
+        <div class="progress-val">50%</div>
+      </div>
+      <div class="progress-row">
+        <div class="progress-label">Token Created</div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:20%"></div></div>
+        <div class="progress-val">10–20</div>
+      </div>
+      <div class="progress-row">
+        <div class="progress-label">Public Project Shared</div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:10%"></div></div>
+        <div class="progress-val">10+</div>
+      </div>
+      <div class="progress-row">
+        <div class="progress-label">Weekly Retention</div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:30%"></div></div>
+        <div class="progress-val">30%</div>
+      </div>
+      <div class="progress-row">
+        <div class="progress-label">Feedback Messages</div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:20%"></div></div>
+        <div class="progress-val">20 pts</div>
+      </div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Landing Page Clarity</div>
+        <div class="metric-arrow">Visitor → Signup</div>
+        <div class="metric-why">Measures how well the landing page explains the value prop.</div>
+        <span class="metric-target">Target: 10–20%</span>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Core Activation</div>
+        <div class="metric-arrow">Signup → Project</div>
+        <div class="metric-why">The single most important activation metric for early access.</div>
+        <span class="metric-target">Target: 40%+</span>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Agent Feature Adoption</div>
+        <div class="metric-arrow">Token Created</div>
+        <div class="metric-why">Validates that the core differentiator (MCP/agent) resonates.</div>
+        <span class="metric-target">Target: 10–20 users</span>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Organic Growth Loop</div>
+        <div class="metric-arrow">Public Project Shared</div>
+        <div class="metric-why">Each shared project is a free acquisition channel.</div>
+        <span class="metric-target">Target: 10+ shares</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. PRICING -->
+  <section class="section" id="pricing">
+    <div class="section-header">
+      <div class="section-num">10</div>
+      <h2 class="section-title">Pricing Hypothesis</h2>
+    </div>
+
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="pricing-plan">Free</div>
+        <div class="pricing-price">$0</div>
+        <div class="pricing-period">forever</div>
+        <div class="pricing-offer">3 projects, manual logs, limited agent logs, public profile.</div>
+        <div class="pricing-purpose">Acquire builders and validate usage.</div>
+      </div>
+      <div class="pricing-card featured">
+        <div class="pricing-plan">Pro</div>
+        <div class="pricing-price">$5–10</div>
+        <div class="pricing-period">per month</div>
+        <div class="pricing-offer">Unlimited projects, private projects, more agent logs, roadmap, media, exports.</div>
+        <div class="pricing-purpose">Monetize serious indie builders.</div>
+      </div>
+      <div class="pricing-card">
+        <div class="pricing-plan">Team</div>
+        <div class="pricing-price">Later</div>
+        <div class="pricing-period">coming soon</div>
+        <div class="pricing-offer">Shared projects, collaborators, team roadmap, audit logs.</div>
+        <div class="pricing-purpose">For hackathons, agencies, small teams.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. CHECKLIST -->
+  <section class="section" id="checklist">
+    <div class="section-header">
+      <div class="section-num">11</div>
+      <h2 class="section-title">Immediate Checklist</h2>
+    </div>
+
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">Click items to mark them done. State is saved in your browser.</div>
+
+    <div class="checklist" id="checklist-items">
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"></div>
+        <div class="check-text">Update homepage headline to: <em>Your project memory, updated by AI.</em></div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"></div>
+        <div class="check-text">Add CTA: <em>Early access is live — start using devLog.</em></div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"></div>
+        <div class="check-text">Create two realistic public demo projects.</div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"></div>
+        <div class="check-text">Record one 45-second demo video.</div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"></div>
+        <div class="check-text">Post LinkedIn launch post.</div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"></div>
+        <div class="check-text">Send DM to 30 builders you know.</div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"></div>
+        <div class="check-text">Add feedback button/form in app.</div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"></div>
+        <div class="check-text">Track signup, project created, log created, todo created, token created.</div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"></div>
+        <div class="check-text">Fix onboarding based on first 10 users.</div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"></div>
+        <div class="check-text">Collect 3 testimonials or public comments.</div>
+      </div>
+    </div>
+
+    <div id="checklist-progress" style="margin-top:20px;font-size:13px;color:var(--text-muted);">
+      0 / 10 completed
+    </div>
+  </section>
+
+  <!-- 12. FOUNDER RULE -->
+  <section class="section" id="founder">
+    <div class="section-header">
+      <div class="section-num">12</div>
+      <h2 class="section-title">Founder Rule</h2>
+    </div>
+
+    <div class="founder-rule">
+      <div class="founder-rule-icon">⚖️</div>
+      <h3>Do not overbuild before proof</h3>
+      <p>For the next 30 days, your job is not to add every feature. Your job is to make <strong>10–30 builders</strong> understand devLog, create a project, add a todo/log, and feel that agent-updated project memory is useful.</p>
+    </div>
+  </section>
+
+  <div class="footer">
+    devLog Early Access Growth Playbook &mdash; <a href="https://devlog.one">devlog.one</a>
+  </div>
+
+</main>
+
+<script>
+  function setActive(el) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function toggleCheck(el) {
+    el.classList.toggle('done');
+    el.querySelector('.check-box').innerHTML = el.classList.contains('done') ? '✓' : '';
+    updateProgress();
+    saveChecklist();
+  }
+
+  function updateProgress() {
+    const items = document.querySelectorAll('.check-item');
+    const done = document.querySelectorAll('.check-item.done').length;
+    document.getElementById('checklist-progress').textContent = `${done} / ${items.length} completed`;
+  }
+
+  function saveChecklist() {
+    const states = [...document.querySelectorAll('.check-item')].map(i => i.classList.contains('done'));
+    localStorage.setItem('devlog_checklist', JSON.stringify(states));
+  }
+
+  function loadChecklist() {
+    try {
+      const states = JSON.parse(localStorage.getItem('devlog_checklist') || '[]');
+      const items = document.querySelectorAll('.check-item');
+      states.forEach((done, i) => {
+        if (done && items[i]) {
+          items[i].classList.add('done');
+          items[i].querySelector('.check-box').innerHTML = '✓';
+        }
+      });
+      updateProgress();
+    } catch(e) {}
+  }
+
+  async function copyBlock(btn, id) {
+    const text = document.getElementById(id).textContent.trim();
+    await copyToClipboard(btn, text);
+  }
+
+  async function copyText(btn, text) {
+    await copyToClipboard(btn, text);
+  }
+
+  async function copyToClipboard(btn, text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      const span = btn.querySelector('span') || btn;
+      const original = span.textContent;
+      span.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        span.textContent = original;
+        btn.classList.remove('copied');
+      }, 2000);
+    } catch(e) {}
+  }
+
+  // Intersection observer for active nav
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        document.querySelectorAll('.nav-item').forEach(n => {
+          n.classList.toggle('active', n.getAttribute('href') === '#' + id);
+        });
+      }
+    });
+  }, { threshold: 0.2, rootMargin: '-80px 0px -60% 0px' });
+
+  document.querySelectorAll('.section[id]').forEach(s => observer.observe(s));
+
+  loadChecklist();
+</script>
+
+</body>
+</html>

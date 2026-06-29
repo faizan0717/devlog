@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
-import { Search, X } from 'lucide-react'
+import { Gift, Search, X } from 'lucide-react'
 import { Spinner } from '@/components/ui'
 import { NotificationBell } from '@/features/social/components/NotificationBell'
 import { SearchResultsPanel } from '@/features/explore/components/SearchResultsPanel'
@@ -80,6 +80,12 @@ export function Navbar() {
       </div>
 
       <div className="flex-1" />
+
+      {/* Promo banner */}
+      <div className="hidden items-center gap-1.5 rounded-full border border-accent/20 bg-accent/[0.08] px-3 py-1 text-[12px] font-semibold text-accent sm:flex">
+        <Gift size={13} aria-hidden="true" />
+        <span>Free for the next 30 days</span>
+      </div>
 
       {/* Right actions */}
       {user && <NotificationBell />}

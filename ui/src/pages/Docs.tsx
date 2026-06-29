@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { Gift } from 'lucide-react'
 import { ROUTES } from '@/utils'
 
 const SECTIONS = [
@@ -121,6 +122,10 @@ export default function Docs() {
           <span className="text-ink-tertiary">dev</span>
           <span className="text-ink-primary">Log</span>
         </Link>
+        <div className="hidden items-center gap-1.5 rounded-full border border-accent/20 bg-accent/[0.08] px-3 py-1 text-[12px] font-semibold text-accent md:flex">
+          <Gift size={13} aria-hidden="true" />
+          <span>Free for the next 30 days</span>
+        </div>
         <div className="flex items-center gap-3">
           <Link to={ROUTES.LOGIN} className="text-sm text-ink-secondary hover:text-ink-primary transition-colors">Sign in</Link>
           <Link to={ROUTES.REGISTER} className="text-sm font-semibold text-white bg-accent px-4 py-1.5 rounded-[6px] hover:bg-accent-dark transition-colors">Get started</Link>
