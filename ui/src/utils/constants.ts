@@ -9,6 +9,7 @@ export const ROUTES = {
   RESET_PASSWORD: '/reset-password',
   DASHBOARD: '/dashboard',
   PROJECTS: '/projects',
+  KANBAN: '/kanban',
   TODOS: '/todos',
   ROADMAP: '/roadmap',
   PROJECT_DETAIL: '/projects/:id',

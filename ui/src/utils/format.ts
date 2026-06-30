@@ -1,8 +1,11 @@
 export function formatDate(
-  date: string | Date,
+  date: string | number | Date | null | undefined,
   style: 'short' | 'long' | 'relative' = 'short',
 ): string {
+  if (date === null || date === undefined) return ''
+  if (!(date instanceof Date) && typeof date !== 'string' && typeof date !== 'number') return ''
   const d = new Date(date)
+  if (Number.isNaN(d.getTime())) return ''
   if (style === 'relative') {
     const diff = Date.now() - d.getTime()
     const minutes = Math.floor(diff / 60000)

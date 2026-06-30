@@ -9,6 +9,7 @@ import { MoodSelector } from './MoodSelector'
 import { MediaUpload } from './MediaUpload'
 import { MediaGallery } from './MediaGallery'
 import { useLogEditor } from '../hooks/useLogEditor'
+import { normalizeMarkdownLineBreaks } from '@/utils/markdown'
 import type { Log, Visibility } from '@/types'
 
 interface LogEditorProps {
@@ -191,7 +192,7 @@ export function LogEditor({ projectId, userId, logId, initialLog, projectVisibil
               >
                 {editor.content ? (
                   <div className="prose prose-sm max-w-none prose-p:text-ink-secondary prose-headings:text-ink-primary prose-a:text-accent prose-code:text-accent-dark prose-pre:bg-gray-50 prose-pre:border prose-pre:border-border prose-blockquote:border-l-accent prose-blockquote:text-ink-secondary">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{editor.content}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{normalizeMarkdownLineBreaks(editor.content)}</ReactMarkdown>
                   </div>
                 ) : (
                   <p className="text-[14px] text-ink-disabled italic">Nothing to preview yet.</p>

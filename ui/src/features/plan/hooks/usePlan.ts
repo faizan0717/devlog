@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { planService } from '@/services/plan.service'
-import type { AsyncState, PlanMilestoneWithTodos } from '@/types'
+import type { AsyncState, PlanMilestoneWithTodos, PlanTodo } from '@/types'
 
 export function usePlan(projectId: string | undefined) {
   const [state, setState] = useState<AsyncState<PlanMilestoneWithTodos[]>>({
@@ -9,15 +9,27 @@ export function usePlan(projectId: string | undefined) {
     loading: false,
     error: null,
   })
+  const suppressRealtimeUntilRef = useRef(0)
 
-  const load = useCallback(() => {
+  const load = useCallback((options?: { silent?: boolean }) => {
     if (!projectId) return
-    setState((s) => ({ ...s, loading: true }))
+    if (!options?.silent) setState((s) => ({ ...s, loading: true }))
     planService
       .getForProject(projectId)
       .then((data) => setState({ data, loading: false, error: null }))
-      .catch((err: Error) => setState({ data: null, loading: false, error: err.message }))
+      .catch((err: Error) => setState((s) => ({ data: s.data, loading: false, error: err.message })))
   }, [projectId])
+
+  const patchTodoLocal = useCallback((todoId: string, patch: Partial<PlanTodo>, suppressMs = 2000) => {
+    suppressRealtimeUntilRef.current = Date.now() + suppressMs
+    setState((s) => ({
+      ...s,
+      data: s.data?.map((milestone) => ({
+        ...milestone,
+        todos: milestone.todos.map((todo) => todo.id === todoId ? { ...todo, ...patch } : todo),
+      })) ?? null,
+    }))
+  }, [])
 
   useEffect(() => {
     load()
@@ -26,17 +38,22 @@ export function usePlan(projectId: string | undefined) {
   useEffect(() => {
     if (!projectId) return
 
+    const handleRealtimeChange = () => {
+      if (Date.now() < suppressRealtimeUntilRef.current) return
+      load({ silent: true })
+    }
+
     const channel = supabase
       .channel(`plan:${projectId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'plan_milestones', filter: `project_id=eq.${projectId}` },
-        () => load(),
+        handleRealtimeChange,
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'plan_todos', filter: `project_id=eq.${projectId}` },
-        () => load(),
+        handleRealtimeChange,
       )
       .subscribe()
 
@@ -45,5 +62,5 @@ export function usePlan(projectId: string | undefined) {
     }
   }, [projectId, load])
 
-  return { ...state, refresh: load }
+  return { ...state, refresh: load, patchTodoLocal }
 }

@@ -66,7 +66,7 @@ curl -fsSL https://api.devlog.one/setup.sh | bash -s -- uninstall --global
   {
     id: 'plan-tools',
     title: 'Plan tools',
-    content: `Agents can manage project plans: create milestones, create todos, update status, complete or reopen work, and read generated refs like 1.1.3. Use 1.1.* to target every todo in milestone 1.1. Plan statuses are pending, doing, and done.`,
+    content: `Agents can manage project plans: create milestones, create todos, update status, complete or reopen work, and read generated refs like 1.1.3. Use 1.1.* to target every todo in milestone 1.1. Plan statuses are todo, in que, doing, verify, and done.`,
   },
   {
     id: 'log-entry',

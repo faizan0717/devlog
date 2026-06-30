@@ -16,16 +16,20 @@ import { auditAgentAction } from '../audit.js'
 
 const visibilitySchema = z.enum(['private', 'public', 'shared', 'unlisted']).default('private')
 const visibilityPatchSchema = z.enum(['private', 'public', 'shared', 'unlisted']).optional()
-const statusSchema = z.enum(['pending', 'doing', 'done']).default('pending')
-const statusPatchSchema = z.enum(['pending', 'doing', 'done']).optional()
+const planStatusValues = ['todo', 'in_queue', 'doing', 'verify', 'done'] as const
+const openPlanStatusValues = ['todo', 'in_queue', 'doing', 'verify'] as const
+const statusAlias: Record<string, string> = { pending: 'todo', queue: 'in_queue', queued: 'in_queue', in_queue: 'in_queue', 'in que': 'in_queue' }
+const normalizeStatus = (value: unknown) => typeof value === 'string' ? (statusAlias[value] ?? value) : value
+const statusSchema = z.preprocess(normalizeStatus, z.enum(planStatusValues)).default('todo')
+const statusPatchSchema = z.preprocess(normalizeStatus, z.enum(planStatusValues)).optional()
 
 function jsonText(value: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }] }
 }
 
-function completionPatch(status: 'pending' | 'doing' | 'done' | undefined): Record<string, unknown> {
+function completionPatch(status: (typeof planStatusValues)[number] | undefined): Record<string, unknown> {
   if (status === 'done') return { completed_at: new Date().toISOString() }
-  if (status === 'pending' || status === 'doing') return { completed_at: null }
+  if (status) return { completed_at: null }
   return {}
 }
 
@@ -362,7 +366,7 @@ export function registerPlanTools(server: McpServer): void {
       todo_id: z.string().uuid().optional(),
       project_id: z.string().uuid().optional(),
       todo_ref: z.string().regex(/^\d+\.\d+\.(\d+|\*)$/).optional(),
-      status: z.enum(['pending', 'doing']).default('pending'),
+      status: z.preprocess(normalizeStatus, z.enum(openPlanStatusValues)).default('todo'),
     },
     async ({ todo_id, project_id, todo_ref, status }) => {
       const ctx = await getAgentContext()

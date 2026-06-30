@@ -3,7 +3,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json } | 
 type Visibility = 'private' | 'public' | 'shared' | 'unlisted'
 type LogMood = 'building' | 'shipped' | 'stuck' | 'reflecting' | 'inspired' | 'learning'
 type LogMedia = { url: string; type: 'image' | 'video'; name: string }
-type PlanStatus = 'pending' | 'doing' | 'done'
+type PlanStatus = 'todo' | 'in_queue' | 'doing' | 'verify' | 'done'
 type SocialLinks = {
   github?: string
   twitter?: string

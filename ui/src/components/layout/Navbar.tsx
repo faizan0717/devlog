@@ -8,6 +8,7 @@ import { SearchResultsPanel } from '@/features/explore/components/SearchResultsP
 import { useSearch } from '@/features/explore/hooks/useSearch'
 import { useAuthStore } from '@/stores/authStore'
 import { ROUTES } from '@/utils'
+import { ThemeToggle } from './ThemeToggle'
 
 function getInitials(name: string) {
   return name
@@ -50,7 +51,7 @@ export function Navbar() {
 
       {/* Search */}
       <div ref={searchWrapperRef} className="relative ml-2 flex-1 max-w-[360px]">
-        <div role="search" className="flex items-center gap-2 rounded-lg border border-border bg-gray-50 px-3 py-[7px]">
+        <div role="search" className="flex items-center gap-2 rounded-lg border border-border bg-chalk px-3 py-[7px]">
           <Search size={13} className="shrink-0 text-ink-disabled" aria-hidden="true" />
           <input
             value={query}
@@ -86,6 +87,9 @@ export function Navbar() {
         <Gift size={13} aria-hidden="true" />
         <span>Free for the next 30 days</span>
       </div>
+
+      {/* Theme toggle */}
+      <ThemeToggle />
 
       {/* Right actions */}
       {user && <NotificationBell />}

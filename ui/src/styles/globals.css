@@ -2,6 +2,298 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Theme tokens ───────────────────────────────────────────────────────── */
+:root,
+[data-theme="day"] {
+  --color-paper:         #ffffff;
+  --color-chalk:         #fafaf9;
+  --color-border:        #e5e7eb;
+  --color-ink-primary:   #111827;
+  --color-ink-secondary: #4b5563;
+  --color-ink-tertiary:  #6b7280;
+  --color-ink-disabled:  #9ca3af;
+  --color-body-bg:       #fafaf9;
+  --scrollbar-thumb:     #d1d5db;
+  --color-toast-bg:      rgba(255, 255, 255, 0.95);
+  --color-toast-border:  rgba(0, 0, 0, 0.07);
+  --color-toast-text:    #111827;
+}
+
+[data-theme="sunset"] {
+  --color-paper:         #fffbf5;
+  --color-chalk:         #fff7ed;
+  --color-border:        #fed7aa;
+  --color-ink-primary:   #1c0a00;
+  --color-ink-secondary: #6b3a2a;
+  --color-ink-tertiary:  #9a6a5a;
+  --color-ink-disabled:  #c4a090;
+  --color-body-bg:       #fff7ed;
+  --scrollbar-thumb:     #fed7aa;
+  --color-toast-bg:      rgba(255, 251, 245, 0.95);
+  --color-toast-border:  rgba(254, 215, 170, 0.5);
+  --color-toast-text:    #1c0a00;
+}
+
+[data-theme="night"] {
+  --color-paper:         #1e1e1e;
+  --color-chalk:         #111111;
+  --color-border:        #303030;
+  --color-ink-primary:   #f0f0f0;
+  --color-ink-secondary: #a8a8a8;
+  --color-ink-tertiary:  #787878;
+  --color-ink-disabled:  #636363;
+  --color-body-bg:       #111111;
+  --scrollbar-thumb:     #333333;
+  --color-toast-bg:      rgba(24, 24, 24, 0.96);
+  --color-toast-border:  rgba(255, 255, 255, 0.08);
+  --color-toast-text:    #f0f0f0;
+}
+
+/* ── Theme class overrides ──────────────────────────────────────────────────
+   Unlayered CSS wins over @layer utilities — no !important needed.
+   Covers every color token used across the UI.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* ·· NIGHT ················································ */
+
+[data-theme="night"] body                { background-color: #111111; color: #f0f0f0; }
+
+/* Core semantic tokens */
+[data-theme="night"] .bg-paper           { background-color: #1e1e1e; }
+[data-theme="night"] .bg-chalk           { background-color: #111111; }
+[data-theme="night"] .border-border      { border-color: #303030; }
+[data-theme="night"] .text-ink-primary   { color: #f0f0f0; }
+[data-theme="night"] .text-ink-secondary { color: #a8a8a8; }
+[data-theme="night"] .text-ink-tertiary  { color: #787878; }
+[data-theme="night"] .text-ink-disabled  { color: #636363; }
+
+/* White / grays */
+[data-theme="night"] .bg-white           { background-color: #1e1e1e; }
+[data-theme="night"] .bg-gray-50         { background-color: #242424; }
+[data-theme="night"] .bg-gray-100        { background-color: #2a2a2a; }
+[data-theme="night"] .bg-gray-200        { background-color: #303030; }
+[data-theme="night"] .bg-gray-300        { background-color: #383838; }
+[data-theme="night"] .border-white       { border-color: #303030; }
+[data-theme="night"] .border-gray-50     { border-color: #282828; }
+[data-theme="night"] .border-gray-100    { border-color: #303030; }
+[data-theme="night"] .border-gray-200    { border-color: #383838; }
+[data-theme="night"] .border-gray-300    { border-color: #424242; }
+[data-theme="night"] .border-gray-400    { border-color: #505050; }
+[data-theme="night"] .text-gray-900      { color: #f0f0f0; }
+[data-theme="night"] .text-gray-200      { color: #c8c8c8; }
+
+/* Subtle black border used in some pages */
+[data-theme="night"] .border-black\/\[0\.08\] { border-color: rgba(255, 255, 255, 0.08); }
+
+/* Light mood tinted backgrounds → deep-tinted darks */
+[data-theme="night"] .bg-orange-50       { background-color: #231200; }
+[data-theme="night"] .bg-orange-100      { background-color: #2e1800; }
+[data-theme="night"] .bg-red-50          { background-color: #230a0a; }
+[data-theme="night"] .bg-red-100         { background-color: #2e1010; }
+[data-theme="night"] .bg-green-50        { background-color: #0a2010; }
+[data-theme="night"] .bg-blue-50         { background-color: #0a1020; }
+[data-theme="night"] .bg-purple-50       { background-color: #140a1e; }
+[data-theme="night"] .bg-slate-50        { background-color: #14161e; }
+[data-theme="night"] .bg-teal-50         { background-color: #09161e; }
+
+/* Glass effects */
+[data-theme="night"] .glass {
+  background: rgba(30, 30, 30, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+[data-theme="night"] .glass-elevated {
+  background: rgba(36, 36, 36, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* card-light in night */
+[data-theme="night"] .card-light { background: #1e1e1e; border-color: #303030; }
+
+/* text-gradient in night */
+[data-theme="night"] .text-gradient {
+  background: linear-gradient(135deg, #f0f0f0 0%, #a0a0a0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Prose */
+[data-theme="night"] .prose-log {
+  --tw-prose-body:          #c8c8c8;
+  --tw-prose-headings:      #f0f0f0;
+  --tw-prose-lead:          #a8a8a8;
+  --tw-prose-links:         #3b82f6;
+  --tw-prose-bold:          #f0f0f0;
+  --tw-prose-counters:      #888888;
+  --tw-prose-bullets:       #686868;
+  --tw-prose-hr:            #303030;
+  --tw-prose-quotes:        #888888;
+  --tw-prose-quote-borders: #2563eb;
+  --tw-prose-captions:      #686868;
+  --tw-prose-code:          #e0e0e0;
+  --tw-prose-pre-code:      #e2e8f0;
+  --tw-prose-pre-bg:        #161616;
+  --tw-prose-th-borders:    #303030;
+  --tw-prose-td-borders:    #242424;
+}
+[data-theme="night"] .prose-log :not(pre) > code { background-color: #242424; border-color: #303030; color: #e0e0e0; }
+[data-theme="night"] .prose-log hr               { border-color: #303030; }
+[data-theme="night"] .prose-log img              { border-color: #303030; }
+[data-theme="night"] .prose-log blockquote       { color: #888888; }
+[data-theme="night"] .prose-log thead th         { color: #f0f0f0; border-bottom-color: #303030; }
+[data-theme="night"] .prose-log td               { border-color: #242424; color: #c8c8c8; }
+
+
+/* ·· SUNSET ················································ */
+
+[data-theme="sunset"] body                { background-color: #fff7ed; color: #1c0a00; }
+
+/* Core semantic tokens */
+[data-theme="sunset"] .bg-paper           { background-color: #fffbf5; }
+[data-theme="sunset"] .bg-chalk           { background-color: #fff7ed; }
+[data-theme="sunset"] .border-border      { border-color: #fed7aa; }
+[data-theme="sunset"] .text-ink-primary   { color: #1c0a00; }
+[data-theme="sunset"] .text-ink-secondary { color: #6b3a2a; }
+[data-theme="sunset"] .text-ink-tertiary  { color: #9a6a5a; }
+[data-theme="sunset"] .text-ink-disabled  { color: #c4a090; }
+
+/* White / grays → warm tinted */
+[data-theme="sunset"] .bg-white           { background-color: #fffbf5; }
+[data-theme="sunset"] .bg-gray-50         { background-color: #fff7ee; }
+[data-theme="sunset"] .bg-gray-100        { background-color: #feefd8; }
+[data-theme="sunset"] .bg-gray-200        { background-color: #fde8c8; }
+[data-theme="sunset"] .bg-gray-300        { background-color: #fcd8b0; }
+[data-theme="sunset"] .border-white       { border-color: #fed7aa; }
+[data-theme="sunset"] .border-gray-50     { border-color: #fef0df; }
+[data-theme="sunset"] .border-gray-100    { border-color: #fde8cc; }
+[data-theme="sunset"] .border-gray-200    { border-color: #fcd8b0; }
+[data-theme="sunset"] .border-gray-300    { border-color: #fbcca0; }
+[data-theme="sunset"] .border-gray-400    { border-color: #f9bc8c; }
+[data-theme="sunset"] .text-gray-900      { color: #1c0a00; }
+[data-theme="sunset"] .border-black\/\[0\.08\] { border-color: rgba(100, 50, 0, 0.10); }
+
+/* Glass effects → warm glass */
+[data-theme="sunset"] .glass {
+  background: rgba(255, 248, 240, 0.75);
+  border: 1px solid rgba(254, 215, 170, 0.4);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+[data-theme="sunset"] .glass-elevated {
+  background: rgba(255, 248, 240, 0.85);
+  border: 1px solid rgba(254, 215, 170, 0.5);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* card-light in sunset */
+[data-theme="sunset"] .card-light { background: #fffbf5; border-color: #fed7aa; }
+
+/* text-gradient in sunset */
+[data-theme="sunset"] .text-gradient {
+  background: linear-gradient(135deg, #1c0a00 0%, #6b3a2a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Prose */
+[data-theme="sunset"] .prose-log {
+  --tw-prose-body:          #5c3a2a;
+  --tw-prose-headings:      #1c0a00;
+  --tw-prose-links:         #c2410c;
+  --tw-prose-bold:          #1c0a00;
+  --tw-prose-hr:            #fed7aa;
+  --tw-prose-quotes:        #6b3a2a;
+  --tw-prose-quote-borders: #c2410c;
+  --tw-prose-td-borders:    #feefd8;
+  --tw-prose-th-borders:    #fed7aa;
+}
+[data-theme="sunset"] .prose-log :not(pre) > code { background-color: #feefd8; border-color: #fed7aa; color: #5c3a2a; }
+[data-theme="sunset"] .prose-log hr               { border-color: #fed7aa; }
+[data-theme="sunset"] .prose-log img              { border-color: #fed7aa; }
+[data-theme="sunset"] .prose-log blockquote       { color: #6b3a2a; }
+[data-theme="sunset"] .prose-log thead th         { color: #1c0a00; border-bottom-color: #fed7aa; }
+[data-theme="sunset"] .prose-log td               { border-color: #feefd8; color: #5c3a2a; }
+
+
+/* ·· DAY — surface-* are dark in Tailwind config; override to light grays ·· */
+
+[data-theme="day"] .bg-surface-950    { background-color: #f4f4f5; }
+[data-theme="day"] .bg-surface-900    { background-color: #ebebeb; }
+[data-theme="day"] .bg-surface-800    { background-color: #e4e4e7; }
+[data-theme="day"] .bg-surface-700    { background-color: #d4d4d8; }
+[data-theme="day"] .bg-surface-600    { background-color: #c8c8cc; }
+[data-theme="day"] .bg-surface-500    { background-color: #b8b8bc; }
+[data-theme="day"] .border-surface-950 { border-color: #e4e4e7; }
+[data-theme="day"] .border-surface-900 { border-color: #d4d4d8; }
+[data-theme="day"] .border-surface-800 { border-color: #c4c4c8; }
+[data-theme="day"] .border-surface-700 { border-color: #b4b4b8; }
+[data-theme="day"] .border-surface-600 { border-color: #a4a4a8; }
+[data-theme="day"] .border-surface-500 { border-color: #949498; }
+
+/* ·· SUNSET — surface-* → warm light shades ·· */
+
+[data-theme="sunset"] .bg-surface-950    { background-color: #f5e6d0; }
+[data-theme="sunset"] .bg-surface-900    { background-color: #ecd8c0; }
+[data-theme="sunset"] .bg-surface-800    { background-color: #e2cbb0; }
+[data-theme="sunset"] .bg-surface-700    { background-color: #d8bea0; }
+[data-theme="sunset"] .bg-surface-600    { background-color: #cdb090; }
+[data-theme="sunset"] .bg-surface-500    { background-color: #c2a280; }
+[data-theme="sunset"] .border-surface-950 { border-color: #ead8c0; }
+[data-theme="sunset"] .border-surface-900 { border-color: #e0ccb0; }
+[data-theme="sunset"] .border-surface-800 { border-color: #d6c0a0; }
+[data-theme="sunset"] .border-surface-700 { border-color: #ccb490; }
+[data-theme="sunset"] .border-surface-600 { border-color: #c2a880; }
+[data-theme="sunset"] .border-surface-500 { border-color: #b89c70; }
+
+/* ·· DAY — glass → light frosted ·· */
+
+[data-theme="day"] .glass {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+[data-theme="day"] .glass-elevated {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* ·· ThemeToggle track / thumb ···············································
+   Per-theme styles for the segmented pill toggle.
+   .theme-toggle-track = outer container
+   .theme-toggle-thumb = active button pill
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Day — gray track so the white pill clearly pops */
+.theme-toggle-track {
+  background-color: #e4e4e7;
+}
+.theme-toggle-thumb {
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+/* Sunset — warm tan track, soft-white pill */
+[data-theme="sunset"] .theme-toggle-track {
+  background-color: #fde8c8;
+}
+[data-theme="sunset"] .theme-toggle-thumb {
+  background-color: #fffbf5;
+  box-shadow: 0 1px 3px rgba(80, 30, 0, 0.14), 0 0 0 1px rgba(180, 100, 30, 0.08);
+}
+
+/* Night — near-black track, elevated dark pill with accent ring */
+[data-theme="night"] .theme-toggle-track {
+  background-color: #0c0c0c;
+  border-color: #2a2a2a;
+}
+[data-theme="night"] .theme-toggle-thumb {
+  background-color: #2c2c2c;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(37, 99, 235, 0.35);
+}
+
 @layer base {
   * {
     box-sizing: border-box;
@@ -17,8 +309,8 @@
   }
 
   body {
-    background-color: #080808;
-    color: #f0f0f0;
+    background-color: #fafaf9;
+    color: #111827;
     min-height: 100vh;
     overflow-x: hidden;
   }
@@ -31,11 +323,12 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #2e2e2e;
+    background: var(--scrollbar-thumb);
     border-radius: 2px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #404040;
+    background: var(--scrollbar-thumb);
+    opacity: 0.8;
   }
 
   ::selection {
@@ -89,6 +382,10 @@
     --tw-prose-pre-bg:        #111827;
     --tw-prose-th-borders:    #e5e7eb;
     --tw-prose-td-borders:    #f3f4f6;
+  }
+
+  .prose p {
+    white-space: pre-wrap;
   }
 
   .prose-log p {

@@ -24,6 +24,14 @@ describe('REST validation helpers', () => {
     expect(() => rest.validateEnumField('shared', 'visibility', allowed)).toThrow('visibility must be one of: private, public')
   })
 
+  it('validates plan statuses and normalizes legacy aliases', () => {
+    expect(rest.validatePlanStatusField(undefined, 'status', new Set(['todo', 'in_queue', 'doing', 'verify', 'done']), 'todo')).toBe('todo')
+    expect(rest.validatePlanStatusField('pending')).toBe('todo')
+    expect(rest.validatePlanStatusField('in que')).toBe('in_queue')
+    expect(rest.validatePlanStatusField('verify')).toBe('verify')
+    expect(() => rest.validatePlanStatusField('blocked')).toThrow('status must be one of')
+  })
+
   it('validates and normalizes tag arrays', () => {
     expect(rest.validateTags([' react ', '', 'supabase'])).toEqual(['react', 'supabase'])
     expect(rest.validateTags(undefined)).toEqual([])

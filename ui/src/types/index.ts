@@ -15,7 +15,7 @@ export type Notification = Database['public']['Tables']['notifications']['Row']
 export type Visibility       = 'private' | 'public' | 'shared' | 'unlisted'
 export type LogMood          = 'building' | 'shipped' | 'stuck' | 'reflecting' | 'inspired' | 'learning'
 export type LogMedia         = { url: string; type: 'image' | 'video'; name: string }
-export type PlanStatus       = 'pending' | 'doing' | 'done'
+export type PlanStatus       = 'todo' | 'in_queue' | 'doing' | 'verify' | 'done'
 export type ReactionType     = 'heart' | 'fire' | 'rocket'
 export type NotificationType = 'follow' | 'comment' | 'reaction'
 

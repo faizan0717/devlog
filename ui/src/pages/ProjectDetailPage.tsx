@@ -6,7 +6,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import {
   Globe, Link2, Lock, Users, UserPlus, BookOpen, Plus, Check, Upload,
-  Pencil, Trash2, ChevronUp, ChevronDown,
+  Pencil, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Maximize2, X, Search, Copy,
 } from 'lucide-react'
 import { Button, Avatar, Spinner, Modal } from '@/components/ui'
 import { useProject } from '@/features/projects/hooks/useProject'
@@ -24,6 +24,7 @@ import { planService } from '@/services/plan.service'
 import type { Log, PlanMilestone, PlanMilestoneWithTodos, PlanStatus, PlanTodo, PlanTodoWithSources, Visibility } from '@/types'
 import { cn, formatDate } from '@/utils'
 import { COVER_GRADIENTS, getCoverGradient } from '@/utils/coverGradient'
+import { normalizeMarkdownLineBreaks } from '@/utils/markdown'
 import { UPLOAD_ACCEPT } from '@/utils/uploadValidation'
 
 // ── Share modal ───────────────────────────────────────────────────────────────
@@ -34,9 +35,11 @@ function ShareModal({ open, onClose, projectTitle, projectId }: {
   projectTitle: string
   projectId: string
 }) {
-  const shareUrl = `${window.location.origin}/p/${projectId}`
-  const text = encodeURIComponent(`Check out "${projectTitle}" on devLog — a public build journal where makers log their progress. ${shareUrl}`)
-  const linkedinText = encodeURIComponent(`Check out "${projectTitle}" on devLog`)
+  const safeProjectId = safeText(projectId)
+  const safeProjectTitle = safeText(projectTitle)
+  const shareUrl = `${window.location.origin}/p/${safeProjectId}`
+  const text = encodeURIComponent(`Check out "${safeProjectTitle}" on devLog — a public build journal where makers log their progress. ${shareUrl}`)
+  const linkedinText = encodeURIComponent(`Check out "${safeProjectTitle}" on devLog`)
 
   function copyLink() {
     navigator.clipboard.writeText(shareUrl).then(() => toast.success('Link copied'))
@@ -139,6 +142,10 @@ const MOOD_PULSE: Record<string, string> = {
   reflecting: '',
 }
 
+function normalizeMood(mood: unknown): string | null {
+  return typeof mood === 'string' && mood in MOOD_BADGE_STYLE ? mood : null
+}
+
 // ── Visibility meta ───────────────────────────────────────────────────────────
 
 const VIS_META: Record<Visibility, { icon: React.ElementType; label: string }> = {
@@ -148,14 +155,19 @@ const VIS_META: Record<Visibility, { icon: React.ElementType; label: string }> =
   shared:   { icon: Users, label: 'Shared'   },
 }
 
+function normalizeVisibility(value: unknown): Visibility {
+  return typeof value === 'string' && value in VIS_META ? value as Visibility : 'private'
+}
+
 // ── Tab type ──────────────────────────────────────────────────────────────────
 
-type Tab = 'logs' | 'plan' | 'settings'
+type Tab = 'logs' | 'plan' | 'kanban' | 'settings'
 
 // ── Content strip helper ──────────────────────────────────────────────────────
 
-function stripMd(text: string): string {
-  return text
+function stripMd(text: unknown): string {
+  const source = safeText(text)
+  return source
     .replace(/!\[.*?\]\(.*?\)/g, '')
     .replace(/\[([^\]]+)\]\(.*?\)/g, '$1')
     .replace(/#{1,6}\s/g, '')
@@ -167,25 +179,27 @@ function stripMd(text: string): string {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function MoodDot({ mood, pulse }: { mood: string | null; pulse?: boolean }) {
-  const base = mood ? MOOD_DOT[mood] : 'bg-gray-300'
+function MoodDot({ mood, pulse }: { mood: unknown; pulse?: boolean }) {
+  const normalizedMood = normalizeMood(mood)
+  const base = normalizedMood ? MOOD_DOT[normalizedMood] : 'bg-gray-300'
   return (
     <div
       className={cn(
         'w-2.5 h-2.5 rounded-full flex-shrink-0',
         base,
-        pulse && mood === 'building' ? MOOD_PULSE[mood] : '',
+        pulse && normalizedMood === 'building' ? MOOD_PULSE[normalizedMood] : '',
       )}
     />
   )
 }
 
-function MoodBadge({ mood }: { mood: string | null }) {
-  if (!mood) return null
-  const style = MOOD_BADGE_STYLE[mood] ?? { color: '#9ca3af', background: 'rgba(156,163,175,0.08)', borderColor: 'rgba(156,163,175,0.2)' }
+function MoodBadge({ mood }: { mood: unknown }) {
+  const normalizedMood = normalizeMood(mood)
+  if (!normalizedMood) return null
+  const style = MOOD_BADGE_STYLE[normalizedMood] ?? { color: '#9ca3af', background: 'rgba(156,163,175,0.08)', borderColor: 'rgba(156,163,175,0.2)' }
   return (
     <span className="font-mono text-[10px] font-medium border rounded-[4px] px-2 py-[1px]" style={style}>
-      {mood}
+      {normalizedMood}
     </span>
   )
 }
@@ -243,7 +257,7 @@ function ProjectTimeline({
           </p>
         </div>
         {canEdit && (
-          <Button onClick={() => navigate(`/projects/${projectId}/logs/new`)}>
+          <Button onClick={() => navigate(`/projects/${safeText(projectId)}/logs/new`)}>
             <Plus size={14} className="mr-1.5" />
             Write first log
           </Button>
@@ -256,7 +270,7 @@ function ProjectTimeline({
     <div className="flex flex-col max-w-[680px]">
       {logs.map((log, i) => {
         const isLast = i === logs.length - 1
-        const preview = log.content ? stripMd(log.content).slice(0, 220) : null
+        const preview = safeText(log.content) ? stripMd(log.content).slice(0, 220) : null
         return (
           <div
             key={log.id}
@@ -285,12 +299,12 @@ function ProjectTimeline({
 
               <button
                 type="button"
-                onClick={() => navigate(`/projects/${projectId}/logs/${log.id}/preview`)}
+                onClick={() => navigate(`/projects/${safeText(projectId)}/logs/${safeText(log.id)}/preview`)}
                 className="w-full text-left group"
               >
-                {log.title && (
+                {safeText(log.title) && (
                   <h3 className="text-[14px] font-semibold text-ink-primary mb-1 group-hover:text-accent transition-colors line-clamp-2">
-                    {log.title}
+                    {safeText(log.title)}
                   </h3>
                 )}
                 {preview && (
@@ -309,19 +323,35 @@ function ProjectTimeline({
 
 // ── Plan Tab ──────────────────────────────────────────────────────────────────
 
+const PLAN_STATUS_ORDER: PlanStatus[] = ['todo', 'in_queue', 'doing', 'verify', 'done']
+
 const PLAN_STATUS_META = {
-  pending: {
-    label: 'pending',
+  todo: {
+    label: 'todo',
     dotClass: 'bg-transparent border-[1.5px] border-gray-300',
     badgeStyle: { color: '#9ca3af', background: '#f3f4f6' } as React.CSSProperties,
     textClass: 'text-ink-disabled',
     opacity: 'opacity-70',
+  },
+  in_queue: {
+    label: 'in que',
+    dotClass: 'bg-blue-400',
+    badgeStyle: { color: '#2563eb', background: 'rgba(37,99,235,0.1)' } as React.CSSProperties,
+    textClass: 'text-accent',
+    opacity: '',
   },
   doing: {
     label: 'doing',
     dotClass: 'bg-mood-building animate-pulse-slow',
     badgeStyle: { color: '#f97316', background: 'rgba(249,115,22,0.1)' } as React.CSSProperties,
     textClass: 'text-mood-building',
+    opacity: '',
+  },
+  verify: {
+    label: 'verify',
+    dotClass: 'bg-purple-500',
+    badgeStyle: { color: '#8b5cf6', background: 'rgba(139,92,246,0.1)' } as React.CSSProperties,
+    textClass: 'text-purple-600',
     opacity: '',
   },
   done: {
@@ -332,6 +362,24 @@ const PLAN_STATUS_META = {
     opacity: 'opacity-60',
   },
 } as const
+
+function normalizePlanStatus(status: unknown): PlanStatus {
+  if (status === 'pending') return 'todo'
+  return typeof status === 'string' && PLAN_STATUS_ORDER.includes(status as PlanStatus)
+    ? status as PlanStatus
+    : 'todo'
+}
+
+function getPlanStatusMeta(status: unknown) {
+  return PLAN_STATUS_META[normalizePlanStatus(status)]
+}
+
+function safeText(value: unknown): string {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  return ''
+}
 
 function TodoCheck({ done }: { done: boolean }) {
   return (
@@ -359,12 +407,14 @@ function statusCompletedAt(status: PlanStatus, previousCompletedAt?: string | nu
 function userSourceLabel(userId: string | null, profile: { username?: string | null } | null | undefined, currentUserId?: string) {
   if (!userId) return null
   if (userId === currentUserId) return 'you'
-  if (profile?.username) return `@${profile.username}`
+  const username = safeText(profile?.username)
+  if (username) return `@${username}`
   return 'teammate'
 }
 
 function agentSourceLabel(agent: { name?: string | null } | null | undefined) {
-  return agent?.name ? `agent ${agent.name}` : 'agent'
+  const name = safeText(agent?.name)
+  return name ? `agent ${name}` : 'agent'
 }
 
 function addedSourceLabel(todo: PlanTodoWithSources, currentUserId?: string) {
@@ -470,7 +520,7 @@ function DescriptionEditor({
         <div className="min-h-[120px] max-h-64 overflow-y-auto px-3.5 py-2.5 bg-white">
           {value.trim() ? (
             <div className="prose prose-sm max-w-none prose-p:text-ink-secondary prose-headings:text-ink-primary prose-a:text-accent prose-code:text-accent-dark prose-pre:bg-gray-50 prose-pre:border prose-pre:border-border prose-blockquote:border-l-accent prose-blockquote:text-ink-secondary">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{normalizeMarkdownLineBreaks(value)}</ReactMarkdown>
             </div>
           ) : (
             <p className="text-[14px] text-ink-disabled italic">Nothing to preview yet.</p>
@@ -516,7 +566,7 @@ function MilestoneEditorModal({
 }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [status, setStatus] = useState<PlanStatus>('pending')
+  const [status, setStatus] = useState<PlanStatus>('todo')
   const [visibility, setVisibility] = useState<Visibility>(projectVisibility)
   const [targetDate, setTargetDate] = useState('')
   const [saving, setSaving] = useState(false)
@@ -525,7 +575,7 @@ function MilestoneEditorModal({
     if (!open) return
     setTitle(milestone?.title ?? '')
     setDescription(milestone?.description ?? '')
-    setStatus(milestone?.status ?? 'pending')
+    setStatus(milestone?.status ?? 'todo')
     setVisibility(milestone?.visibility ?? projectVisibility)
     setTargetDate(milestone?.target_date ?? '')
   }, [open, milestone, projectVisibility])
@@ -584,8 +634,10 @@ function MilestoneEditorModal({
           <div className="flex flex-col gap-1.5">
             <FieldLabel>Status</FieldLabel>
             <SelectInput value={status} onChange={(e) => setStatus(e.target.value as PlanStatus)} disabled={saving}>
-              <option value="pending">Pending</option>
+              <option value="todo">Todo</option>
+              <option value="in_queue">In que</option>
               <option value="doing">Doing</option>
+              <option value="verify">Verify</option>
               <option value="done">Done</option>
             </SelectInput>
           </div>
@@ -632,7 +684,7 @@ function TodoEditorModal({
 }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [status, setStatus] = useState<PlanStatus>('pending')
+  const [status, setStatus] = useState<PlanStatus>('todo')
   const [visibility, setVisibility] = useState<Visibility>(projectVisibility)
   const [milestoneId, setMilestoneId] = useState(selectedMilestone.id)
   const [saving, setSaving] = useState(false)
@@ -641,7 +693,7 @@ function TodoEditorModal({
     if (!open) return
     setTitle(todo?.title ?? '')
     setDescription(todo?.description ?? '')
-    setStatus(todo?.status ?? 'pending')
+    setStatus(todo?.status ?? 'todo')
     setVisibility(todo?.visibility ?? projectVisibility)
     setMilestoneId(todo?.milestone_id ?? selectedMilestone.id)
   }, [open, todo, selectedMilestone.id, projectVisibility])
@@ -700,15 +752,17 @@ function TodoEditorModal({
           <div className="flex flex-col gap-1.5">
             <FieldLabel>Status</FieldLabel>
             <SelectInput value={status} onChange={(e) => setStatus(e.target.value as PlanStatus)} disabled={saving}>
-              <option value="pending">Pending</option>
+              <option value="todo">Todo</option>
+              <option value="in_queue">In que</option>
               <option value="doing">Doing</option>
+              <option value="verify">Verify</option>
               <option value="done">Done</option>
             </SelectInput>
           </div>
           <div className="flex flex-col gap-1.5">
             <FieldLabel>Milestone</FieldLabel>
             <SelectInput value={milestoneId} onChange={(e) => setMilestoneId(e.target.value)} disabled={saving}>
-              {milestones.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}
+              {milestones.map((m) => <option key={m.id} value={m.id}>{safeText(m.title)}</option>)}
             </SelectInput>
           </div>
         </div>
@@ -722,6 +776,428 @@ function TodoEditorModal({
         </div>
       </form>
     </Modal>
+  )
+}
+
+function KanbanTab({
+  milestones,
+  loading,
+  error,
+  canEdit,
+  userId,
+  ownerId,
+  projectVisibility,
+  onPatchTodoLocal,
+  onRefresh,
+}: {
+  milestones: PlanMilestoneWithTodos[]
+  loading: boolean
+  error: string | null
+  canEdit: boolean
+  userId: string | undefined
+  ownerId: string
+  projectVisibility: Visibility
+  onPatchTodoLocal: (todoId: string, patch: Partial<PlanTodo>) => void
+  onRefresh: () => void
+}) {
+  const [mutatingId, setMutatingId] = useState<string | null>(null)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dragOverStatus, setDragOverStatus] = useState<PlanStatus | null>(null)
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(milestones[0]?.id ?? null)
+  const [milestonePickerOpen, setMilestonePickerOpen] = useState(false)
+  const [fullscreen, setFullscreen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedKanbanItem, setSelectedKanbanItem] = useState<null | { milestone: PlanMilestoneWithTodos; milestoneIndex: number; todo: PlanTodoWithSources; todoIndex: number }>(null)
+  const [editingKanbanItem, setEditingKanbanItem] = useState<null | { milestone: PlanMilestoneWithTodos; todo: PlanTodoWithSources }>(null)
+
+  useEffect(() => {
+    if (milestones.length === 0) {
+      setSelectedMilestoneId(null)
+      return
+    }
+    setSelectedMilestoneId((current) => current && milestones.some((milestone) => milestone.id === current) ? current : milestones[0].id)
+  }, [milestones])
+
+  useEffect(() => {
+    if (!fullscreen) return
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setFullscreen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [fullscreen])
+
+  const selectedMilestoneIndex = Math.max(0, milestones.findIndex((milestone) => milestone.id === selectedMilestoneId))
+  const selectedMilestone = milestones[selectedMilestoneIndex]
+  const allItems = selectedMilestone
+    ? selectedMilestone.todos.map((todo, todoIndex) => ({ milestone: selectedMilestone, milestoneIndex: selectedMilestoneIndex, todo, todoIndex }))
+    : []
+  const normalizedSearch = searchQuery.trim().toLowerCase()
+  const items = normalizedSearch
+    ? allItems.filter(({ todo, todoIndex }) => [
+        planTodoRef(selectedMilestoneIndex, todoIndex),
+        todo.title,
+        todo.description ?? '',
+        todo.status,
+        todo.visibility,
+      ].join(' ').toLowerCase().includes(normalizedSearch))
+    : allItems
+  const canGoPrev = selectedMilestoneIndex > 0
+  const canGoNext = selectedMilestoneIndex >= 0 && selectedMilestoneIndex < milestones.length - 1
+
+  function selectMilestoneByOffset(offset: -1 | 1) {
+    const next = milestones[selectedMilestoneIndex + offset]
+    if (next) setSelectedMilestoneId(next.id)
+  }
+
+  function selectMilestone(id: string) {
+    setSelectedMilestoneId(id)
+    setMilestonePickerOpen(false)
+  }
+
+  async function updateTodoStatus(todo: PlanTodo, status: PlanStatus) {
+    if (todo.status === status) return
+    const previous = {
+      status: todo.status,
+      completed_at: todo.completed_at,
+      completed_by: todo.completed_by,
+      updated_at: todo.updated_at,
+    }
+    const patch = {
+      status,
+      completed_at: status === 'done' ? new Date().toISOString() : null,
+      completed_by: status === 'done' ? userId : null,
+      updated_at: new Date().toISOString(),
+    }
+    setMutatingId(todo.id)
+    onPatchTodoLocal(todo.id, patch)
+    try {
+      await planService.updateTodo(todo.id, patch)
+      toast.success(`Moved "${safeText(todo.title)}" to ${PLAN_STATUS_META[status].label}`)
+    } catch (err) {
+      onPatchTodoLocal(todo.id, previous)
+      toast.error(err instanceof Error ? err.message : 'Failed to update todo')
+    } finally {
+      setMutatingId(null)
+      setDraggingId(null)
+      setDragOverStatus(null)
+    }
+  }
+
+  function handleDragStart(e: React.DragEvent<HTMLElement>, todo: PlanTodo) {
+    if (!canEdit || mutatingId === todo.id) return
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', todo.id)
+    setDraggingId(todo.id)
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLElement>, status: PlanStatus) {
+    e.preventDefault()
+    const todoId = e.dataTransfer.getData('text/plain') || draggingId
+    const item = items.find(({ todo }) => todo.id === todoId)
+    if (item) updateTodoStatus(item.todo, status)
+    else {
+      setDraggingId(null)
+      setDragOverStatus(null)
+    }
+  }
+
+  async function copyKanbanItem(item: { milestoneIndex: number; todo: PlanTodoWithSources; todoIndex: number }) {
+    const text = `${planTodoRef(item.milestoneIndex, item.todoIndex)} - ${safeText(item.todo.title)} - ${safeText(item.todo.description)}`
+    await navigator.clipboard.writeText(text)
+    toast.success('Copied card details')
+  }
+
+  function editKanbanItem(item: { milestone: PlanMilestoneWithTodos; todo: PlanTodoWithSources }) {
+    setSelectedKanbanItem(null)
+    setEditingKanbanItem({ milestone: item.milestone, todo: item.todo })
+  }
+
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-[360px]"><Spinner size="lg" /></div>
+  }
+
+  if (error) return <p className="text-[14px] text-danger">{error}</p>
+
+  if (milestones.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[360px] text-center gap-3">
+        <div className="w-12 h-12 rounded-full bg-gray-50 border border-border flex items-center justify-center">
+          <Check size={18} className="text-ink-disabled" />
+        </div>
+        <div>
+          <p className="text-[15px] font-semibold text-ink-secondary mb-1">No milestones yet.</p>
+          <p className="text-[14px] text-ink-tertiary max-w-xs">Add milestones and todos in the Plan tab to see them on the kanban board.</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={cn(
+      fullscreen
+        ? 'fixed inset-0 z-[100] bg-chalk px-4 py-5 sm:px-8 overflow-hidden flex flex-col'
+        : '-mx-4 sm:-mx-10 px-4 sm:px-10 pb-2 h-[calc(100vh-250px)] min-h-[520px] overflow-hidden flex flex-col',
+    )}>
+      <div className="mb-5 shrink-0 rounded-2xl border border-border bg-paper p-3">
+        <div className="flex items-center justify-between gap-3">
+          <button
+            type="button"
+            disabled={!canGoPrev}
+            onClick={() => selectMilestoneByOffset(-1)}
+            className="shrink-0 rounded-lg border border-border bg-white p-2 text-ink-secondary hover:border-accent/40 hover:text-accent disabled:opacity-30 disabled:hover:text-ink-secondary disabled:hover:border-border transition-colors"
+            aria-label="Previous milestone"
+          >
+            <ChevronLeft size={16} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMilestonePickerOpen((open) => !open)}
+            className="min-w-0 flex-1 rounded-xl px-2 py-1.5 text-center hover:bg-gray-50 transition-colors"
+            aria-expanded={milestonePickerOpen}
+          >
+            <div className="flex items-center justify-center gap-2 min-w-0">
+              {selectedMilestone && <span className="font-mono text-[10px] text-accent shrink-0">#{planMilestoneRef(selectedMilestoneIndex)}</span>}
+              <span className="truncate text-[14px] font-semibold text-ink-primary">{safeText(selectedMilestone?.title)}</span>
+              <ChevronDown size={13} className={cn('shrink-0 text-ink-disabled transition-transform', milestonePickerOpen && 'rotate-180')} />
+            </div>
+            <div className="mt-0.5 font-mono text-[10px] text-ink-disabled">
+              {selectedMilestoneIndex + 1}/{milestones.length} · {allItems.length} {allItems.length === 1 ? 'todo' : 'todos'}
+            </div>
+          </button>
+
+          <button
+            type="button"
+            disabled={!canGoNext}
+            onClick={() => selectMilestoneByOffset(1)}
+            className="shrink-0 rounded-lg border border-border bg-white p-2 text-ink-secondary hover:border-accent/40 hover:text-accent disabled:opacity-30 disabled:hover:text-ink-secondary disabled:hover:border-border transition-colors"
+            aria-label="Next milestone"
+          >
+            <ChevronRight size={16} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFullscreen((value) => !value)}
+            className="shrink-0 rounded-lg border border-border bg-white p-2 text-ink-secondary hover:border-accent/40 hover:text-accent transition-colors"
+            aria-label={fullscreen ? 'Close fullscreen kanban' : 'Expand kanban fullscreen'}
+            title={fullscreen ? 'Close fullscreen' : 'Expand'}
+          >
+            {fullscreen ? <X size={16} /> : <Maximize2 size={16} />}
+          </button>
+        </div>
+
+        <div className="mt-3 border-t border-border pt-3">
+          <label className="relative block">
+            <Search size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-disabled" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search cards in this milestone…"
+              className="h-9 w-full rounded-xl border border-border bg-white pl-8 pr-3 text-[13px] text-ink-primary outline-none transition placeholder:text-ink-disabled focus:border-accent/60 focus:ring-2 focus:ring-accent/10"
+            />
+          </label>
+        </div>
+
+        {milestonePickerOpen && (
+          <div className="mt-3 flex gap-2 overflow-x-auto border-t border-border pt-3 pb-1">
+            {milestones.map((milestone, index) => {
+              const active = milestone.id === selectedMilestone?.id
+              const meta = getPlanStatusMeta(milestone.status)
+              const doneCount = milestone.todos.filter((todo) => todo.status === 'done').length
+              return (
+                <button
+                  key={milestone.id}
+                  type="button"
+                  onClick={() => selectMilestone(milestone.id)}
+                  className={cn(
+                    'shrink-0 rounded-xl border px-3 py-2 text-left transition-all min-w-[160px] max-w-[220px]',
+                    active ? 'border-accent bg-blue-50 shadow-sm' : 'border-border bg-white hover:border-accent/40 hover:bg-gray-50',
+                  )}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-mono text-[10px] text-accent shrink-0">#{planMilestoneRef(index)}</span>
+                    <span className={cn('h-2 w-2 rounded-full shrink-0', meta.dotClass)} />
+                    <span className={cn('font-mono text-[9px] shrink-0', meta.textClass)}>{meta.label}</span>
+                  </div>
+                  <div className="mt-1 truncate text-[13px] font-medium text-ink-primary">{safeText(milestone.title)}</div>
+                  <div className="mt-1 font-mono text-[10px] text-ink-disabled">{doneCount}/{milestone.todos.length} done</div>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {selectedMilestone && allItems.length === 0 && (
+        <div className="mb-5 shrink-0 rounded-2xl border border-dashed border-border bg-chalk px-5 py-8 text-center">
+          <p className="text-[14px] font-medium text-ink-secondary">No todos in “{safeText(selectedMilestone.title)}” yet.</p>
+          <p className="mt-1 text-[13px] text-ink-tertiary">Add todos in the Plan tab, then drag them through the workflow here.</p>
+        </div>
+      )}
+
+      {selectedMilestone && allItems.length > 0 && items.length === 0 && (
+        <div className="mb-5 shrink-0 rounded-2xl border border-dashed border-border bg-chalk px-5 py-8 text-center">
+          <p className="text-[14px] font-medium text-ink-secondary">No cards match “{safeText(searchQuery)}”.</p>
+          <p className="mt-1 text-[13px] text-ink-tertiary">Clear search to see all cards in this milestone.</p>
+        </div>
+      )}
+
+      <div className="min-h-0 flex-1 overflow-x-auto">
+      <div className={cn('grid h-full grid-cols-5 gap-3', fullscreen ? 'min-w-[1180px]' : 'min-w-[1040px]')}>
+        {PLAN_STATUS_ORDER.map((status) => {
+          const meta = getPlanStatusMeta(status)
+          const columnItems = items.filter(({ todo }) => todo.status === status)
+          return (
+            <section
+              key={status}
+              onDragOver={(e) => { if (canEdit) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverStatus(status) } }}
+              onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragOverStatus(null) }}
+              onDrop={(e) => handleDrop(e, status)}
+              className={cn(
+                'flex min-h-0 flex-col rounded-2xl border bg-chalk/70 overflow-hidden transition-colors',
+                dragOverStatus === status ? 'border-accent bg-blue-50/60' : 'border-border',
+              )}
+            >
+              <div className="shrink-0 px-3.5 py-3 border-b border-border bg-paper/80 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={cn('w-2 h-2 rounded-full shrink-0', meta.dotClass)} />
+                  <h3 className={cn('font-mono text-[12px] font-semibold uppercase tracking-[0.06em]', meta.textClass)}>{meta.label}</h3>
+                </div>
+                <span className="font-mono text-[10px] text-ink-disabled bg-gray-100 rounded-full px-2 py-0.5">{columnItems.length}</span>
+              </div>
+
+              <div className="p-3 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
+                {columnItems.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-border bg-white/60 px-3 py-8 text-center text-[12px] text-ink-disabled">
+                    Nothing here
+                  </div>
+                ) : columnItems.map(({ milestone, milestoneIndex, todo, todoIndex }) => (
+                  <article
+                    key={todo.id}
+                    role="button"
+                    tabIndex={0}
+                    draggable={canEdit && mutatingId !== todo.id}
+                    onClick={() => setSelectedKanbanItem({ milestone, milestoneIndex, todo, todoIndex })}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedKanbanItem({ milestone, milestoneIndex, todo, todoIndex }) }}
+                    onDragStart={(e) => handleDragStart(e, todo)}
+                    onDragEnd={() => { setDraggingId(null); setDragOverStatus(null) }}
+                    className={cn(
+                      'shrink-0 rounded-xl border border-border bg-white p-3 shadow-sm transition-all hover:border-accent/30 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-accent/20',
+                      canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
+                      status === 'done' && 'opacity-70',
+                      draggingId === todo.id && 'opacity-40 scale-[0.98]',
+                      mutatingId === todo.id && 'opacity-60 pointer-events-none',
+                    )}
+                    title={canEdit ? 'Click to view, drag to move' : 'Click to view'}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <span className="font-mono text-[10px] text-accent bg-blue-50 border border-blue-100 rounded px-1.5 py-[1px] shrink-0">#{planTodoRef(milestoneIndex, todoIndex)}</span>
+                      <span className="font-mono text-[9px] text-ink-disabled truncate">{safeText(todo.visibility)}</span>
+                    </div>
+                    <h4 className={cn('text-[14px] font-medium leading-snug', status === 'done' ? 'text-ink-disabled line-through decoration-green-500/50' : 'text-ink-primary')}>{safeText(todo.title)}</h4>
+                    {safeText(todo.description) && <p className="mt-1.5 text-[12px] text-ink-tertiary line-clamp-3">{safeText(todo.description)}</p>}
+                    <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-[10px] text-ink-disabled truncate max-w-[150px]">{safeText(milestone.title)}</span>
+                      <span className="font-mono text-[10px] text-ink-disabled">{formatDate(todo.updated_at, 'relative')}</span>
+                    </div>
+                    {canEdit && (
+                      <p className="mt-3 font-mono text-[9px] uppercase tracking-[0.08em] text-ink-disabled">
+                        {mutatingId === todo.id ? 'moving…' : 'drag to move'}
+                      </p>
+                    )}
+                  </article>
+                ))}
+              </div>
+            </section>
+          )
+        })}
+      </div>
+      </div>
+
+      <TodoEditorModal
+        open={!!editingKanbanItem}
+        todo={editingKanbanItem?.todo ?? null}
+        milestones={milestones}
+        selectedMilestone={editingKanbanItem?.milestone ?? selectedMilestone}
+        ownerId={ownerId}
+        userId={userId}
+        sortOrder={editingKanbanItem?.milestone.todos.length ?? 0}
+        projectVisibility={projectVisibility}
+        onClose={() => setEditingKanbanItem(null)}
+        onSaved={onRefresh}
+      />
+
+      {selectedKanbanItem && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/30 px-4 backdrop-blur-sm" onClick={() => setSelectedKanbanItem(null)}>
+          <div className="max-h-[88vh] w-full max-w-4xl overflow-hidden rounded-3xl border border-border bg-paper shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="h-2 bg-accent" />
+            <div className="p-5">
+              <div className="mb-4 flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="mb-2 flex items-center gap-2 font-mono text-[11px] font-semibold text-ink-disabled">
+                    <span className="rounded bg-blue-50 px-1.5 py-[1px] text-accent">#{planTodoRef(selectedKanbanItem.milestoneIndex, selectedKanbanItem.todoIndex)}</span>
+                    <span className="truncate">{safeText(selectedKanbanItem.milestone.title)}</span>
+                  </div>
+                  <h2 className="text-[20px] font-semibold leading-tight text-ink-primary">{safeText(selectedKanbanItem.todo.title)}</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedKanbanItem(null)}
+                  className="rounded-full p-2 text-ink-disabled transition hover:bg-gray-100 hover:text-ink-secondary"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-disabled">ID</div>
+                  <div className="break-all rounded-xl bg-gray-50 px-3 py-2 font-mono text-[12px] text-ink-secondary">{planTodoRef(selectedKanbanItem.milestoneIndex, selectedKanbanItem.todoIndex)}</div>
+                </div>
+
+                <div>
+                  <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-disabled">Description</div>
+                  <div className="prose prose-log max-h-[46vh] max-w-none overflow-y-auto rounded-xl bg-gray-50 px-4 py-3 text-[14px] text-ink-secondary">
+                    {selectedKanbanItem.todo.description ? (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{normalizeMarkdownLineBreaks(selectedKanbanItem.todo.description)}</ReactMarkdown>
+                    ) : (
+                      <p className="m-0 text-ink-disabled">No description.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 font-mono text-[11px] text-ink-disabled">
+                  <div className="rounded-xl bg-gray-50 px-3 py-2">Milestone: <span className="text-ink-secondary">{safeText(selectedKanbanItem.milestone.title)}</span></div>
+                  <div className="rounded-xl bg-gray-50 px-3 py-2">Status: <span className="text-ink-secondary">{safeText(selectedKanbanItem.todo.status)}</span></div>
+                </div>
+              </div>
+
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => void copyKanbanItem(selectedKanbanItem)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-[13px] font-medium text-ink-secondary transition hover:bg-gray-50"
+                >
+                  <Copy size={14} />
+                  Copy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => editKanbanItem(selectedKanbanItem)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-accent-dark"
+                >
+                  <Pencil size={14} />
+                  Edit
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -755,6 +1231,7 @@ function PlanTab({
   const [todoModalOpen, setTodoModalOpen] = useState(false)
   const [editingTodo, setEditingTodo] = useState<PlanTodo | null>(null)
   const [mutatingId, setMutatingId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const [sidebarWidth, setSidebarWidth] = useState(236)
   const [isDesktop, setIsDesktop] = useState(() =>
     typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches,
@@ -821,7 +1298,7 @@ function PlanTab({
   }
 
   async function deleteMilestone(milestone: PlanMilestoneWithTodos) {
-    if (!window.confirm(`Delete "${milestone.title}" and its ${milestone.todos.length} todos?`)) return
+    if (!window.confirm(`Delete "${safeText(milestone.title)}" and its ${milestone.todos.length} todos?`)) return
     setMutatingId(milestone.id)
     try {
       await planService.deleteMilestone(milestone.id)
@@ -835,7 +1312,7 @@ function PlanTab({
   }
 
   async function deleteTodo(todo: PlanTodo) {
-    if (!window.confirm(`Delete "${todo.title}"?`)) return
+    if (!window.confirm(`Delete "${safeText(todo.title)}"?`)) return
     setMutatingId(todo.id)
     try {
       await planService.deleteTodo(todo.id)
@@ -885,7 +1362,7 @@ function PlanTab({
   }
 
   async function toggleTodo(todo: PlanTodo) {
-    const nextStatus: PlanStatus = todo.status === 'done' ? 'pending' : 'done'
+    const nextStatus: PlanStatus = todo.status === 'done' ? 'todo' : 'done'
     setMutatingId(todo.id)
     try {
       await planService.updateTodo(todo.id, {
@@ -893,7 +1370,7 @@ function PlanTab({
         completed_at: nextStatus === 'done' ? new Date().toISOString() : null,
         completed_by: nextStatus === 'done' ? userId : null,
       })
-      toast.success(nextStatus === 'done' ? `Done — "${todo.title}" moved to completed` : `Reopened — "${todo.title}" moved back to open`)
+      toast.success(nextStatus === 'done' ? `Done — "${safeText(todo.title)}" moved to completed` : `Reopened — "${safeText(todo.title)}" moved back to open`)
       onRefresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to update todo')
@@ -938,10 +1415,21 @@ function PlanTab({
   const total = milestones.length
   const totalProgress = Math.round((shipped / total) * 100)
   const todos = selected.todos ?? []
+  const normalizedSearch = searchQuery.trim().toLowerCase()
+  const todoItems = todos.map((todo, index) => ({ todo, index }))
+  const visibleTodoItems = normalizedSearch
+    ? todoItems.filter(({ todo, index }) => [
+        planTodoRef(selectedMilestoneIndex, index),
+        todo.title,
+        todo.description ?? '',
+        todo.status,
+        todo.visibility,
+      ].join(' ').toLowerCase().includes(normalizedSearch))
+    : todoItems
   const doneTodos = todos.filter((todo) => todo.status === 'done').length
   const openTodos = todos.length - doneTodos
   const todoProgress = todos.length === 0 ? 0 : Math.round((doneTodos / todos.length) * 100)
-  const statusMeta = PLAN_STATUS_META[selected.status]
+  const statusMeta = getPlanStatusMeta(selected.status)
 
   return (
     <>
@@ -966,7 +1454,7 @@ function PlanTab({
           <div className="flex flex-col gap-0.5">
             {milestones.map((m, index) => {
               const active = selected.id === m.id
-              const meta = PLAN_STATUS_META[m.status]
+              const meta = getPlanStatusMeta(m.status)
               return (
                 <div key={m.id} className="group flex items-center gap-0.5">
                   <button
@@ -980,7 +1468,7 @@ function PlanTab({
                   >
                     <div className={cn('w-[7px] h-[7px] rounded-full flex-shrink-0', meta.dotClass)} />
                     <div className="flex-1 min-w-0">
-                      <div className={cn('text-[12px] truncate', active ? 'font-semibold text-ink-primary' : 'text-ink-secondary')}>{m.title}</div>
+                      <div className={cn('text-[12px] truncate', active ? 'font-semibold text-ink-primary' : 'text-ink-secondary')}>{safeText(m.title)}</div>
                       <div className="font-mono text-[10px] text-ink-disabled mt-0.5">#{planMilestoneRef(index)} · {formatTargetDate(m.target_date)}</div>
                     </div>
                     <span className="font-mono text-[9px] px-1.5 py-[1px] rounded-[3px] flex-shrink-0" style={meta.badgeStyle}>{meta.label}</span>
@@ -1023,16 +1511,16 @@ function PlanTab({
             <div>
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <span className="font-mono text-[10px] text-accent bg-blue-50 border border-blue-100 rounded px-1.5 py-[1px]">#{planMilestoneRef(selectedMilestoneIndex)}</span>
-                <h3 className="text-[15px] font-semibold text-ink-primary">{selected.title}</h3>
+                <h3 className="text-[15px] font-semibold text-ink-primary">{safeText(selected.title)}</h3>
               </div>
-              {selected.description && <p className="text-[13px] text-ink-secondary max-w-xl mb-2">{selected.description}</p>}
+              {selected.description && <p className="text-[13px] text-ink-secondary max-w-xl mb-2">{safeText(selected.description)}</p>}
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={cn('font-mono text-[10px]', statusMeta.textClass)}>{statusMeta.label}</span>
                 <span className="text-gray-200">·</span>
                 <span className="font-mono text-[10px] text-ink-primary">{openTodos} open</span>
                 <span className="font-mono text-[10px] text-ink-disabled">{doneTodos} done</span>
                 <span className="text-gray-200">·</span>
-                <span className="font-mono text-[10px] text-ink-disabled">{selected.visibility}</span>
+                <span className="font-mono text-[10px] text-ink-disabled">{safeText(selected.visibility)}</span>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -1047,36 +1535,51 @@ function PlanTab({
             </div>
           </div>
 
-          <div className="h-[2px] bg-gray-100 rounded-full overflow-hidden mb-5">
+          <div className="h-[2px] bg-gray-100 rounded-full overflow-hidden mb-4">
             <div className={cn('h-full rounded-full', selected.status === 'done' ? 'bg-mood-shipped' : 'bg-mood-building')} style={{ width: `${todoProgress}%` }} />
           </div>
+
+          <label className="relative mb-5 block">
+            <Search size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-disabled" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search todos in this milestone…"
+              className="h-9 w-full rounded-xl border border-border bg-gray-50 pl-8 pr-3 text-[13px] text-ink-primary outline-none transition placeholder:text-ink-disabled focus:border-accent/60 focus:bg-white focus:ring-2 focus:ring-accent/10"
+            />
+          </label>
 
           {todos.length === 0 ? (
             <div className="py-14 text-center">
               <p className="text-[14px] text-ink-disabled mb-2.5">No todos yet for this milestone.</p>
               {canEdit && <button type="button" onClick={openCreateTodo} className="text-[13px] font-medium text-accent hover:text-accent-dark transition-colors">+ Add the first one</button>}
             </div>
+          ) : visibleTodoItems.length === 0 ? (
+            <div className="py-14 text-center">
+              <p className="text-[14px] text-ink-disabled mb-1">No todos match “{safeText(searchQuery)}”.</p>
+              <button type="button" onClick={() => setSearchQuery('')} className="text-[13px] font-medium text-accent hover:text-accent-dark transition-colors">Clear search</button>
+            </div>
           ) : (
             <div className="border border-gray-100 rounded-xl overflow-hidden divide-y divide-gray-50">
-              {todos.map((todo, index) => {
+              {visibleTodoItems.map(({ todo, index }) => {
                 const done = todo.status === 'done'
                 const source = completionSourceLabel(todo, userId)
                 return (
                   <div key={todo.id} className={cn('px-4 py-3.5 flex items-start gap-3 transition-colors', done ? 'bg-green-50/30' : 'bg-white')}>
-                    <button type="button" disabled={!canEdit || mutatingId === todo.id} onClick={() => toggleTodo(todo)} className="mt-0.5 disabled:cursor-default" aria-label={done ? `Reopen ${planTodoRef(selectedMilestoneIndex, index)} ${todo.title}` : `Complete ${planTodoRef(selectedMilestoneIndex, index)} ${todo.title}`}>
+                    <button type="button" disabled={!canEdit || mutatingId === todo.id} onClick={() => toggleTodo(todo)} className="mt-0.5 disabled:cursor-default" aria-label={done ? `Reopen ${planTodoRef(selectedMilestoneIndex, index)} ${safeText(todo.title)}` : `Complete ${planTodoRef(selectedMilestoneIndex, index)} ${safeText(todo.title)}`}>
                       <TodoCheck done={done} />
                     </button>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline gap-2">
                         <span className="font-mono text-[10px] text-accent bg-blue-50 border border-blue-100 rounded px-1.5 py-[1px] flex-shrink-0">#{planTodoRef(selectedMilestoneIndex, index)}</span>
-                        <div className={cn('text-[14px]', done ? 'text-ink-disabled line-through decoration-green-500/50' : 'text-ink-primary')}>{todo.title}</div>
+                        <div className={cn('text-[14px]', done ? 'text-ink-disabled line-through decoration-green-500/50' : 'text-ink-primary')}>{safeText(todo.title)}</div>
                       </div>
-                      {todo.description && <div className={cn('text-[13px] text-ink-tertiary mt-1 line-clamp-2', done && 'opacity-70')}>{todo.description}</div>}
+                      {todo.description && <div className={cn('text-[13px] text-ink-tertiary mt-1 line-clamp-2', done && 'opacity-70')}>{safeText(todo.description)}</div>}
                       <div className="font-mono text-[10px] text-ink-disabled mt-0.5">
                         {done
                           ? <>{source ?? 'completed'} {formatDate(todo.completed_at ?? todo.updated_at, 'relative')}</>
                           : <>{addedSourceLabel(todo, userId)} {formatDate(todo.created_at, 'relative')}</>}
-                        {' · '}{todo.visibility}
+                        {' · '}{safeText(todo.visibility)}
                       </div>
                     </div>
                     {canEdit && (
@@ -1131,7 +1634,7 @@ export default function ProjectDetail() {
   const user = useAuthStore((s) => s.user)
   const { data: project, loading, error, refresh } = useProject(id)
   const { data: logs, loading: logsLoading } = useLogs(id)
-  const { data: plan, loading: planLoading, error: planError, refresh: refreshPlan } = usePlan(id)
+  const { data: plan, loading: planLoading, error: planError, refresh: refreshPlan, patchTodoLocal } = usePlan(id)
 
   // Tab & plan
   const [tab, setTab] = useState<Tab>('logs')
@@ -1160,7 +1663,7 @@ export default function ProjectDetail() {
     (c) => c.user_id === user?.id && (c.role === 'editor' || c.role === 'admin'),
   )
 
-  const latestMood = logs?.[0]?.mood ?? null
+  const latestMood = normalizeMood(logs?.[0]?.mood)
 
   useEffect(() => {
     if (!plan?.length) {
@@ -1182,13 +1685,14 @@ export default function ProjectDetail() {
   }, [plan, searchParams])
 
   useEffect(() => {
-    if (searchParams.get('tab') === 'plan') setTab('plan')
+    const requestedTab = searchParams.get('tab')
+    if (requestedTab === 'plan' || requestedTab === 'kanban' || requestedTab === 'logs') setTab(requestedTab)
   }, [searchParams])
 
   function openSettings() {
     if (project && !settingsInit) {
-      setEditTitle(project.title)
-      setEditDesc(project.description ?? '')
+      setEditTitle(safeText(project.title))
+      setEditDesc(safeText(project.description))
       setEditTags(project.tags ?? [])
       setEditVisibility(project.visibility)
       setEditGradient(project.cover_gradient ?? null)
@@ -1256,7 +1760,8 @@ export default function ProjectDetail() {
     )
   }
 
-  const vis = VIS_META[project.visibility]
+  const projectVisibility = normalizeVisibility(project.visibility)
+  const vis = VIS_META[projectVisibility]
   const VisIcon = vis.icon
 
   return (
@@ -1265,7 +1770,7 @@ export default function ProjectDetail() {
       {/* ── Cover ── */}
       <div
         className="h-[200px] relative w-full overflow-hidden group"
-        style={!project.cover_image_url ? { background: getCoverGradient(project) } : undefined}
+        style={!project.cover_image_url ? { background: getCoverGradient({ id: safeText(project.id), cover_gradient: safeText(project.cover_gradient) }) } : undefined}
       >
         {project.cover_image_url && (
           <img src={project.cover_image_url} alt="" className="w-full h-full object-cover" />
@@ -1294,13 +1799,13 @@ export default function ProjectDetail() {
       </div>
 
       {/* ── Project header ── */}
-      <div className="bg-paper border-b border-border px-4 sm:px-10 pt-6">
+      <div className="sticky top-0 z-40 bg-paper/95 backdrop-blur border-b border-border px-4 sm:px-10 pt-6 shadow-sm">
         <div className="flex items-start justify-between gap-4 mb-5 flex-wrap">
           <div>
             {/* Name + badges */}
             <div className="flex items-center gap-2.5 mb-2 flex-wrap">
               <h1 className="font-mono text-[22px] font-semibold text-ink-primary tracking-[-0.02em]">
-                {project.title}
+                {safeText(project.title)}
               </h1>
               {latestMood && <MoodBadge mood={latestMood} />}
               <span className="font-mono text-[10px] text-ink-disabled bg-gray-100 px-2.5 py-[3px] rounded-full flex items-center gap-1">
@@ -1351,7 +1856,7 @@ export default function ProjectDetail() {
             {isEditor && (
               <button
                 type="button"
-                onClick={() => navigate(`/projects/${project.id}/logs/new`)}
+                onClick={() => navigate(`/projects/${safeText(project.id)}/logs/new`)}
                 className="flex items-center gap-1.5 bg-accent hover:bg-accent-dark text-white px-4 py-[7px] rounded-lg text-[13px] font-semibold transition-colors"
               >
                 <Plus size={12} strokeWidth={2.5} />
@@ -1363,7 +1868,7 @@ export default function ProjectDetail() {
 
         {/* Tab bar */}
         <div role="tablist" aria-label="Project sections" className="flex gap-0">
-          {(['logs', 'plan'] as const).map((t) => (
+          {(['logs', 'plan', 'kanban'] as const).map((t) => (
             <button
               key={t}
               type="button"
@@ -1375,7 +1880,7 @@ export default function ProjectDetail() {
                 tab === t ? 'text-accent font-semibold' : 'text-ink-tertiary hover:text-ink-secondary',
               )}
             >
-              {t === 'logs' ? 'Logs' : 'Plan'}
+              {t === 'logs' ? 'Logs' : t === 'plan' ? 'Plan' : 'Kanban'}
               {tab === t && (
                 <motion.div
                   layoutId="pd-tab-underline"
@@ -1429,8 +1934,32 @@ export default function ProjectDetail() {
               ownerId={project.owner_id}
               userId={user?.id}
               canEdit={!!isEditor}
-              projectVisibility={project.visibility}
+              projectVisibility={projectVisibility}
               onSelect={setPlanMilestoneId}
+              onRefresh={refreshPlan}
+            />
+          </motion.div>
+        )}
+
+        {/* Kanban */}
+        {tab === 'kanban' && (
+          <motion.div
+            key="kanban"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="px-4 sm:px-10 py-8"
+          >
+            <KanbanTab
+              milestones={plan ?? []}
+              loading={planLoading}
+              error={planError}
+              canEdit={!!isEditor}
+              userId={user?.id}
+              ownerId={project.owner_id}
+              projectVisibility={projectVisibility}
+              onPatchTodoLocal={patchTodoLocal}
               onRefresh={refreshPlan}
             />
           </motion.div>
@@ -1526,11 +2055,11 @@ export default function ProjectDetail() {
                   <div className="flex items-center gap-3 px-4 py-3 bg-gray-50/50">
                     <Avatar
                       src={project.owner?.avatar_url ?? undefined}
-                      name={project.owner?.username}
+                      name={safeText(project.owner?.username)}
                       size="sm"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="font-mono text-[13px] text-ink-primary truncate">@{project.owner?.username}</p>
+                      <p className="font-mono text-[13px] text-ink-primary truncate">@{safeText(project.owner?.username)}</p>
                     </div>
                     <span className="text-[11px] font-medium text-accent bg-blue-50 border border-blue-200 rounded-full px-2.5 py-0.5">
                       owner
@@ -1577,7 +2106,7 @@ export default function ProjectDetail() {
       <ShareModal
         open={shareOpen}
         onClose={() => setShareOpen(false)}
-        projectTitle={project.title}
+        projectTitle={safeText(project.title)}
         projectId={project.id}
       />
 
@@ -1594,7 +2123,7 @@ export default function ProjectDetail() {
             open={deleteOpen}
             onClose={() => setDeleteOpen(false)}
             projectId={project.id}
-            projectTitle={project.title}
+            projectTitle={safeText(project.title)}
           />
         </>
       )}

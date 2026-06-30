@@ -7,6 +7,10 @@ type MilestonePayload = Pick<PlanMilestone, 'project_id' | 'owner_id' | 'title'>
 type TodoPayload = Pick<PlanTodo, 'project_id' | 'milestone_id' | 'owner_id' | 'title'> &
   Partial<Pick<PlanTodo, 'description' | 'status' | 'visibility' | 'sort_order' | 'created_by'>>
 
+function normalizePlanStatus<T extends { status: string }>(row: T): T {
+  return { ...row, status: row.status === 'pending' ? 'todo' : row.status }
+}
+
 export const planService = {
   async getForProject(projectId: string): Promise<PlanMilestoneWithTodos[]> {
     const { data: milestones, error: milestonesError } = await supabase
@@ -27,8 +31,8 @@ export const planService = {
 
     if (todosError) throw todosError
 
-    const milestoneRows = milestones ?? []
-    const todoRows = todos ?? []
+    const milestoneRows = (milestones ?? []).map(normalizePlanStatus)
+    const todoRows = (todos ?? []).map(normalizePlanStatus)
 
     const profileIds = Array.from(new Set([
       ...milestoneRows.map((m) => m.created_by),
@@ -76,7 +80,7 @@ export const planService = {
   async createMilestone(payload: MilestonePayload): Promise<PlanMilestone> {
     const { data, error } = await supabase
       .from('plan_milestones')
-      .insert({ status: 'pending', visibility: 'private', sort_order: 0, ...payload })
+      .insert({ status: 'todo', visibility: 'private', sort_order: 0, ...payload })
       .select()
       .single()
     if (error) throw error
@@ -105,7 +109,7 @@ export const planService = {
   async createTodo(payload: TodoPayload): Promise<PlanTodo> {
     const { data, error } = await supabase
       .from('plan_todos')
-      .insert({ status: 'pending', visibility: 'private', sort_order: 0, ...payload })
+      .insert({ status: 'todo', visibility: 'private', sort_order: 0, ...payload })
       .select()
       .single()
     if (error) throw error

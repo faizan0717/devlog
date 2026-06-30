@@ -13,6 +13,7 @@ import { ProfileLogTimeline } from '@/features/profile/components/ProfileLogTime
 import { exploreService } from '@/services/explore.service'
 import { useAuthStore } from '@/stores/authStore'
 import { formatDate } from '@/utils'
+import { normalizeMarkdownLineBreaks } from '@/utils/markdown'
 import type { PublicLog as PublicLogType } from '@/types'
 
 const MOOD_ACCENT: Record<string, string> = {
@@ -140,7 +141,7 @@ export default function PublicLog() {
           {log.content && (
             <div className="prose prose-log max-w-none mb-8">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {log.content}
+                {normalizeMarkdownLineBreaks(log.content)}
               </ReactMarkdown>
             </div>
           )}

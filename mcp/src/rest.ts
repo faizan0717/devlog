@@ -44,7 +44,9 @@ function send(res: ServerResponse, status: number, body: unknown) {
 
 const PROJECT_VISIBILITIES = new Set(['private', 'public', 'unlisted'])
 const LOG_VISIBILITIES = new Set(['private', 'public', 'shared', 'unlisted'])
-const PLAN_STATUSES = new Set(['pending', 'doing', 'done'])
+const PLAN_STATUSES = new Set(['todo', 'in_queue', 'doing', 'verify', 'done'])
+const OPEN_PLAN_STATUSES = new Set(['todo', 'in_queue', 'doing', 'verify'])
+const PLAN_STATUS_ALIASES: Record<string, string> = { pending: 'todo', queue: 'in_queue', queued: 'in_queue', in_queue: 'in_queue', 'in que': 'in_queue' }
 const LOG_MOODS = new Set(['building', 'shipped', 'stuck', 'reflecting', 'inspired', 'learning'])
 
 function isString(value: unknown): value is string {
@@ -71,6 +73,14 @@ export function validateEnumField(value: unknown, field: string, allowed: Set<st
   return value
 }
 
+export function validatePlanStatusField(value: unknown, field = 'status', allowed = PLAN_STATUSES, defaultValue?: string): string | null {
+  if (value === undefined || value === null || value === '') return defaultValue ?? null
+  if (!isString(value)) throw new Error(`${field} must be one of: ${Array.from(allowed).join(', ')}`)
+  const normalized = PLAN_STATUS_ALIASES[value] ?? value
+  if (!allowed.has(normalized)) throw new Error(`${field} must be one of: ${Array.from(allowed).join(', ')}`)
+  return normalized
+}
+
 export function validateTags(value: unknown): string[] {
   if (value === undefined || value === null) return []
   if (!Array.isArray(value)) throw new Error('tags must be an array')
@@ -83,7 +93,7 @@ export function validateTags(value: unknown): string[] {
 
 function completionPatch(status: string | null): Record<string, unknown> {
   if (status === 'done') return { completed_at: new Date().toISOString() }
-  if (status === 'pending' || status === 'doing') return { completed_at: null }
+  if (status && status !== 'done') return { completed_at: null }
   return {}
 }
 
@@ -372,7 +382,7 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
       try {
         title = validateStringField(body.title, 'title', 160, true)
         description = validateStringField(body.description, 'description', 5000)
-        status = validateEnumField(body.status, 'status', PLAN_STATUSES, 'pending')
+        status = validatePlanStatusField(body.status, 'status', PLAN_STATUSES, 'todo')
         visibility = validateEnumField(body.visibility, 'visibility', LOG_VISIBILITIES, 'private')
         targetDate = validateDateField(body.target_date, 'target_date')
         if (body.sort_order !== undefined && !Number.isInteger(body.sort_order)) throw new Error('sort_order must be an integer')
@@ -407,7 +417,7 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
         if (body.title !== undefined) patch.title = validateStringField(body.title, 'title', 160, true)
         if (body.description !== undefined) patch.description = validateStringField(body.description, 'description', 5000)
         if (body.status !== undefined) {
-          const status = validateEnumField(body.status, 'status', PLAN_STATUSES)
+          const status = validatePlanStatusField(body.status, 'status', PLAN_STATUSES)
           patch.status = status
           Object.assign(patch, completionPatch(status))
         }
@@ -452,7 +462,7 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
       try {
         title = validateStringField(body.title, 'title', 240, true)
         description = validateStringField(body.description, 'description', 5000)
-        status = validateEnumField(body.status, 'status', PLAN_STATUSES, 'pending')
+        status = validatePlanStatusField(body.status, 'status', PLAN_STATUSES, 'todo')
         visibility = validateEnumField(body.visibility, 'visibility', LOG_VISIBILITIES, 'private')
         if (body.sort_order !== undefined && !Number.isInteger(body.sort_order)) throw new Error('sort_order must be an integer')
       } catch (error) { sendValidationError(res, error); return }
@@ -486,7 +496,7 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
         if (body.title !== undefined) patch.title = validateStringField(body.title, 'title', 240, true)
         if (body.description !== undefined) patch.description = validateStringField(body.description, 'description', 5000)
         if (body.status !== undefined) {
-          const status = validateEnumField(body.status, 'status', PLAN_STATUSES)
+          const status = validatePlanStatusField(body.status, 'status', PLAN_STATUSES)
           patch.status = status
           Object.assign(patch, completionPatch(status))
         }
@@ -547,18 +557,18 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
       return
     }
 
-    // POST /projects/:id/todos/reopen { todo_ref: "1.1.3" | "1.1.*", status?: "pending" | "doing" }
+    // POST /projects/:id/todos/reopen { todo_ref: "1.1.3" | "1.1.*", status?: "todo" | "in_queue" | "doing" | "verify" }
     const projectTodoReopenMatch = /^\/projects\/([^/]+)\/todos\/reopen$/.exec(pathname)
     if (method === 'POST' && projectTodoReopenMatch) {
       requireScope(ctx, 'complete_todo')
       const projectId = projectTodoReopenMatch[1]
       const body = await readJsonBody(req)
       let todoRef: string
-      let status: string | null = 'pending'
+      let status: string | null = 'todo'
       try {
         todoRef = validateStringField(body.todo_ref, 'todo_ref', 32, true) as string
         if (!/^\d+\.\d+\.(\d+|\*)$/.test(todoRef)) throw new Error('todo_ref must look like 1.1.3 or 1.1.*')
-        if (body.status !== undefined) status = validateEnumField(body.status, 'status', new Set(['pending', 'doing']), 'pending')
+        if (body.status !== undefined) status = validatePlanStatusField(body.status, 'status', OPEN_PLAN_STATUSES, 'todo')
       } catch (error) { sendValidationError(res, error); return }
       const todoIds = (await resolveTodoRefs(ctx, projectId, todoRef)).map((todo) => String(todo.id))
       const { data, error } = await supabase.from('plan_todos').update({
@@ -600,10 +610,10 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, pathname: s
       const todoId = todoReopenMatch[1]
       const { projectId } = await assertTodoOwnership(ctx, todoId)
       const body = await readJsonBody(req)
-      let status: string | null = 'pending'
+      let status: string | null = 'todo'
       try {
         if (body.status !== undefined) {
-          status = validateEnumField(body.status, 'status', new Set(['pending', 'doing']), 'pending')
+          status = validatePlanStatusField(body.status, 'status', OPEN_PLAN_STATUSES, 'todo')
         }
       } catch (error) { sendValidationError(res, error); return }
       const { data, error } = await supabase.from('plan_todos').update({

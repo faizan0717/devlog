@@ -547,7 +547,7 @@ create table if not exists public.plan_milestones (
 
   title text not null,
   description text,
-  status text not null default 'pending' check (status in ('pending', 'doing', 'done')),
+  status text not null default 'todo' check (status in ('todo', 'in_queue', 'doing', 'verify', 'done')),
   visibility visibility not null default 'private',
   target_date date,
   sort_order integer not null default 0,
@@ -568,7 +568,7 @@ create table if not exists public.plan_todos (
 
   title text not null,
   description text,
-  status text not null default 'pending' check (status in ('pending', 'doing', 'done')),
+  status text not null default 'todo' check (status in ('todo', 'in_queue', 'doing', 'verify', 'done')),
   visibility visibility not null default 'private',
   sort_order integer not null default 0,
 

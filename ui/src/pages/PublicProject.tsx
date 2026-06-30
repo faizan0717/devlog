@@ -15,9 +15,11 @@ import { getCoverGradient } from '@/utils/coverGradient'
 import type { PlanMilestoneWithTodos, PlanStatus, PublicProject as PublicProjectType, Profile, PublicLog } from '@/types'
 
 const PLAN_STATUS_META: Record<PlanStatus, { label: string; className: string; Icon: typeof Circle }> = {
-  pending: { label: 'planned', className: 'border-border bg-chalk text-ink-tertiary', Icon: Circle },
-  doing: { label: 'building', className: 'border-orange-500/25 bg-orange-500/10 text-mood-building', Icon: Clock3 },
-  done: { label: 'shipped', className: 'border-green-500/25 bg-green-500/10 text-mood-shipped', Icon: CheckCircle2 },
+  todo: { label: 'todo', className: 'border-border bg-chalk text-ink-tertiary', Icon: Circle },
+  in_queue: { label: 'in que', className: 'border-blue-500/25 bg-blue-500/10 text-accent', Icon: Clock3 },
+  doing: { label: 'doing', className: 'border-orange-500/25 bg-orange-500/10 text-mood-building', Icon: Clock3 },
+  verify: { label: 'verify', className: 'border-purple-500/25 bg-purple-500/10 text-purple-600', Icon: CheckCircle2 },
+  done: { label: 'done', className: 'border-green-500/25 bg-green-500/10 text-mood-shipped', Icon: CheckCircle2 },
 }
 
 function planMilestoneRef(index: number) {

@@ -99,7 +99,7 @@ Create a plan milestone.
 - `project_id` uuid
 - `title` string
 - optional `description`
-- `status` — `pending` | `doing` | `done` default `pending`
+- `status` — `todo` | `in_queue` | `doing` | `verify` | `done` default `todo`
 - `visibility` — `private` | `public` | `shared` | `unlisted` default `private`
 - optional `target_date` as `YYYY-MM-DD`
 - optional `sort_order` integer
@@ -133,7 +133,7 @@ Create a plan todo under a milestone.
 - `milestone_id` uuid
 - `title` string
 - optional `description`
-- `status` — `pending` | `doing` | `done` default `pending`
+- `status` — `todo` | `in_queue` | `doing` | `verify` | `done` default `todo`
 - `visibility` — `private` | `public` | `shared` | `unlisted` default `private`
 - optional `sort_order` integer
 
@@ -171,7 +171,7 @@ Mark todo(s) as done and record the completing agent token.
 ### devlog_reopen_plan_todo
 Reopen completed todo(s).
 
-**Params:** either `todo_id` uuid, or `project_id` uuid + `todo_ref` (`1.1.3` or `1.1.*`), optional `status` (`pending` | `doing`, default `pending`).
+**Params:** either `todo_id` uuid, or `project_id` uuid + `todo_ref` (`1.1.3` or `1.1.*`), optional `status` (`todo` | `in_queue` | `doing` | `verify`, default `todo`).
 
 **Access:** token owner must be able to write to the project.
 
@@ -208,7 +208,7 @@ Moods: `building` | `shipped` | `stuck` | `reflecting` | `inspired` | `learning`
 
 Visibility: `private` | `public` | `unlisted` | `shared`
 
-Plan statuses: `pending` | `doing` | `done`
+Plan statuses: `todo` | `in_queue` | `doing` | `verify` | `done` (`pending` is accepted as a legacy alias for `todo`; `in que` is accepted as an alias for `in_queue`)
 
 Plan refs: `1.<milestone>.<todo>` are generated from sorted plan order, e.g. `1.1.3`; use `1.1.*` to target every todo in milestone `1.1`.
 

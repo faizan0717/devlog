@@ -9,6 +9,7 @@ import { MediaGallery } from '@/features/logs/components/MediaGallery'
 import { logsService } from '@/services/logs.service'
 import { projectsService } from '@/services/projects.service'
 import { formatDate } from '@/utils'
+import { normalizeMarkdownLineBreaks } from '@/utils/markdown'
 import type { Log, ProjectWithDetails, Visibility } from '@/types'
 
 const MOOD_ACCENT: Record<string, string> = {
@@ -122,7 +123,7 @@ export default function LogPreview() {
           {/* Content */}
           {log.content ? (
             <div className="prose prose-log max-w-none mb-8">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{log.content}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{normalizeMarkdownLineBreaks(log.content)}</ReactMarkdown>
             </div>
           ) : (
             <p className="mb-8 text-body text-ink-disabled italic">No content yet.</p>

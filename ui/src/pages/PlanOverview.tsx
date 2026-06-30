@@ -16,8 +16,10 @@ type ProjectPlan = {
 }
 
 const STATUS_META: Record<PlanStatus, { label: string; className: string; Icon: typeof Circle }> = {
-  pending: { label: 'pending', className: 'text-ink-disabled bg-gray-100', Icon: Circle },
+  todo: { label: 'todo', className: 'text-ink-disabled bg-gray-100', Icon: Circle },
+  in_queue: { label: 'in que', className: 'text-accent bg-blue-50', Icon: Clock3 },
   doing: { label: 'doing', className: 'text-mood-building bg-orange-50', Icon: Clock3 },
+  verify: { label: 'verify', className: 'text-purple-600 bg-purple-50', Icon: CheckSquare },
   done: { label: 'done', className: 'text-mood-shipped bg-green-50', Icon: CheckCircle2 },
 }
 
@@ -47,12 +49,9 @@ function ProjectSection({ projectPlan, mode }: { projectPlan: ProjectPlan; mode:
       .map((todo, todoIndex) => ({ milestone, milestoneIndex, todo, todoIndex }))
       .filter(({ todo }) => todo.status !== 'done'),
   ).sort((a, b) => {
+    const order: Record<PlanStatus, number> = { doing: 0, verify: 1, in_queue: 2, todo: 3, done: 4 }
     if (a.todo.status === b.todo.status) return a.milestoneIndex - b.milestoneIndex || a.todoIndex - b.todoIndex
-    if (a.todo.status === 'doing') return -1
-    if (b.todo.status === 'doing') return 1
-    if (a.todo.status === 'done') return 1
-    if (b.todo.status === 'done') return -1
-    return 0
+    return order[a.todo.status] - order[b.todo.status]
   }), [milestones])
 
   if (mode === 'todos' ? todoItems.length === 0 : milestones.length === 0) return null
