@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -33,15 +33,28 @@ const COLUMNS: Array<{ status: PlanStatus; label: string; Icon: typeof Circle }>
   { status: 'done', label: 'Done', Icon: CheckCircle2 },
 ]
 
-function KanbanTodoCard({ card, onOpen }: { card: KanbanCard; onOpen: (card: KanbanCard) => void }) {
+function KanbanTodoCard({
+  card,
+  onOpen,
+  onDragStart,
+}: {
+  card: KanbanCard
+  onOpen: (card: KanbanCard) => void
+  onDragStart: (card: KanbanCard) => void
+}) {
   const { project, milestone, todo } = card
   const projectColor = getCoverGradient(project)
 
   return (
     <button
       type="button"
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move'
+        onDragStart(card)
+      }}
       onClick={() => onOpen(card)}
-      className="group block shrink-0 overflow-hidden rounded-2xl border border-border text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      className="group block shrink-0 cursor-grab overflow-hidden rounded-2xl border border-border text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:cursor-grabbing active:opacity-60"
       style={{ background: projectColor }}
     >
       <div className="m-1.5 rounded-xl bg-paper/90 p-3 backdrop-blur-sm">
@@ -69,6 +82,8 @@ export default function Kanban() {
   const [error, setError] = useState<string | null>(null)
   const [selectedCard, setSelectedCard] = useState<KanbanCard | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [dragOverColumn, setDragOverColumn] = useState<PlanStatus | null>(null)
+  const draggedCard = useRef<KanbanCard | null>(null)
 
   const projects = useMemo(() => [...owned, ...shared], [owned, shared])
 
@@ -148,6 +163,59 @@ export default function Kanban() {
     toast.success('Copied card details')
   }
 
+  async function handleDrop(targetStatus: PlanStatus) {
+    const card = draggedCard.current
+    draggedCard.current = null
+    setDragOverColumn(null)
+    if (!card || card.todo.status === targetStatus) return
+
+    const prevStatus = card.todo.status as PlanStatus
+    setPlans((prev) =>
+      prev.map((plan) =>
+        plan.project.id !== card.project.id
+          ? plan
+          : {
+              ...plan,
+              milestones: plan.milestones.map((m) =>
+                m.id !== card.milestone.id
+                  ? m
+                  : {
+                      ...m,
+                      todos: m.todos.map((t) =>
+                        t.id !== card.todo.id ? t : { ...t, status: targetStatus, updated_at: new Date().toISOString() },
+                      ),
+                    },
+              ),
+            },
+      ),
+    )
+
+    try {
+      await planService.updateTodo(card.todo.id, { status: targetStatus })
+    } catch (err) {
+      setPlans((prev) =>
+        prev.map((plan) =>
+          plan.project.id !== card.project.id
+            ? plan
+            : {
+                ...plan,
+                milestones: plan.milestones.map((m) =>
+                  m.id !== card.milestone.id
+                    ? m
+                    : {
+                        ...m,
+                        todos: m.todos.map((t) =>
+                          t.id !== card.todo.id ? t : { ...t, status: prevStatus },
+                        ),
+                      },
+                ),
+              },
+        ),
+      )
+      toast.error(err instanceof Error ? err.message : 'Failed to update status')
+    }
+  }
+
   return (
     <div className="flex h-full flex-col overflow-hidden px-6 py-8 lg:px-10">
       <div className="mb-7 flex shrink-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -199,8 +267,18 @@ export default function Kanban() {
         <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto pb-2">
           {COLUMNS.map(({ status, label, Icon }) => {
             const columnCards = cardsByStatus[status]
+            const isOver = dragOverColumn === status
             return (
-              <section key={status} className="flex min-h-0 min-w-[18rem] flex-1 flex-col rounded-2xl border border-border bg-gray-50/60">
+              <section
+                key={status}
+                className={cn(
+                  'flex min-h-0 min-w-[18rem] flex-1 flex-col rounded-2xl border bg-gray-50/60 transition-colors',
+                  isOver ? 'border-accent bg-accent/5 ring-2 ring-accent/20' : 'border-border',
+                )}
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverColumn(status) }}
+                onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverColumn(null) }}
+                onDrop={(e) => { e.preventDefault(); void handleDrop(status) }}
+              >
                 <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
                   <div className="flex items-center gap-2 font-mono text-[13px] font-semibold text-ink-secondary">
                     <Icon size={14} />
@@ -210,8 +288,17 @@ export default function Kanban() {
                 </div>
                 <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
                   {columnCards.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-border bg-paper/70 px-3 py-6 text-center text-[12px] text-ink-disabled">No cards</div>
-                  ) : columnCards.map((card) => <KanbanTodoCard key={card.todo.id} card={card} onOpen={setSelectedCard} />)}
+                    <div className={cn('rounded-xl border border-dashed px-3 py-6 text-center text-[12px]', isOver ? 'border-accent/40 bg-accent/5 text-accent' : 'border-border bg-paper/70 text-ink-disabled')}>
+                      {isOver ? 'Drop here' : 'No cards'}
+                    </div>
+                  ) : columnCards.map((card) => (
+                    <KanbanTodoCard
+                      key={card.todo.id}
+                      card={card}
+                      onOpen={setSelectedCard}
+                      onDragStart={(c) => { draggedCard.current = c }}
+                    />
+                  ))}
                 </div>
               </section>
             )
