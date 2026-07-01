@@ -212,9 +212,9 @@ export function Sidebar() {
       <nav aria-label="Mobile navigation" className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-paper/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur-sm md:hidden">
         <div className="mx-auto flex max-w-md items-center justify-between gap-1">
           {[
-            { label: 'Explore',  to: ROUTES.EXPLORE,      Icon: Compass },
-            { label: 'Projects', to: ROUTES.PROJECTS,     Icon: FolderOpen },
-            { label: 'Agents',   to: ROUTES.AGENT_ACCESS, Icon: KeyRound },
+            { label: 'Explore',  to: ROUTES.EXPLORE,  Icon: Compass },
+            { label: 'Kanban',   to: ROUTES.KANBAN,   Icon: Columns3 },
+            { label: 'Projects', to: ROUTES.PROJECTS, Icon: FolderOpen },
           ].map(({ label, to, Icon }) => (
             <NavLink
               key={to}
