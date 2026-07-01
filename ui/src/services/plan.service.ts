@@ -118,7 +118,7 @@ export const planService = {
 
   async updateTodo(
     id: string,
-    payload: Partial<Pick<PlanTodo, 'title' | 'description' | 'status' | 'visibility' | 'milestone_id' | 'sort_order' | 'completed_by' | 'completed_at'>>,
+    payload: Partial<Pick<PlanTodo, 'title' | 'description' | 'status' | 'visibility' | 'milestone_id' | 'sort_order' | 'completed_by' | 'completed_at' | 'completed_by_agent_token_id'>>,
   ): Promise<PlanTodo> {
     const { data, error } = await supabase
       .from('plan_todos')

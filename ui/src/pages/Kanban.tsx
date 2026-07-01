@@ -169,7 +169,16 @@ export default function Kanban() {
     setDragOverColumn(null)
     if (!card || card.todo.status === targetStatus) return
 
-    const prevStatus = card.todo.status as PlanStatus
+    const previousTodo = card.todo
+    const now = new Date().toISOString()
+    const patch = {
+      status: targetStatus,
+      completed_at: targetStatus === 'done' ? now : null,
+      completed_by: targetStatus === 'done' ? user?.id ?? null : null,
+      completed_by_agent_token_id: null,
+      updated_at: now,
+    }
+
     setPlans((prev) =>
       prev.map((plan) =>
         plan.project.id !== card.project.id
@@ -182,7 +191,14 @@ export default function Kanban() {
                   : {
                       ...m,
                       todos: m.todos.map((t) =>
-                        t.id !== card.todo.id ? t : { ...t, status: targetStatus, updated_at: new Date().toISOString() },
+                        t.id !== card.todo.id
+                          ? t
+                          : {
+                              ...t,
+                              ...patch,
+                              completed_by_profile: targetStatus === 'done' ? user?.profile ?? null : null,
+                              completed_by_agent: null,
+                            },
                       ),
                     },
               ),
@@ -191,7 +207,7 @@ export default function Kanban() {
     )
 
     try {
-      await planService.updateTodo(card.todo.id, { status: targetStatus })
+      await planService.updateTodo(card.todo.id, patch)
     } catch (err) {
       setPlans((prev) =>
         prev.map((plan) =>
@@ -205,7 +221,7 @@ export default function Kanban() {
                     : {
                         ...m,
                         todos: m.todos.map((t) =>
-                          t.id !== card.todo.id ? t : { ...t, status: prevStatus },
+                          t.id !== card.todo.id ? t : previousTodo,
                         ),
                       },
                 ),

@@ -712,6 +712,7 @@ function TodoEditorModal({
           milestone_id: milestoneId,
           completed_at: statusCompletedAt(status, todo.completed_at),
           completed_by: status === 'done' ? todo.completed_by ?? userId : null,
+          completed_by_agent_token_id: null,
         })
         toast.success('Todo updated')
       } else {
@@ -867,6 +868,7 @@ function KanbanTab({
       status,
       completed_at: status === 'done' ? new Date().toISOString() : null,
       completed_by: status === 'done' ? userId : null,
+      completed_by_agent_token_id: null,
       updated_at: new Date().toISOString(),
     }
     setMutatingId(todo.id)
@@ -1369,6 +1371,7 @@ function PlanTab({
         status: nextStatus,
         completed_at: nextStatus === 'done' ? new Date().toISOString() : null,
         completed_by: nextStatus === 'done' ? userId : null,
+        completed_by_agent_token_id: null,
       })
       toast.success(nextStatus === 'done' ? `Done — "${safeText(todo.title)}" moved to completed` : `Reopened — "${safeText(todo.title)}" moved back to open`)
       onRefresh()
