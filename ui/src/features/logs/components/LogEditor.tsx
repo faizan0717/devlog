@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { ArrowLeft, Trash2, Eye, Pen, CheckCheck, Loader2, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Trash2, Eye, Pen, CheckCheck, Loader2, ExternalLink, AlertCircle, RotateCcw } from 'lucide-react'
 import { VisibilitySelector } from '@/features/projects/components/VisibilitySelector'
 import { MoodSelector } from './MoodSelector'
 import { MediaUpload } from './MediaUpload'
@@ -27,6 +27,11 @@ export function LogEditor({ projectId, userId, logId, initialLog, projectVisibil
 
   const editor = useLogEditor({ logId, projectId, userId, initialLog, projectVisibility })
 
+  function canLeaveEditor() {
+    if (!editor.hasUnsavedChanges && !editor.saveError) return true
+    return window.confirm('You have unsaved log changes. Leave anyway?')
+  }
+
   function handleDelete() {
     if (!deleteConfirm) {
       setDeleteConfirm(true)
@@ -44,7 +49,7 @@ export function LogEditor({ projectId, userId, logId, initialLog, projectVisibil
 
         <button
           type="button"
-          onClick={() => navigate(`/projects/${projectId}`)}
+          onClick={() => { if (canLeaveEditor()) navigate(`/projects/${projectId}`) }}
           className="flex items-center gap-1.5 text-ink-tertiary hover:text-ink-primary transition-colors shrink-0"
         >
           <ArrowLeft size={15} />
@@ -68,7 +73,34 @@ export function LogEditor({ projectId, userId, logId, initialLog, projectVisibil
                 Saving…
               </motion.span>
             )}
-            {!editor.saving && editor.savedAt && (
+            {!editor.saving && editor.saveError && (
+              <motion.button
+                key="save-failed"
+                type="button"
+                onClick={editor.retrySave}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex items-center gap-1 text-[11px] font-medium text-danger hover:text-red-700"
+                title={editor.saveError}
+              >
+                <AlertCircle size={11} />
+                Save failed
+                <RotateCcw size={10} />
+              </motion.button>
+            )}
+            {!editor.saving && !editor.saveError && editor.hasUnsavedChanges && (
+              <motion.span
+                key="unsaved"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex items-center gap-1 text-[11px] text-ink-disabled"
+              >
+                Unsaved
+              </motion.span>
+            )}
+            {!editor.saving && !editor.saveError && !editor.hasUnsavedChanges && editor.savedAt && (
               <motion.span
                 key="saved"
                 initial={{ opacity: 0 }}
@@ -112,7 +144,7 @@ export function LogEditor({ projectId, userId, logId, initialLog, projectVisibil
         {logId && (
           <button
             type="button"
-            onClick={() => navigate(`/projects/${projectId}/logs/${logId}/preview`)}
+            onClick={() => { if (canLeaveEditor()) navigate(`/projects/${projectId}/logs/${logId}/preview`) }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-[12px] text-ink-tertiary hover:text-ink-secondary hover:border-gray-300 transition-colors"
           >
             <ExternalLink size={12} />
