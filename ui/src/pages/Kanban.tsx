@@ -12,6 +12,7 @@ import type { PlanMilestoneWithTodos, PlanStatus, PlanTodoWithSources, Project }
 import { cn, formatDate } from '@/utils'
 import { getCoverGradient } from '@/utils/coverGradient'
 import { normalizeMarkdownLineBreaks } from '@/utils/markdown'
+import { withDerivedMilestoneStatus } from '@/utils/planStatus'
 
 type ProjectPlan = {
   project: Project
@@ -188,7 +189,7 @@ export default function Kanban() {
               milestones: plan.milestones.map((m) =>
                 m.id !== card.milestone.id
                   ? m
-                  : {
+                  : withDerivedMilestoneStatus({
                       ...m,
                       todos: m.todos.map((t) =>
                         t.id !== card.todo.id
@@ -200,7 +201,7 @@ export default function Kanban() {
                               completed_by_agent: null,
                             },
                       ),
-                    },
+                    }),
               ),
             },
       ),
@@ -218,12 +219,12 @@ export default function Kanban() {
                 milestones: plan.milestones.map((m) =>
                   m.id !== card.milestone.id
                     ? m
-                    : {
+                    : withDerivedMilestoneStatus({
                         ...m,
                         todos: m.todos.map((t) =>
                           t.id !== card.todo.id ? t : previousTodo,
                         ),
-                      },
+                      }),
                 ),
               },
         ),

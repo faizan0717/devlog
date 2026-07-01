@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { planService } from '@/services/plan.service'
+import { withDerivedMilestoneStatus } from '@/utils/planStatus'
 import type { AsyncState, PlanMilestoneWithTodos, PlanTodo } from '@/types'
 
 export function usePlan(projectId: string | undefined) {
@@ -24,7 +25,7 @@ export function usePlan(projectId: string | undefined) {
     suppressRealtimeUntilRef.current = Date.now() + suppressMs
     setState((s) => ({
       ...s,
-      data: s.data?.map((milestone) => ({
+      data: s.data?.map((milestone) => withDerivedMilestoneStatus({
         ...milestone,
         todos: milestone.todos.map((todo) => todo.id === todoId ? { ...todo, ...patch } : todo),
       })) ?? null,
