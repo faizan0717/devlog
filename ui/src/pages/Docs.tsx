@@ -6,7 +6,7 @@ const SECTIONS = [
   {
     id: 'what-is-devlog',
     title: 'What is devLog?',
-    content: `devLog is an AI-native build journal for makers. It lets you — and your AI agent — log project progress, manage todos, and maintain a public roadmap.
+    content: `devLog is an AI-native build journal for makers. It lets you — and your AI agent — log project progress, manage a Kanban-backed plan, and share public milestones.
 
 Connect once via MCP or REST API, and every session your agent writes automatically becomes a structured timeline entry with mood, context, and full project history.`,
   },

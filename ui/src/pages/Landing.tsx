@@ -24,11 +24,11 @@ const PROBLEMS = [
   },
   {
     bad: 'Tasks scattered across Notion, GitHub issues, Slack, and sticky notes.',
-    good: 'One unified list. Your agent adds todos as it works; you close them as you ship.',
+    good: 'One Kanban flow. Your agent adds plan items as it works; you move them as you ship.',
   },
   {
-    bad: 'Your roadmap lives in your head. Followers have no idea where you are going.',
-    good: 'A public roadmap that updates itself. Show where you are going, not just where you have been.',
+    bad: 'Your project plan lives in your head. Followers have no idea where you are going.',
+    good: 'A public plan that updates itself. Show where you are going, not just where you have been.',
   },
 ]
 
@@ -87,7 +87,7 @@ export default function Landing() {
 
           {/* subheading */}
           <p className="text-[clamp(15px,1.4vw,19px)] text-ink-tertiary max-w-[500px] leading-[1.65] mb-12 font-light [text-wrap:balance]">
-            AI-powered project memory for builders. Tell your agent to log progress. devLog turns it into logs, todos, and roadmaps.
+            AI-powered project memory for builders. Tell your agent to log progress. devLog turns it into logs, todos, and a focused Kanban plan.
           </p>
 
           {/* CTAs */}
@@ -222,14 +222,14 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── TODOS + ROADMAP ──────────────────────────────────────── */}
+      {/* ── PLAN + KANBAN ───────────────────────────────────────── */}
       <section className="pb-32 px-8 max-w-[1280px] mx-auto w-full">
         <div className="text-center mb-16">
           <h2 className="font-serif italic text-[clamp(36px,4vw,64px)] text-ink-primary leading-[1.08] tracking-[-0.025em]">
             Log, plan, ship.
           </h2>
           <p className="text-base text-ink-secondary max-w-[480px] mx-auto mt-4 leading-[1.65]">
-            Todos and roadmap are part of the same project, updated by you, your agent, or both.
+            Project plans and Kanban live together, updated by you, your agent, or both.
           </p>
         </div>
 
@@ -242,14 +242,14 @@ export default function Landing() {
             className="bg-paper border border-[#e5e7eb] rounded-[14px] overflow-hidden flex flex-col"
           >
             <div className="p-8 pb-6">
-              <div className="font-mono text-[11px] text-ink-disabled tracking-[0.1em] uppercase mb-3">Todos</div>
-              <h3 className="text-[22px] font-semibold text-ink-primary tracking-[-0.02em] mb-2.5">Agent-assisted task lists</h3>
-              <p className="text-sm text-ink-secondary leading-[1.6]">Your agent adds todos as it discovers work; you check them off as you ship. Both can add, both can complete.</p>
+              <div className="font-mono text-[11px] text-ink-disabled tracking-[0.1em] uppercase mb-3">Kanban</div>
+              <h3 className="text-[22px] font-semibold text-ink-primary tracking-[-0.02em] mb-2.5">Agent-assisted task flow</h3>
+              <p className="text-sm text-ink-secondary leading-[1.6]">Your agent adds plan items as it discovers work; you move them through queue, doing, verify, and done.</p>
             </div>
             {/* mock UI */}
             <div className="mx-5 mb-5 bg-[#f8f9fa] border border-[#dde1e7] rounded-[10px] overflow-hidden flex-1">
               <div className="px-4 py-3 border-b border-[#e9ecef] flex items-center justify-between">
-                <span className="font-mono text-[11px] text-ink-tertiary">my-saas / todos</span>
+                <span className="font-mono text-[11px] text-ink-tertiary">my-saas / kanban</span>
                 <span className="font-mono text-[10px] text-ink-disabled">3 open · 1 done</span>
               </div>
               {[
@@ -287,19 +287,19 @@ export default function Landing() {
             className="bg-paper border border-[#e5e7eb] rounded-[14px] overflow-hidden flex flex-col"
           >
             <div className="p-8 pb-6">
-              <div className="font-mono text-[11px] text-ink-disabled tracking-[0.1em] uppercase mb-3">Roadmap</div>
-              <h3 className="text-[22px] font-semibold text-ink-primary tracking-[-0.02em] mb-2.5">A living, public roadmap</h3>
+              <div className="font-mono text-[11px] text-ink-disabled tracking-[0.1em] uppercase mb-3">Public plan</div>
+              <h3 className="text-[22px] font-semibold text-ink-primary tracking-[-0.02em] mb-2.5">A living, public plan</h3>
               <p className="text-sm text-ink-secondary leading-[1.6]">Define milestones manually. Your agent marks them in-progress or shipped as it works. Followers see where you're headed.</p>
             </div>
             {/* mock UI */}
             <div className="mx-5 mb-5 bg-[#f8f9fa] border border-[#dde1e7] rounded-[10px] overflow-hidden flex-1">
               <div className="px-4 py-3 border-b border-[#e9ecef] flex items-center justify-between">
-                <span className="font-mono text-[11px] text-ink-tertiary">my-saas / roadmap</span>
+                <span className="font-mono text-[11px] text-ink-tertiary">my-saas / plan</span>
                 <span className="font-mono text-[10px] text-ink-disabled">v1.0 target · Aug 2026</span>
               </div>
               {[
                 { label: 'v0.1: Foundation',    sub: 'Auth, DB, deploy · May 2026',             status: 'shipped',  color: '#22c55e', pulse: false, dim: true },
-                { label: 'v0.2: Core features', sub: 'Logs, moods, todos, roadmap · Jun 2026',  status: 'building', color: '#2563eb', pulse: true,  dim: false, active: true },
+                { label: 'v0.2: Core features', sub: 'Logs, moods, plan, Kanban · Jun 2026',  status: 'building', color: '#2563eb', pulse: true,  dim: false, active: true },
                 { label: 'v0.3: Social layer',  sub: 'Profiles, following · Jul 2026',          status: 'planned',  color: '#6b7280', pulse: false, dim: true },
                 { label: 'v1.0: Agent API',     sub: 'MCP, webhooks, SDK · Aug 2026',           status: 'planned',  color: '#6b7280', pulse: false, dim: true, dimmer: true },
               ].map((item, i) => (

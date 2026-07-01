@@ -1,15 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { CheckCircle2, CheckSquare, Circle, Clock3, Columns3, Copy, Pencil, Search, X } from 'lucide-react'
+import { CheckCircle2, CheckSquare, Circle, Clock3, Columns3, Copy, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Spinner } from '@/components/ui'
 import { useProjects } from '@/features/projects/hooks/useProjects'
 import { planService } from '@/services/plan.service'
 import { useAuthStore } from '@/stores/authStore'
 import type { PlanMilestoneWithTodos, PlanStatus, PlanTodoWithSources, Project } from '@/types'
-import { cn, formatDate } from '@/utils'
+import { ROUTES, cn, formatDate } from '@/utils'
 import { getCoverGradient } from '@/utils/coverGradient'
 import { normalizeMarkdownLineBreaks } from '@/utils/markdown'
 import { withDerivedMilestoneStatus } from '@/utils/planStatus'
@@ -75,6 +75,24 @@ function KanbanTodoCard({
   )
 }
 
+function KanbanEmptyState({
+  title,
+  description,
+  actions,
+}: {
+  title: string
+  description: string
+  actions?: ReactNode
+}) {
+  return (
+    <div className="rounded-2xl border border-dashed border-border bg-paper px-6 py-14 text-center">
+      <p className="text-[15px] font-semibold text-ink-secondary">{title}</p>
+      <p className="mx-auto mt-1 max-w-md text-[14px] text-ink-tertiary">{description}</p>
+      {actions && <div className="mt-5 flex flex-wrap items-center justify-center gap-2">{actions}</div>}
+    </div>
+  )
+}
+
 export default function Kanban() {
   const user = useAuthStore((s) => s.user)
   const { owned, shared, loading: projectsLoading, error: projectsError } = useProjects(user?.id)
@@ -125,10 +143,19 @@ export default function Kanban() {
     ),
   ), [plans])
 
+  const selectedProject = selectedProjectId === 'all' ? null : projects.find((project) => project.id === selectedProjectId) ?? null
+  const visiblePlans = useMemo(
+    () => selectedProjectId === 'all' ? plans : plans.filter((plan) => plan.project.id === selectedProjectId),
+    [plans, selectedProjectId],
+  )
+  const projectFilteredCards = useMemo(
+    () => cards.filter((card) => selectedProjectId === 'all' || card.project.id === selectedProjectId),
+    [cards, selectedProjectId],
+  )
+  const normalizedSearch = searchQuery.trim().toLowerCase()
+
   const filteredCards = useMemo(() => {
-    const normalizedSearch = searchQuery.trim().toLowerCase()
-    return cards.filter((card) => {
-      const matchesProject = selectedProjectId === 'all' || card.project.id === selectedProjectId
+    return projectFilteredCards.filter((card) => {
       const matchesSearch = !normalizedSearch || [
         card.ref,
         card.todo.title,
@@ -137,9 +164,9 @@ export default function Kanban() {
         card.project.title,
         card.todo.status,
       ].join(' ').toLowerCase().includes(normalizedSearch)
-      return matchesProject && matchesSearch
+      return matchesSearch
     })
-  }, [cards, selectedProjectId, searchQuery])
+  }, [projectFilteredCards, normalizedSearch])
 
   const cardsByStatus = useMemo(() => Object.fromEntries(
     COLUMNS.map(({ status }) => [
@@ -159,9 +186,57 @@ export default function Kanban() {
   }
 
   async function handleCopy(card: KanbanCard) {
-    const text = `${card.ref} - ${card.todo.title} - ${card.todo.description ?? ''}`
+    const description = card.todo.description?.trim()
+    const text = `[${card.project.title} #${card.ref}] ${card.todo.title}${description ? ` - ${description}` : ''}`
     await navigator.clipboard.writeText(text)
     toast.success('Copied card details')
+  }
+
+  async function handleDelete(card: KanbanCard) {
+    if (!window.confirm(`Delete "${card.todo.title}"?`)) return
+
+    setSelectedCard(null)
+    setPlans((prev) =>
+      prev.map((plan) =>
+        plan.project.id !== card.project.id
+          ? plan
+          : {
+              ...plan,
+              milestones: plan.milestones.map((milestone) =>
+                milestone.id !== card.milestone.id
+                  ? milestone
+                  : withDerivedMilestoneStatus({
+                      ...milestone,
+                      todos: milestone.todos.filter((todo) => todo.id !== card.todo.id),
+                    }),
+              ),
+            },
+      ),
+    )
+
+    try {
+      await planService.deleteTodo(card.todo.id)
+      toast.success('Deleted card')
+    } catch (err) {
+      setPlans((prev) =>
+        prev.map((plan) =>
+          plan.project.id !== card.project.id
+            ? plan
+            : {
+                ...plan,
+                milestones: plan.milestones.map((milestone) =>
+                  milestone.id !== card.milestone.id
+                    ? milestone
+                    : withDerivedMilestoneStatus({
+                        ...milestone,
+                        todos: [...milestone.todos, card.todo].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
+                      }),
+                ),
+              },
+        ),
+      )
+      toast.error(err instanceof Error ? err.message : 'Failed to delete card')
+    }
   }
 
   async function handleDrop(targetStatus: PlanStatus) {
@@ -233,6 +308,52 @@ export default function Kanban() {
     }
   }
 
+  const visibleMilestoneCount = visiblePlans.reduce((sum, plan) => sum + plan.milestones.length, 0)
+  const planTargetProject = selectedProject ?? projects[0]
+  const planHref = planTargetProject ? `/projects/${planTargetProject.id}?tab=plan` : ROUTES.NEW_PROJECT
+  const primaryActionClass = 'inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-accent-dark'
+  const secondaryActionClass = 'inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-[13px] font-medium text-ink-secondary transition hover:bg-gray-50'
+
+  let emptyState: ReactNode = null
+  if (projects.length === 0) {
+    emptyState = (
+      <KanbanEmptyState
+        title="Create a project to start your board."
+        description="Kanban cards come from project plan milestones and todos. Create a project first, then add your first milestone."
+        actions={<Link to={ROUTES.NEW_PROJECT} className={primaryActionClass}><Plus size={14} />Create project</Link>}
+      />
+    )
+  } else if (visibleMilestoneCount === 0) {
+    emptyState = (
+      <KanbanEmptyState
+        title={selectedProject ? `No milestones in ${selectedProject.title} yet.` : 'No milestones yet.'}
+        description="Add a milestone in a project plan, then create todos to populate this board."
+        actions={<Link to={planHref} className={primaryActionClass}><Plus size={14} />Add milestone</Link>}
+      />
+    )
+  } else if (projectFilteredCards.length === 0) {
+    emptyState = (
+      <KanbanEmptyState
+        title={selectedProject ? `No cards in ${selectedProject.title} yet.` : 'No cards yet.'}
+        description="Milestones exist, but there are no todos to drag through the workflow yet. Add a todo from the project plan."
+        actions={<Link to={planHref} className={primaryActionClass}><Plus size={14} />Add todo</Link>}
+      />
+    )
+  } else if (filteredCards.length === 0) {
+    emptyState = (
+      <KanbanEmptyState
+        title="No matching cards."
+        description={normalizedSearch ? 'No cards match this search. Clear the search or switch projects to see more work.' : 'This project filter has no matching cards.'}
+        actions={(
+          <>
+            {normalizedSearch && <button type="button" onClick={() => setSearchQuery('')} className={secondaryActionClass}>Clear search</button>}
+            {selectedProjectId !== 'all' && <button type="button" onClick={() => setSelectedProjectId('all')} className={secondaryActionClass}>Show all projects</button>}
+          </>
+        )}
+      />
+    )
+  }
+
   return (
     <div className="flex h-full flex-col overflow-hidden px-6 py-8 lg:px-10">
       <div className="mb-7 flex shrink-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -270,17 +391,7 @@ export default function Kanban() {
         </div>
       </div>
 
-      {cards.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-paper px-6 py-14 text-center">
-          <p className="text-[15px] font-semibold text-ink-secondary">Nothing here yet.</p>
-          <p className="mt-1 text-[14px] text-ink-tertiary">Add todos inside a project plan to populate the board.</p>
-        </div>
-      ) : filteredCards.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-paper px-6 py-14 text-center">
-          <p className="text-[15px] font-semibold text-ink-secondary">No matching cards.</p>
-          <p className="mt-1 text-[14px] text-ink-tertiary">Clear search, choose All projects, or add todos to this project plan.</p>
-        </div>
-      ) : (
+      {emptyState ?? (
         <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto pb-2">
           {COLUMNS.map(({ status, label, Icon }) => {
             const columnCards = cardsByStatus[status]
@@ -377,6 +488,14 @@ export default function Kanban() {
                 >
                   <Copy size={14} />
                   Copy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(selectedCard)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2 text-[13px] font-medium text-red-600 transition hover:bg-red-50"
+                >
+                  <Trash2 size={14} />
+                  Delete
                 </button>
                 <Link
                   to={`/projects/${selectedCard.project.id}?tab=plan&milestone=${selectedCard.milestone.id}`}

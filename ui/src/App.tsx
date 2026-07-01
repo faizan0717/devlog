@@ -26,7 +26,6 @@ const Dashboard = lazyPage('Dashboard', () => import('@/pages/Dashboard'))
 const Projects = lazyPage('Projects', () => import('@/pages/Projects'))
 const ProjectDetail = lazyPage('ProjectDetail', () => import('@/pages/ProjectDetailPage'))
 const Kanban = lazyPage('Kanban', () => import('@/pages/Kanban'))
-const PlanOverview = lazyPage('PlanOverview', () => import('@/pages/PlanOverview'))
 const NewProject = lazyPage('NewProject', () => import('@/pages/NewProject'))
 const ForgotPassword = lazyPage('ForgotPassword', () => import('@/pages/ForgotPassword'))
 const ResetPassword = lazyPage('ResetPassword', () => import('@/pages/ResetPassword'))
@@ -135,22 +134,8 @@ function AnimatedRoutes() {
                 </Suspense>
               }
             />
-            <Route
-              path={ROUTES.TODOS}
-              element={
-                <Suspense fallback={<PageLoader />}>
-                  <PlanOverview mode="todos" />
-                </Suspense>
-              }
-            />
-            <Route
-              path={ROUTES.ROADMAP}
-              element={
-                <Suspense fallback={<PageLoader />}>
-                  <PlanOverview mode="roadmap" />
-                </Suspense>
-              }
-            />
+            <Route path={ROUTES.TODOS} element={<Navigate to={ROUTES.KANBAN} replace />} />
+            <Route path={ROUTES.ROADMAP} element={<Navigate to={ROUTES.KANBAN} replace />} />
             <Route
               path={ROUTES.NEW_PROJECT}
               element={

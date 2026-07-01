@@ -17,7 +17,7 @@ Do this at least once per day during public beta launch week, and immediately af
 1. Vercel UI
    - Check latest deployment status and build logs.
    - Review runtime/client errors if available.
-   - Visit `/`, `/explore`, `/projects`, `/todos`, `/agent-access`, `/support`.
+   - Visit `/`, `/explore`, `/projects`, `/kanban`, `/agent-access`, `/support`.
 2. Railway API/MCP
    - Check service health at `https://api.devlog.one/health`.
    - Review logs for spikes in `401`, `403`, `429`, and `500` responses.

@@ -833,10 +833,15 @@ function KanbanTab({
   const allItems = selectedMilestone
     ? selectedMilestone.todos.map((todo, todoIndex) => ({ milestone: selectedMilestone, milestoneIndex: selectedMilestoneIndex, todo, todoIndex }))
     : []
+  const allProjectItems = milestones.flatMap((milestone, milestoneIndex) =>
+    milestone.todos.map((todo, todoIndex) => ({ milestone, milestoneIndex, todo, todoIndex })),
+  )
   const normalizedSearch = searchQuery.trim().toLowerCase()
   const items = normalizedSearch
-    ? allItems.filter(({ todo, todoIndex }) => [
-        planTodoRef(selectedMilestoneIndex, todoIndex),
+    ? allProjectItems.filter(({ milestone, milestoneIndex, todo, todoIndex }) => [
+        planTodoRef(milestoneIndex, todoIndex),
+        milestone.title,
+        milestone.description ?? '',
         todo.title,
         todo.description ?? '',
         todo.status,
@@ -908,6 +913,23 @@ function KanbanTab({
     const text = `${planTodoRef(item.milestoneIndex, item.todoIndex)} - ${safeText(item.todo.title)} - ${safeText(item.todo.description)}`
     await navigator.clipboard.writeText(text)
     toast.success('Copied card details')
+  }
+
+  async function deleteKanbanItem(item: { todo: PlanTodoWithSources }) {
+    if (!canEdit) return
+    if (!window.confirm(`Delete "${safeText(item.todo.title)}"?`)) return
+
+    setMutatingId(item.todo.id)
+    setSelectedKanbanItem(null)
+    try {
+      await planService.deleteTodo(item.todo.id)
+      toast.success('Deleted card')
+      onRefresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete card')
+    } finally {
+      setMutatingId(null)
+    }
   }
 
   function editKanbanItem(item: { milestone: PlanMilestoneWithTodos; todo: PlanTodoWithSources }) {
@@ -996,7 +1018,7 @@ function KanbanTab({
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search cards in this milestone…"
+              placeholder="Search cards across this project…"
               className="h-9 w-full rounded-xl border border-border bg-white pl-8 pr-3 text-[13px] text-ink-primary outline-none transition placeholder:text-ink-disabled focus:border-accent/60 focus:ring-2 focus:ring-accent/10"
             />
           </label>
@@ -1042,7 +1064,7 @@ function KanbanTab({
       {selectedMilestone && allItems.length > 0 && items.length === 0 && (
         <div className="mb-5 shrink-0 rounded-2xl border border-dashed border-border bg-chalk px-5 py-8 text-center">
           <p className="text-[14px] font-medium text-ink-secondary">No cards match “{safeText(searchQuery)}”.</p>
-          <p className="mt-1 text-[13px] text-ink-tertiary">Clear search to see all cards in this milestone.</p>
+          <p className="mt-1 text-[13px] text-ink-tertiary">Clear search to return to the selected milestone.</p>
         </div>
       )}
 
@@ -1186,14 +1208,27 @@ function KanbanTab({
                   <Copy size={14} />
                   Copy
                 </button>
-                <button
-                  type="button"
-                  onClick={() => editKanbanItem(selectedKanbanItem)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-accent-dark"
-                >
-                  <Pencil size={14} />
-                  Edit
-                </button>
+                {canEdit && (
+                  <button
+                    type="button"
+                    disabled={mutatingId === selectedKanbanItem.todo.id}
+                    onClick={() => void deleteKanbanItem(selectedKanbanItem)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2 text-[13px] font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                  >
+                    <Trash2 size={14} />
+                    Delete
+                  </button>
+                )}
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => editKanbanItem(selectedKanbanItem)}
+                    className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-accent-dark"
+                  >
+                    <Pencil size={14} />
+                    Edit
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1419,10 +1454,15 @@ function PlanTab({
   const totalProgress = Math.round((shipped / total) * 100)
   const todos = selected.todos ?? []
   const normalizedSearch = searchQuery.trim().toLowerCase()
-  const todoItems = todos.map((todo, index) => ({ todo, index }))
+  const todoItems = todos.map((todo, index) => ({ todo, index, milestone: selected, milestoneIndex: selectedMilestoneIndex }))
+  const allProjectTodoItems = milestones.flatMap((milestone, milestoneIndex) =>
+    milestone.todos.map((todo, index) => ({ todo, index, milestone, milestoneIndex })),
+  )
   const visibleTodoItems = normalizedSearch
-    ? todoItems.filter(({ todo, index }) => [
-        planTodoRef(selectedMilestoneIndex, index),
+    ? allProjectTodoItems.filter(({ todo, index, milestone, milestoneIndex }) => [
+        planTodoRef(milestoneIndex, index),
+        milestone.title,
+        milestone.description ?? '',
         todo.title,
         todo.description ?? '',
         todo.status,
@@ -1547,7 +1587,7 @@ function PlanTab({
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search todos in this milestone…"
+              placeholder="Search todos across this project…"
               className="h-9 w-full rounded-xl border border-border bg-gray-50 pl-8 pr-3 text-[13px] text-ink-primary outline-none transition placeholder:text-ink-disabled focus:border-accent/60 focus:bg-white focus:ring-2 focus:ring-accent/10"
             />
           </label>
@@ -1564,19 +1604,31 @@ function PlanTab({
             </div>
           ) : (
             <div className="border border-gray-100 rounded-xl overflow-hidden divide-y divide-gray-50">
-              {visibleTodoItems.map(({ todo, index }) => {
+              {visibleTodoItems.map(({ todo, index, milestone, milestoneIndex }) => {
                 const done = todo.status === 'done'
                 const source = completionSourceLabel(todo, userId)
+                const todoRef = planTodoRef(milestoneIndex, index)
+                const isCurrentMilestone = milestone.id === selected.id
                 return (
                   <div key={todo.id} className={cn('px-4 py-3.5 flex items-start gap-3 transition-colors', done ? 'bg-green-50/30' : 'bg-white')}>
-                    <button type="button" disabled={!canEdit || mutatingId === todo.id} onClick={() => toggleTodo(todo)} className="mt-0.5 disabled:cursor-default" aria-label={done ? `Reopen ${planTodoRef(selectedMilestoneIndex, index)} ${safeText(todo.title)}` : `Complete ${planTodoRef(selectedMilestoneIndex, index)} ${safeText(todo.title)}`}>
+                    <button type="button" disabled={!canEdit || mutatingId === todo.id} onClick={() => toggleTodo(todo)} className="mt-0.5 disabled:cursor-default" aria-label={done ? `Reopen ${todoRef} ${safeText(todo.title)}` : `Complete ${todoRef} ${safeText(todo.title)}`}>
                       <TodoCheck done={done} />
                     </button>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-mono text-[10px] text-accent bg-blue-50 border border-blue-100 rounded px-1.5 py-[1px] flex-shrink-0">#{planTodoRef(selectedMilestoneIndex, index)}</span>
-                        <div className={cn('text-[14px]', done ? 'text-ink-disabled line-through decoration-green-500/50' : 'text-ink-primary')}>{safeText(todo.title)}</div>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onSelect(milestone.id)}
+                        className="flex min-w-0 items-baseline gap-2 text-left"
+                        title={isCurrentMilestone ? 'Current milestone' : `Open ${safeText(milestone.title)}`}
+                      >
+                        <span className="font-mono text-[10px] text-accent bg-blue-50 border border-blue-100 rounded px-1.5 py-[1px] flex-shrink-0">#{todoRef}</span>
+                        <span className={cn('text-[14px]', done ? 'text-ink-disabled line-through decoration-green-500/50' : 'text-ink-primary')}>{safeText(todo.title)}</span>
+                      </button>
+                      {normalizedSearch && (
+                        <button type="button" onClick={() => onSelect(milestone.id)} className="mt-1 font-mono text-[10px] text-ink-disabled hover:text-accent transition-colors">
+                          {isCurrentMilestone ? 'Current milestone' : 'Open milestone'} · {safeText(milestone.title)}
+                        </button>
+                      )}
                       {todo.description && <div className={cn('text-[13px] text-ink-tertiary mt-1 line-clamp-2', done && 'opacity-70')}>{safeText(todo.description)}</div>}
                       <div className="font-mono text-[10px] text-ink-disabled mt-0.5">
                         {done
@@ -1587,8 +1639,8 @@ function PlanTab({
                     </div>
                     {canEdit && (
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <button type="button" disabled={index === 0 || mutatingId === todo.id} onClick={() => updateTodoOrder(todos, index, -1)} className="p-1 text-ink-disabled hover:text-ink-secondary disabled:opacity-20"><ChevronUp size={13} /></button>
-                        <button type="button" disabled={index === todos.length - 1 || mutatingId === todo.id} onClick={() => updateTodoOrder(todos, index, 1)} className="p-1 text-ink-disabled hover:text-ink-secondary disabled:opacity-20"><ChevronDown size={13} /></button>
+                        <button type="button" disabled={index === 0 || mutatingId === todo.id} onClick={() => updateTodoOrder(milestone.todos, index, -1)} className="p-1 text-ink-disabled hover:text-ink-secondary disabled:opacity-20"><ChevronUp size={13} /></button>
+                        <button type="button" disabled={index === milestone.todos.length - 1 || mutatingId === todo.id} onClick={() => updateTodoOrder(milestone.todos, index, 1)} className="p-1 text-ink-disabled hover:text-ink-secondary disabled:opacity-20"><ChevronDown size={13} /></button>
                         <button type="button" onClick={() => openEditTodo(todo)} className="p-1.5 text-ink-tertiary hover:text-accent transition-colors"><Pencil size={14} /></button>
                         <button type="button" onClick={() => deleteTodo(todo)} className="p-1.5 text-ink-tertiary hover:text-danger transition-colors"><Trash2 size={14} /></button>
                       </div>
