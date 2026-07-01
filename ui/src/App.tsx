@@ -9,7 +9,7 @@ import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { Spinner } from '@/components/ui'
 import { ROUTES } from '@/utils'
 
-function lazyPage<T extends ComponentType<any>>(name: string, loader: () => Promise<{ default?: T }>) {
+function lazyPage<Props extends object>(name: string, loader: () => Promise<{ default?: ComponentType<Props> }>) {
   return lazy(async () => {
     const module = await loader()
     if (!module.default) {

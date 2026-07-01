@@ -47,7 +47,7 @@ GET     /setup.sh
 GET     /health
 ```
 
-Plan statuses: `pending` | `doing` | `done`. Plan refs are generated from sorted plan order, e.g. `1.1.3`; use `1.1.*` for all todos in milestone `1.1`.
+Plan statuses: `todo` | `in_queue` | `doing` | `verify` | `done`. Legacy aliases are normalized before writes: `pending` → `todo`, and `queue`/`queued`/`in que` → `in_queue`. Plan refs are generated from sorted plan order, e.g. `1.1.3`; use `1.1.*` for all todos in milestone `1.1`.
 
 ## Agent setup (for users)
 

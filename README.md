@@ -216,7 +216,7 @@ Token resolution order is `./.devlog` → `~/.devlog` → `DEVLOG_AGENT_TOKEN`; 
 
 ### Plan tools
 
-Agents can read and update project plans through REST or MCP: milestones, todos, statuses (`pending`, `doing`, `done`), visibility, and completion/reopen actions. Plan refs such as `1.1.3` identify todos in sorted order; `1.1.*` targets every todo in a milestone. Full live API reference: `GET /docs`.
+Agents can read and update project plans through REST or MCP: milestones, todos, statuses (`todo`, `in_queue`, `doing`, `verify`, `done`), visibility, and completion/reopen actions. Legacy status aliases such as `pending` → `todo` and `queue`/`queued`/`in que` → `in_queue` are normalized before writes. Plan refs such as `1.1.3` identify todos in sorted order; `1.1.*` targets every todo in a milestone. Full live API reference: `GET /docs`.
 
 ---
 
